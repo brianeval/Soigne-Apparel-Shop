@@ -19,6 +19,9 @@ if (!isset($page_title)) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo ($page_title); ?></title>
   <link rel="stylesheet" href="styles/homepage.css">
+  <?php if (isset($extra_css)) { ?>
+    <link rel="stylesheet" href="styles/<?php echo $extra_css; ?>?v=<?php echo time(); ?>">
+  <?php } ?>
 </head>
 <body>
 

@@ -35,9 +35,9 @@
         <a href="#">View all</a>
       </div>
       <div class="product-row">
-        <?php while ($p = mysqli_fetch_assoc($result)) { ?>
+        <?php while ($p = mysqli_fetch_assoc($result)) { 
 
-          <?php
+
           // Get the first color's image of this product
           $q2 = "SELECT image FROM product_colors WHERE product_id = ? LIMIT 1";
           $stmt = mysqli_prepare($conn, $q2);

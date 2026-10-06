@@ -44,12 +44,15 @@ $variants = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 
 // Page title, then the header
 $page_title = $product['name'] . " | Soigné";
+$extra_css = "product.css";
 include('includes/header.php');
 ?>
 
 <div class="product-page">
 
-  <img src="images/<?php echo ($selected['image']); ?>" alt="">
+  <div class="product-photo">
+    <img src="images/<?php echo ($selected['image']); ?>" alt="">
+  </div>
 
   <div class="product-info">
     <h1><?php echo ($product['name']); ?></h1>
