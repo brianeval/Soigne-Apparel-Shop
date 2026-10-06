@@ -1,42 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Soigné | Men</title>
-  <link rel="stylesheet" href="homepage.css">
-</head>
-<body>
+<?php
+  include ("includes/header.php");
+  include ("includes/config.php");
 
-  <header class="site-header">
-    <a href="#" class="logo">Soigné</a>
-    <nav class="main-nav" aria-label="Main">
-      <a href="#" class="active">Men</a>
-      <a href="#">Women</a>
-      <a href="#">Kids</a>
-      <a href="#">Sale</a>
-    </nav>
-    <form class="search" role="search" onsubmit="return false">
-      <input type="search" placeholder="Search products" aria-label="Search products">
-    </form>
-    <div class="icons">
-      <a href="#">Account</a>
-      <a href="#">Wishlist</a>
-      <a href="#">Cart (0)</a>
-    </div>
-  </header>
-
-  <nav class="sub-nav" aria-label="Men categories">
-    <a href="#">New arrivals</a>
-    <a href="#">T-shirts</a>
-    <a href="#">Shirts</a>
-    <a href="#">Pants</a>
-    <a href="#">Shorts</a>
-    <a href="#">Outerwear</a>
-    <a href="#">Innerwear</a>
-    <a href="#">Accessories</a>
-  </nav>
-
+  $q = "SELECT DISTINCT p.*
+      FROM products p
+      JOIN product_colors pc ON pc.product_id = p.product_id
+      JOIN product_variants v ON v.product_color_id = pc.product_color_id
+      WHERE v.stock > 0";
+  $result = mysqli_query($conn, $q);
+?>
   <main>
     <section class="hero">
       <div class="hero-text">
@@ -63,31 +35,24 @@
         <a href="#">View all</a>
       </div>
       <div class="product-row">
-        <a href="#" class="product">
-          <div class="thumb p1"></div>
-          <p class="name">Airy Cotton Crew Neck T-Shirt</p>
-          <p class="price">₱590</p>
-        </a>
-        <a href="#" class="product">
-          <div class="thumb p2"></div>
-          <p class="name">Premium Linen Long Sleeve Shirt</p>
-          <p class="price">₱1,490</p>
-        </a>
-        <a href="#" class="product">
-          <div class="thumb p3"></div>
-          <p class="name">Relaxed Ankle Chino Pants</p>
-          <p class="price">₱1,290</p>
-        </a>
-        <a href="#" class="product">
-          <div class="thumb p4"></div>
-          <p class="name">Lightweight Packable Jacket</p>
-          <p class="price sale">₱1,790 <s>₱2,290</s></p>
-        </a>
-        <a href="#" class="product">
-          <div class="thumb p5"></div>
-          <p class="name">Quick-Dry Sports Shorts</p>
-          <p class="price">₱790</p>
-        </a>
+        <?php while ($p = mysqli_fetch_assoc($result)) { ?>
+
+          <?php
+          // Get the first color's image of this product
+          $q2 = "SELECT image FROM product_colors WHERE product_id = ? LIMIT 1";
+          $stmt = mysqli_prepare($conn, $q2);
+          mysqli_stmt_bind_param($stmt, 'i', $p['product_id']);
+          mysqli_stmt_execute($stmt);
+          $color = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+          ?>
+
+          <a href="product.php?id=<?php echo $p['product_id']; ?>" class="product">
+            <div class="thumb" style="background-image: url('images/<?php echo ($color['image']); ?>')"></div>
+            <p class="name"><?php echo ($p['name']); ?></p>
+            <p class="price"><?php echo peso($p['price']); ?></p>
+          </a>
+
+        <?php } ?>
       </div>
     </section>
 
@@ -115,14 +80,6 @@
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="cols">
-      <div><h4>Shop</h4><a href="#">Men</a><a href="#">Women</a><a href="#">Kids</a><a href="#">Sale</a></div>
-      <div><h4>Help</h4><a href="#">Size guide</a><a href="#">Shipping</a><a href="#">Returns</a><a href="#">Contact us</a></div>
-      <div><h4>About</h4><a href="#">Our story</a><a href="#">Stores</a><a href="#">Careers</a></div>
-    </div>
-    <p class="copy">© 2026 Soigné Apparel Shop. All rights reserved.</p>
-  </footer>
-
-</body>
-</html>
+<?php
+  include ("includes/footer.php");
+?>
