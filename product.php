@@ -1,6 +1,7 @@
 <?php
 session_start();
-include('includes/config.php');
+include_once('includes/config.php');
+
 
 // STEP 1: Get the product id from the URL (product.php?id=4)
 $id = $_GET['id'];
@@ -45,7 +46,7 @@ $variants = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 // Page title, then the header
 $page_title = $product['name'] . " | Soigné";
 $extra_css = "product.css";
-include('includes/header.php');
+include_once('includes/header.php');
 ?>
 
 <div class="product-page">
@@ -77,7 +78,7 @@ include('includes/header.php');
     </div>
 
     <!-- Sizes and Add to cart -->
-    <form method="post" action="cart_add.php">
+    <form method="post" action="cart/cart_add.php">
       <h3>Size</h3>
       <div class="size-options">
         <?php foreach ($variants as $v) { ?>
@@ -102,4 +103,29 @@ include('includes/header.php');
 
 </div>
 
-<?php include('includes/footer.php'); ?>
+<?php if (!isset($_SESSION['user_id'])) { ?>
+  <dialog id="login-modal" class="modal">
+    <button type="button" class="modal-close" aria-label="Close">&times;</button>
+    <h2>Sign in to continue</h2>
+    <p>Please sign in or create an account to add items to your cart.</p>
+    <div class="modal-actions">
+      <a class="btn" href="users/login.php?redirect=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>">Sign in</a>
+      <a class="btn btn-outline" href="users/register.php?redirect=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>">Create account</a>
+    </div>
+  </dialog>
+
+  <script>
+    const modal = document.getElementById('login-modal');
+    const cartForm = document.querySelector('form[action="cart/cart_add.php"]');
+
+    // The submit event only fires after the "pick a size" check passes
+    cartForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      modal.showModal();
+    });
+
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.close());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.close(); }); // click outside
+  </script>
+<?php } ?>
+<?php include_once('includes/footer.php'); ?>

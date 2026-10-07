@@ -1,0 +1,139 @@
+.dept-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 32px 72px;
+}
+
+.dept-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.dept-head h1 {
+  font-size: 32px;
+  letter-spacing: -0.5px;
+}
+
+.dept-count {
+  color: #6b6b6b;
+  font-size: 14px;
+}
+
+.dept-empty {
+  padding: 48px 0;
+  color: #6b6b6b;
+}
+
+.dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px 16px;
+}
+
+.dept-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.dept-img {
+  aspect-ratio: 3 / 4;
+  background: #f3f1ee;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.dept-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dept-name {
+  font-size: 14px;
+}
+
+.dept-card:hover .dept-name {
+  text-decoration: underline;
+}
+
+.dept-meta {
+  font-size: 12px;
+  color: #6b6b6b;
+  min-height: 18px;
+}
+
+.dept-price {
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .dept-page { padding: 24px 16px 56px; }
+  .dept-grid { grid-template-columns: repeat(2, 1fr); gap: 20px 12px; }
+}
+
+/* ---------- Brands ---------- */
+.brand-back {
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.brand-back a { text-decoration: underline; }
+
+.brand-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.brand-head h1 {
+  font-size: 32px;
+  letter-spacing: -0.5px;
+}
+
+.brand-head-logo {
+  height: 48px;
+  width: auto;
+}
+
+.brand-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px 16px;
+}
+
+.brand-card {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-logo-box {
+  aspect-ratio: 4 / 3;
+  background: #f3f1ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.brand-logo-box img {
+  max-width: 70%;
+  max-height: 70%;
+  object-fit: contain;
+}
+
+.brand-initial {
+  font-size: 56px;
+  font-weight: 700;
+  color: #b9b4ab;
+}
+
+.brand-card:hover .dept-name { text-decoration: underline; }

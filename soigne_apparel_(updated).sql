@@ -45,7 +45,8 @@ CREATE TABLE customers (
 -- ---------------------------------------------------------------------
 CREATE TABLE suppliers (
   supplier_id INT AUTO_INCREMENT PRIMARY KEY,
-  name        VARCHAR(120) NOT NULL UNIQUE
+  name        VARCHAR(120) NOT NULL UNIQUE,
+  image       VARCHAR(255) NULL
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -56,9 +57,11 @@ CREATE TABLE products (
   supplier_id INT NOT NULL,
   name        VARCHAR(150)  NOT NULL,
   category    VARCHAR(50),
+  department  ENUM('men','women','kids') NOT NULL DEFAULT 'men',
   price       DECIMAL(10,2) NOT NULL,
   description TEXT,
   created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_department (department),
   FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
 ) ENGINE=InnoDB;
 
@@ -186,12 +189,13 @@ INSERT INTO customers (user_id, customer_name, phone, address) VALUES
 INSERT INTO suppliers (name) VALUES ('Soigné Basics'), ('Northline Outdoors');
 
 -- Products (supplier 1 = Soigné Basics, supplier 2 = Northline Outdoors)
-INSERT INTO products (supplier_id, name, category, price, description) VALUES
-(1, 'Airy Cotton Crew Neck T-Shirt', 'T-shirts',  590.00,  'Lightweight everyday tee in breathable cotton.'),
-(1, 'Premium Linen Long Sleeve Shirt', 'Shirts',  1490.00, 'Soft linen shirt that stays cool in the heat.'),
-(1, 'Relaxed Ankle Chino Pants',  'Pants',        1290.00, 'Relaxed fit chinos with a cropped ankle.'),
-(2, 'Lightweight Packable Jacket', 'Outerwear',   1790.00, 'Water-resistant jacket that folds into its own pocket.'),
-(2, 'Quick-Dry Sports Shorts',    'Shorts',       790.00,  'Fast-drying shorts for training and travel.');
+-- department: men / women / kids
+INSERT INTO products (supplier_id, name, category, department, price, description) VALUES
+(1, 'Airy Cotton Crew Neck T-Shirt',    'T-shirts',  'men',   590.00,  'Lightweight everyday tee in breathable cotton.'),
+(1, 'Premium Linen Long Sleeve Shirt',  'Shirts',    'women', 1490.00, 'Soft linen shirt that stays cool in the heat.'),
+(1, 'Relaxed Ankle Chino Pants',        'Pants',     'men',   1290.00, 'Relaxed fit chinos with a cropped ankle.'),
+(2, 'Lightweight Packable Jacket',      'Outerwear', 'women', 1790.00, 'Water-resistant jacket that folds into its own pocket.'),
+(2, 'Quick-Dry Sports Shorts',          'Shorts',    'kids',  790.00,  'Fast-drying shorts for training and travel.');
 
 -- One image per color (put matching files in your images/ folder)
 INSERT INTO product_colors (product_id, color, image) VALUES

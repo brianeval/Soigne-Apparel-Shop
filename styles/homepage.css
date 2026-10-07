@@ -124,3 +124,19 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
 }
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;      
+  display: flex;
+  flex-direction: column;
+}
+
+body > * {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.site-footer {
+  margin-top: auto;        
+}

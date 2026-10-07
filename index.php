@@ -1,7 +1,8 @@
 <?php
-  include ("includes/header.php");
-  include ("includes/config.php");
-
+  session_start();
+  include_once("includes/header.php");
+  include_once("includes/config.php");
+  
   $q = "SELECT DISTINCT p.*
       FROM products p
       JOIN product_colors pc ON pc.product_id = p.product_id
@@ -81,5 +82,5 @@
   </main>
 
 <?php
-  include ("includes/footer.php");
+  include_once("includes/footer.php");
 ?>
