@@ -53,7 +53,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .hero-text { padding: 64px 48px 64px 64px; align-self: center; }
 .hero-text h1 { font-size: clamp(34px, 4.5vw, 56px); line-height: 1.08; letter-spacing: -1px; margin-bottom: 18px; }
 .hero-text p { color: var(--muted); max-width: 40ch; margin-bottom: 28px; font-size: 17px; }
-.hero-img { background: linear-gradient(135deg, #cfd6cc 0%, #aab7a6 100%); }
+.hero-img { background: #cfd6cc url('../images/hero-fashion.jpg') center / cover no-repeat; }
 
 /* Sections */
 .section { padding: 64px 32px 0; max-width: 1280px; margin: 0 auto; }
@@ -62,13 +62,22 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .section-head a { font-size: 14px; text-decoration: underline; }
 
 /* Category tiles */
-.cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-.cat { aspect-ratio: 3 / 4; display: flex; align-items: flex-end; padding: 18px; font-weight: 600; font-size: 18px; }
+.cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.cat { aspect-ratio: 4 / 3; display: flex; align-items: flex-end; padding: 12px; font-weight: 600; font-size: 15px; position: relative; overflow: hidden; }
+.cat img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cat.c2 img, .cat.c3 img, .cat.c4 img, .cat.c5 img, .cat.c6 img, .cat.c7 img, .cat.c8 img, .cat.c9 img, .cat.c10 img { object-fit: contain; object-position: center; }
+.cat span { position: relative; z-index: 1; }
 .cat:hover span { border-bottom: 2px solid currentColor; }
-.c1 { background: #d9d4cc; }
+.c1 { background: #d9d4cc url('../images/whiteshirt.jpg') center / cover no-repeat; }
 .c2 { background: #b9c4cf; }
 .c3 { background: #c7b9a6; }
 .c4 { background: #8f9b8a; color: #fff; }
+.c5 { background: #d8c9bd; }
+.c6 { background: #c7b9a6; }
+.c7 { background: #aebbc5; }
+.c8 { background: #d7c9a9; }
+.c9 { background: #bdc9b7; }
+.c10 { background: #8f9b8a; color: #fff; }
 
 /* Product row */
 .product-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
@@ -115,10 +124,14 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
   .hero, .feature { grid-template-columns: 1fr; }
   .hero-text { padding: 40px 24px; }
   .hero-img { min-height: 320px; }
-  .cat-grid { grid-template-columns: repeat(2, 1fr); }
+  .cat-grid { grid-template-columns: repeat(3, 1fr); }
   .product-row { grid-template-columns: repeat(2, 1fr); }
   .feature-text { padding: 40px 24px; }
   .perks, .cols { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .cat-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {

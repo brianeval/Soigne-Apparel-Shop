@@ -2,7 +2,7 @@
   session_start();
   include_once("includes/header.php");
   include_once("includes/config.php");
-  
+
   $q = "SELECT DISTINCT p.*
       FROM products p
       JOIN product_colors pc ON pc.product_id = p.product_id
@@ -23,10 +23,16 @@
     <section class="section">
       <h2>Shop by category</h2>
       <div class="cat-grid">
-        <a href="#" class="cat c1"><span>T-shirts</span></a>
-        <a href="#" class="cat c2"><span>Shirts</span></a>
-        <a href="#" class="cat c3"><span>Pants</span></a>
-        <a href="#" class="cat c4"><span>Outerwear</span></a>
+        <a href="#" class="cat c1"><img src="<?php echo BASE_URL; ?>images/whiteshirt.jpg" alt=""><span>T-shirts</span></a>
+        <a href="#" class="cat c2"><img src="<?php echo BASE_URL; ?>images/shirt-category-removebg-preview.png" alt="White button-up shirt"><span>Shirts</span></a>
+        <a href="#" class="cat c3"><img src="<?php echo BASE_URL; ?>images/polo-removebg-preview.png" alt="Polo shirt"><span>Polos</span></a>
+        <a href="#" class="cat c4"><img src="<?php echo BASE_URL; ?>images/hoodies-removebg-preview.png" alt="Hoodie"><span>Hoodies</span></a>
+        <a href="#" class="cat c5"><img src="<?php echo BASE_URL; ?>images/sweatshirt-removebg-preview.png" alt="Sweater"><span>Sweaters</span></a>
+        <a href="#" class="cat c6"><img src="<?php echo BASE_URL; ?>images/pants-removebg-preview.png" alt="Pants"><span>Pants</span></a>
+        <a href="#" class="cat c7"><img src="<?php echo BASE_URL; ?>images/jeans-removebg-preview.png" alt="Jeans"><span>Jeans</span></a>
+        <a href="#" class="cat c8"><img src="<?php echo BASE_URL; ?>images/chinos-removebg-preview.png" alt="Chinos"><span>Chinos</span></a>
+        <a href="#" class="cat c9"><img src="<?php echo BASE_URL; ?>images/shorts-removebg-preview.png" alt="Khaki shorts"><span>Shorts</span></a>
+        <a href="#" class="cat c10"><img src="<?php echo BASE_URL; ?>images/outerwear-removebg-preview.png" alt="Outerwear jacket"><span>Outerwear</span></a>
       </div>
     </section>
 
@@ -66,19 +72,6 @@
       </div>
     </section>
 
-    <section class="perks">
-      <div><h3>Free returns</h3><p>Return within 30 days, no questions.</p></div>
-      <div><h3>Pick up in store</h3><p>Order online, collect the same day.</p></div>
-      <div><h3>Member rewards</h3><p>Earn points on every purchase.</p></div>
-    </section>
-
-    <section class="newsletter">
-      <h2>Get new arrivals in your inbox</h2>
-      <form onsubmit="return false">
-        <input type="email" placeholder="Email address" aria-label="Email address">
-        <button class="btn" type="submit">Subscribe</button>
-      </form>
-    </section>
   </main>
 
 <?php
