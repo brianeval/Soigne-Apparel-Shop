@@ -1,5 +1,6 @@
 <?php
 // Department page: department.php?dept=men | women | kids
+session_start();
 include_once ('includes/config.php');
 
 $dept = $_GET['dept'] ?? '';

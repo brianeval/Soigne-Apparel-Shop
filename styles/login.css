@@ -47,6 +47,7 @@
 
 .login-card input[type="text"],
 .login-card input[type="email"],
+.login-card input[type="tel"],
 .login-card input[type="password"] {
   width: 100%;
   padding: 12px 14px;
@@ -55,7 +56,35 @@
   margin-bottom: 18px;
 }
 
-.login-card input:focus {
+.login-card input[type="file"] {
+  width: 100%;
+  margin: 4px 0 6px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.register-avatar-preview {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 8px 0 4px;
+  border: 1px solid #e5e5e5;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.login-card textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 14px;
+  border: 1px solid #c9c9c9;
+  font: inherit;
+  margin-bottom: 18px;
+  resize: vertical;
+}
+
+.login-card input:focus,
+.login-card textarea:focus {
   outline: 2px solid #1c1c1c;
   outline-offset: 1px;
 }

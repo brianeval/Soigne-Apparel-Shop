@@ -140,3 +140,56 @@ body > * {
 .site-footer {
   margin-top: auto;        
 }
+.account-menu { position: relative; }
+
+.account-toggle {
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 14px;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.account-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+.account-toggle:hover { color: #b3261e; }
+
+.account-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 8px 0;
+  z-index: 20;
+}
+.account-dropdown[hidden] { display: none; }
+
+.account-dropdown a {
+  display: block;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #1c1c1c;
+}
+.account-dropdown a:hover { background: #f3f1ee; color: #1c1c1c; }
+
+.account-hello {
+  padding: 8px 16px 10px;
+  font-size: 13px;
+  color: #6b6b6b;
+  border-bottom: 1px solid #e5e5e5;
+  margin-bottom: 4px;
+}
+
+.account-logout { border-top: 1px solid #e5e5e5; margin-top: 4px; }
