@@ -81,7 +81,19 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 
 /* Product row */
 .product-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
-.thumb { aspect-ratio: 3 / 4; margin-bottom: 10px; }
+.thumb {
+  aspect-ratio: 3 / 4;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: var(--stone);
+}
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
 .p1 { background: #e4e0d8; } .p2 { background: #c9d3dc; } .p3 { background: #cdbfa9; }
 .p4 { background: #a9b5a4; } .p5 { background: #bcc3cc; }
 .product .name { font-size: 14px; }

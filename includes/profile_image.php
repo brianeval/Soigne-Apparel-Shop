@@ -1,7 +1,7 @@
 <?php
 function profile_image_files(int $user_id): array
 {
-    $directory = __DIR__ . '/../images/profiles';
+    $directory = '/../images/profiles';
     $files = [];
 
     foreach (['jpg', 'png', 'webp'] as $extension) {
@@ -55,7 +55,7 @@ function save_profile_image_upload(array $upload, int $user_id): ?string
         throw new RuntimeException('Choose a JPEG, PNG, or WebP image for your profile picture.');
     }
 
-    $directory = __DIR__ . '/../images/profiles';
+    $directory = '/../images/profiles';
     if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
         throw new RuntimeException('The profile picture could not be saved. Please try again.');
     }

@@ -1,6 +1,6 @@
 <?php
 include ('config.php');
-require_once __DIR__ . '/profile_image.php';
+require_once ('profile_image.php');
 // Count the signed-in user's cart items
 $cart_count = 0;
 if (isset($_SESSION['user_id'])) {
@@ -37,12 +37,11 @@ if (!isset($page_title)) {
     <a href="<?php echo BASE_URL; ?>department.php?dept=kids"  class="<?php echo (($dept ?? '') === 'kids')  ? 'active' : ''; ?>">Kids</a>
     <a href="<?php echo BASE_URL; ?>brands.php" class="<?php echo (($nav_active ?? '') === 'brands') ? 'active' : ''; ?>">Brands</a>
   </nav>
-    <form class="search" role="search" onsubmit="return false">
-      <input type="search" placeholder="Search products" aria-label="Search products">
+    <form class="search" role="search" method="get" action="<?php echo BASE_URL; ?>search.php">
+      <input type="search" name="q" value="<?php echo htmlspecialchars($_GET['q'] ?? ''); ?>" placeholder="Search products/brands" aria-label="Search products or brands">
     </form>
     <div class="icons">
       <a href="<?php echo BASE_URL; ?>cart/cart.php">🛒 Cart (<?php echo $cart_count; ?>)</a>
-      <a href="#">Wishlist</a>
 
       <div class="account-menu" id="account-menu">
         <button type="button" class="account-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="account-dropdown">
@@ -57,7 +56,7 @@ if (!isset($page_title)) {
           <?php if (isset($_SESSION['user_id'])) { ?>
             <p class="account-hello">Hi, <?php echo htmlspecialchars($_SESSION['username'] ?? 'there'); ?></p>
             <a href="<?php echo BASE_URL; ?>users/profile.php">My profile</a>
-            <a href="<?php echo BASE_URL; ?>orders.php">My orders</a>
+            <a href="<?php echo BASE_URL; ?>orders/orders.php">My orders</a>
             <?php if (($_SESSION['role'] ?? '') === 'admin') { ?>
               <a href="<?php echo BASE_URL; ?>admin/index.php">Admin dashboard</a>
             <?php } ?>

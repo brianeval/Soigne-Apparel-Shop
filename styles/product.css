@@ -133,6 +133,45 @@
   font-size: 16px;
 }
 
+.product-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.product-info .product-actions > .btn {
+  flex: 1;
+  width: auto;
+  padding: 13px 12px;
+  text-align: center;
+}
+
+.product-info .product-actions .btn-outline {
+  color: var(--ink);
+}
+
+.product-info .product-actions .btn-outline:hover {
+  color: #fff;
+}
+
+.product-flash {
+  padding: 10px 12px;
+  margin: 16px 0;
+  border: 1px solid;
+  font-size: 14px;
+}
+
+.product-flash.is-success {
+  background: #eef7ee;
+  color: #1e6b2e;
+  border-color: #c6e3c9;
+}
+
+.product-flash.is-error {
+  background: #fdecea;
+  color: #b3261e;
+  border-color: #f5c2be;
+}
+
 /* Phones */
 @media (max-width: 960px) {
   .product-page {

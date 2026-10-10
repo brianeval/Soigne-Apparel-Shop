@@ -1,7 +1,6 @@
 <?php
 session_start();
 include_once('../includes/config.php');
-require_once __DIR__ . '/../includes/profile_image.php';
 
 // Only allow redirects to paths on this site (never full URLs)
 function safe_redirect($path) {
@@ -79,11 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_bind_param($stmt, 'isss', $user_id, $name, $phone, $address);
             mysqli_stmt_execute($stmt);
 
-            $saved_profile_image = null;
-            if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] !== UPLOAD_ERR_NO_FILE) {
-                $saved_profile_image = save_profile_image_upload($_FILES['profile_photo'], $user_id);
-            }
-
             mysqli_commit($conn);
 
             // Sign the new user in and send them back where they came from
@@ -96,20 +90,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } catch (mysqli_sql_exception $e) {
             mysqli_rollback($conn);
-            if (isset($saved_profile_image)) {
-                remove_old_profile_images((int)$user_id);
-            }
             if ($e->getCode() == 1062) {
                 $errors[] = 'That username or email is already registered.';
             } else {
                 $errors[] = 'Could not create your account. Please try again.';
             }
-        } catch (RuntimeException $e) {
-            mysqli_rollback($conn);
-            if (isset($user_id, $saved_profile_image)) {
-                remove_old_profile_images((int)$user_id);
-            }
-            $errors[] = $e->getMessage();
         }
     }
 }
@@ -134,7 +119,7 @@ include_once('../includes/header.php');
       </div>
     <?php } ?>
 
-    <form method="post" action="register.php" enctype="multipart/form-data">
+    <form method="post" action="register.php">
       <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect); ?>">
 
       <label for="customer_name">Full name</label>
@@ -152,13 +137,6 @@ include_once('../includes/header.php');
       <label for="address">Address</label>
       <textarea id="address" name="address"></textarea>
 
-      <label for="profile_photo">Profile picture (optional)</label>
-      <img class="register-avatar-preview" id="register-avatar-preview"
-           src="<?php echo htmlspecialchars(BASE_URL . 'images/default-profile.jpg'); ?>"
-           alt="Default profile picture">
-      <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp">
-      <small class="register-photo-hint">JPEG, PNG, or WebP; max 5 MB. The default picture is used if you skip this.</small>
-
       <label for="password">Password (at least 8 characters)</label>
       <input type="password" id="password" name="password" required minlength="8">
 
@@ -174,17 +152,5 @@ include_once('../includes/header.php');
     </p>
   </div>
 </main>
-
-<script>
-(function () {
-  var input = document.getElementById('profile_photo');
-  var preview = document.getElementById('register-avatar-preview');
-  input.addEventListener('change', function () {
-    if (input.files && input.files[0]) {
-      preview.src = URL.createObjectURL(input.files[0]);
-    }
-  });
-})();
-</script>
 
 <?php include_once('../includes/footer.php'); ?>

@@ -213,7 +213,11 @@ include_once('../includes/header.php');
                alt="Your profile picture">
           <div class="profile-photo-picker" id="profile-photo-picker" hidden>
             <label for="profile_photo">Choose a new picture</label>
-            <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" disabled required>
+            <div class="profile-file-picker">
+              <label class="profile-file-button" for="profile_photo">Choose file</label>
+              <span class="profile-file-name" id="profile-file-name">No file chosen</span>
+              <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" disabled required>
+            </div>
             <small>JPEG, PNG, or WebP; max 5 MB.</small>
           </div>
           <div class="profile-photo-actions" id="profile-photo-actions" hidden>
@@ -343,16 +347,24 @@ include_once('../includes/header.php');
     photoInput.focus();
   });
 
+  var fileNameText = document.getElementById('profile-file-name');
+
+  function updateFileLabel() {
+    if (photoInput.files && photoInput.files[0]) {
+      fileNameText.textContent = photoInput.files[0].name;
+      photoPreview.src = URL.createObjectURL(photoInput.files[0]);
+    } else {
+      fileNameText.textContent = 'No file chosen';
+    }
+  }
+
+  photoInput.addEventListener('change', updateFileLabel);
+
   photoCancelButton.addEventListener('click', function () {
     photoForm.reset();
     photoPreview.src = originalPhoto;
+    fileNameText.textContent = 'No file chosen';
     setPhotoEditing(false);
-  });
-
-  photoInput.addEventListener('change', function () {
-    if (photoInput.files && photoInput.files[0]) {
-      photoPreview.src = URL.createObjectURL(photoInput.files[0]);
-    }
   });
 })();
 </script>

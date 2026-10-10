@@ -38,7 +38,7 @@
 
     <section class="section">
       <div class="section-head">
-        <h2>Best sellers</h2>
+        <h2>All Products</h2>
         <a href="#">View all</a>
       </div>
       <div class="product-row">
@@ -54,7 +54,12 @@
           ?>
 
           <a href="product.php?id=<?php echo $p['product_id']; ?>" class="product">
-            <div class="thumb" style="background-image: url('images/<?php echo ($color['image']); ?>')"></div>
+            <div class="thumb">
+              <?php if (!empty($color['image'])) { ?>
+                <img src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($color['image']); ?>"
+                     alt="<?php echo htmlspecialchars($p['name']); ?>" loading="lazy">
+              <?php } ?>
+            </div>
             <p class="name"><?php echo ($p['name']); ?></p>
             <p class="price"><?php echo peso($p['price']); ?></p>
           </a>

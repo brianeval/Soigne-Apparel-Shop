@@ -11,6 +11,22 @@ $user_id = (int)$_SESSION['user_id'];
 $errors = [];
 $success_order_id = $_SESSION['checkout_success'] ?? null;
 unset($_SESSION['checkout_success']);
+$checkout_cart_ids = $_SESSION['checkout_cart_ids'] ?? [];
+if (!is_array($checkout_cart_ids)) {
+    $checkout_cart_ids = [];
+}
+$checkout_cart_ids = array_values(array_unique(array_filter(
+    array_map('intval', $checkout_cart_ids),
+    function ($cart_id) {
+        return $cart_id > 0;
+    }
+)));
+
+if (!$checkout_cart_ids && !$success_order_id) {
+    header('Location: ' . BASE_URL . 'cart/cart.php');
+    exit;
+}
+$checkout_id_list = $checkout_cart_ids ? implode(',', $checkout_cart_ids) : '0';
 
 if (!isset($_SESSION['checkout_csrf'])) {
     $_SESSION['checkout_csrf'] = bin2hex(random_bytes(32));
@@ -53,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             JOIN product_variants v ON v.variant_id = c.variant_id
                                             JOIN product_colors pc ON pc.product_color_id = v.product_color_id
                                             JOIN products p ON p.product_id = pc.product_id
-                                            WHERE c.user_id = ?
+                                            WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_list)
                                             ORDER BY c.cart_id
                                             FOR UPDATE");
             mysqli_stmt_bind_param($stmt, 'i', $user_id);
@@ -62,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!$items) {
                 mysqli_rollback($conn);
-                $errors[] = 'Your cart is empty.';
+                $errors[] = 'The selected cart items are no longer available. Please return to your cart and select items again.';
             } else {
                 $out_of_stock = false;
                 foreach ($items as $item) {
@@ -101,12 +117,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
 
-                    $stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE user_id = ?");
-                    mysqli_stmt_bind_param($stmt, 'i', $user_id);
-                    mysqli_stmt_execute($stmt);
+                    $delete_stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
+                    foreach ($items as $item) {
+                        $cart_id = (int)$item['cart_id'];
+                        mysqli_stmt_bind_param($delete_stmt, 'ii', $cart_id, $user_id);
+                        mysqli_stmt_execute($delete_stmt);
+                    }
 
                     mysqli_commit($conn);
                     $_SESSION['checkout_success'] = $order_id;
+                    unset($_SESSION['checkout_cart_ids']);
                     unset($_SESSION['checkout_csrf']);
                     header('Location: ' . BASE_URL . 'orders/checkout.php');
                     exit;
@@ -137,7 +157,7 @@ $stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.quantity, v.variant_id, v.siz
                                JOIN product_variants v ON v.variant_id = c.variant_id
                                JOIN product_colors pc ON pc.product_color_id = v.product_color_id
                                JOIN products p ON p.product_id = pc.product_id
-                               WHERE c.user_id = ?
+                               WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_list)
                                ORDER BY c.cart_id DESC");
 mysqli_stmt_bind_param($stmt, 'i', $user_id);
 mysqli_stmt_execute($stmt);
@@ -177,8 +197,8 @@ include_once('../includes/header.php');
 
   <?php if (!$items) { ?>
     <div class="checkout-empty">
-      <?php if (!$success_order_id) { ?><p>Your cart is empty.</p><?php } ?>
-      <a class="btn" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
+      <?php if (!$success_order_id) { ?><p>The selected cart items are no longer available. Please return to your cart and select items to check out.</p><?php } ?>
+      <a class="btn" href="<?php echo BASE_URL; ?>cart/cart.php">Back to cart</a>
     </div>
   <?php } else { ?>
     <div class="checkout-layout">
