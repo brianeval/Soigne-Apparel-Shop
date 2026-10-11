@@ -1,10 +1,29 @@
 <?php
 include ('config.php');
 require_once ('profile_image.php');
-// Count the signed-in user's cart items
+
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'customer') {
+    $account_status_stmt = mysqli_prepare($conn, "SELECT status FROM users WHERE user_id = ? AND role = 'customer'");
+    $signed_in_user_id = (int)$_SESSION['user_id'];
+    mysqli_stmt_bind_param($account_status_stmt, 'i', $signed_in_user_id);
+    mysqli_stmt_execute($account_status_stmt);
+    $account_status = mysqli_fetch_assoc(mysqli_stmt_get_result($account_status_stmt));
+
+    if (!$account_status || $account_status['status'] !== 'active') {
+        unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
+    }
+}
+
+// Count the signed-in user's cart items.
+// This query totals the quantity of all items in the current user's cart for the cart badge.
 $cart_count = 0;
-if (isset($_SESSION['user_id'])) {
-    $stmt = mysqli_prepare($conn, "SELECT COALESCE(SUM(quantity), 0) AS item_count FROM cart WHERE user_id = ?");
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'customer') {
+    $stmt = mysqli_prepare($conn,
+        "SELECT COALESCE(SUM(c.quantity), 0) AS item_count
+         FROM cart c
+         JOIN users u ON u.user_id = c.user_id
+         WHERE c.user_id = ? AND u.role = 'customer' AND u.status = 'active'"
+    );
     $user_id = (int)$_SESSION['user_id'];
     mysqli_stmt_bind_param($stmt, 'i', $user_id);
     mysqli_stmt_execute($stmt);

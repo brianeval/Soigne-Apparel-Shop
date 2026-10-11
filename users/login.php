@@ -9,8 +9,12 @@ function safe_redirect($path) {
 
 $redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
-// Already signed in? Skip the form.
-if (isset($_SESSION['user_id'])) {
+// Send signed-in users to the right area for their role.
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
+    header('Location: ' . BASE_URL . 'admin/index.php');
+    exit;
+}
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'customer') {
     header('Location: ' . $redirect);
     exit;
 }
@@ -25,7 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($login_value === '' || $password === '') {
         $error = 'Please enter your username or email and your password.';
     } else {
-        $q = "SELECT user_id, username, password, role FROM users WHERE username = ? OR email = ? LIMIT 1";
+        // Only active customer accounts can sign in through the storefront login.
+        $q = "SELECT user_id, username, password, role
+              FROM users
+              WHERE (username = ? OR email = ?) AND role = 'customer' AND status = 'active'
+              LIMIT 1";
         $stmt = mysqli_prepare($conn, $q);
         mysqli_stmt_bind_param($stmt, 'ss', $login_value, $login_value);
         mysqli_stmt_execute($stmt);
@@ -41,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Same message for wrong user and wrong password
-        $error = 'Incorrect username/email or password.';
+        $error = 'Incorrect username/email or password, or this is not an active customer account.';
     }
 }
 

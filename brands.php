@@ -10,6 +10,7 @@ $products = [];
 
 if ($brand_id > 0) {
     // --- One brand and its products ---
+    // This query loads the selected brand so the page can show its name and logo.
     $stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE supplier_id = ?");
     mysqli_stmt_bind_param($stmt, 'i', $brand_id);
     mysqli_stmt_execute($stmt);
@@ -20,6 +21,7 @@ if ($brand_id > 0) {
         exit('Brand not found.');
     }
 
+    // This query gets every product from the selected brand, along with a preview image and color count.
     $q = "SELECT p.product_id, p.name, p.price, p.category, pc.image,
                  (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
           FROM products p
@@ -35,6 +37,7 @@ if ($brand_id > 0) {
     $page_title = $brand['name'] . " | Soigné";
 } else {
     // --- All brands that have at least one product ---
+    // This query lists each brand with a count of how many products it has.
     $result = mysqli_query($conn,
         "SELECT s.supplier_id, s.name, s.image, COUNT(p.product_id) AS product_count
          FROM suppliers s

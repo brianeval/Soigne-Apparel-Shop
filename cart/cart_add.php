@@ -1,12 +1,10 @@
 <?php
 session_start();
 include_once ('../includes/config.php');
+require_once __DIR__ . '/../includes/customer_auth.php';
 
-// Must be signed in (the pop-up on product.php is only a convenience)
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . BASE_URL . 'users/login.php');
-    exit;
-}
+// Only active customer accounts can add products to a cart.
+require_active_customer($conn, BASE_URL . 'cart/cart.php');
 
 // Only accept the Add to cart form
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -24,7 +22,7 @@ $user_id    = (int)$_SESSION['user_id'];
 $variant_id = (int)($_POST['variant_id'] ?? 0);
 $quantity   = max(1, (int)($_POST['quantity'] ?? 1));
 
-// Does this size/color exist, and how many are in stock?
+// This query checks whether the chosen size exists and how many items are left in stock.
 $stmt = mysqli_prepare($conn, "SELECT stock FROM product_variants WHERE variant_id = ?");
 mysqli_stmt_bind_param($stmt, 'i', $variant_id);
 mysqli_stmt_execute($stmt);
@@ -41,7 +39,7 @@ if ($stock < 1) {
 
 $quantity = min($quantity, $stock);
 
-// New row, or add to the existing one (never above the stock)
+// This query adds the item to the cart. If the same size is already there, it increases the quantity without going over stock.
 $q = "INSERT INTO cart (user_id, variant_id, quantity) VALUES (?, ?, ?)
       ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + VALUES(quantity), ?)";
 $stmt = mysqli_prepare($conn, $q);

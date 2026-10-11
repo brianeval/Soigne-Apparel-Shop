@@ -9,8 +9,14 @@ function safe_redirect($path) {
 
 $redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
-// Already signed in? No need to register.
-if (isset($_SESSION['user_id'])) {
+// Keep signed-in administrators in the admin area.
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
+    header('Location: ' . BASE_URL . 'admin/index.php');
+    exit;
+}
+
+// Already signed in as a customer? No need to register.
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'customer') {
     header('Location: ' . $redirect);
     exit;
 }
@@ -51,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // --- Check username / email are free ---
     if (!$errors) {
+        // This query checks whether the chosen username or email is already in use before creating the account.
         $stmt = mysqli_prepare($conn, "SELECT username, email FROM users WHERE username = ? OR email = ?");
         mysqli_stmt_bind_param($stmt, 'ss', $username, $email);
         mysqli_stmt_execute($stmt);
@@ -69,11 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
+            // This query creates the account login row in the users table.
             $stmt = mysqli_prepare($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
             mysqli_stmt_bind_param($stmt, 'sss', $username, $email, $hash);
             mysqli_stmt_execute($stmt);
             $user_id = mysqli_insert_id($conn);
 
+            // This query stores the personal details in the customers table for the same user.
             $stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address) VALUES (?, ?, ?, ?)");
             mysqli_stmt_bind_param($stmt, 'isss', $user_id, $name, $phone, $address);
             mysqli_stmt_execute($stmt);

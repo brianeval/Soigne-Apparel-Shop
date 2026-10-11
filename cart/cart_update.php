@@ -1,11 +1,9 @@
 <?php
 session_start();
 include_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/customer_auth.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ' . BASE_URL . 'users/login.php?redirect=' . urlencode(BASE_URL . 'cart/cart.php'));
-    exit;
-}
+require_active_customer($conn, BASE_URL . 'cart/cart.php');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ' . BASE_URL . 'cart/cart.php');
@@ -40,6 +38,7 @@ if ($cart_id < 1 || $variant_id < 1 || $quantity === false || $quantity === null
 try {
     mysqli_begin_transaction($conn);
 
+    // This query loads the cart item being updated and its product so the system can confirm it belongs to the current user.
     $stmt = mysqli_prepare($conn,
         "SELECT c.cart_id, pc.product_id
          FROM cart c
@@ -58,6 +57,7 @@ try {
     }
 
     $product_id = (int)$cart_item['product_id'];
+    // This query checks the stock of the new size before the update is allowed.
     $stmt = mysqli_prepare($conn,
         "SELECT v.stock
          FROM product_variants v
@@ -80,6 +80,7 @@ try {
         update_flash_and_go('error', 'The selected quantity is greater than the available stock.', $product_id, $cart_id);
     }
 
+    // This query looks for a duplicate cart entry for the same size, so the app can merge quantities instead of creating two rows.
     $stmt = mysqli_prepare($conn,
         "SELECT cart_id, quantity
          FROM cart
@@ -98,14 +99,17 @@ try {
         }
 
         $duplicate_cart_id = (int)$duplicate['cart_id'];
+        // This query combines the quantities in the duplicate cart row for the same size.
         $stmt = mysqli_prepare($conn, "UPDATE cart SET quantity = ? WHERE cart_id = ? AND user_id = ?");
         mysqli_stmt_bind_param($stmt, 'iii', $merged_quantity, $duplicate_cart_id, $user_id);
         mysqli_stmt_execute($stmt);
 
+        // This query removes the old cart row after the duplicate has been merged.
         $stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
         mysqli_stmt_bind_param($stmt, 'ii', $cart_id, $user_id);
         mysqli_stmt_execute($stmt);
     } else {
+        // This query updates the chosen size and quantity for the current cart item.
         $stmt = mysqli_prepare($conn, "UPDATE cart SET variant_id = ?, quantity = ? WHERE cart_id = ? AND user_id = ?");
         mysqli_stmt_bind_param($stmt, 'iiii', $variant_id, $quantity, $cart_id, $user_id);
         mysqli_stmt_execute($stmt);

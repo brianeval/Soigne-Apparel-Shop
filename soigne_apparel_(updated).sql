@@ -28,6 +28,7 @@ CREATE TABLE users (
   email      VARCHAR(120) NOT NULL UNIQUE,
   password   VARCHAR(255) NOT NULL,              -- password_hash() output
   role       ENUM('customer','admin') NOT NULL DEFAULT 'customer',
+  status     ENUM('active','inactive') NOT NULL DEFAULT 'active',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 

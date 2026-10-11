@@ -6,9 +6,10 @@ include_once('includes/config.php');
 // STEP 1: Get the product id from the URL (product.php?id=4)
 $id = (int)($_GET['id'] ?? 0);
 
-// STEP 2: Find the product
-$q = "SELECT * FROM products WHERE product_id = ?";
-$stmt = mysqli_prepare($conn, $q);
+// STEP 2: Find the product in the database.
+// This query asks: "give me the row from products where product_id matches the URL id".
+$productQuery = "SELECT * FROM products WHERE product_id = ?";
+$stmt = mysqli_prepare($conn, $productQuery);
 mysqli_stmt_bind_param($stmt, 'i', $id);
 mysqli_stmt_execute($stmt);
 $product = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -21,6 +22,8 @@ if (!$product) {
 $edit_cart_id = (int)($_GET['cart_id'] ?? 0);
 $editing_cart_item = null;
 if ($edit_cart_id > 0 && isset($_SESSION['user_id'])) {
+    // This query checks the item the user is editing in the cart.
+    // It joins the cart table to the variant and color tables so we can match the correct product.
     $stmt = mysqli_prepare($conn,
         "SELECT c.cart_id, c.quantity, v.variant_id, pc.product_color_id
          FROM cart c
@@ -38,9 +41,10 @@ if ($edit_cart_id > 0 && isset($_SESSION['user_id'])) {
     }
 }
 
-// STEP 3: Get all colors of this product
-$q = "SELECT * FROM product_colors WHERE product_id = ?";
-$stmt = mysqli_prepare($conn, $q);
+// STEP 3: Get all available colors for this product.
+// This query asks: "list every color row that belongs to this product".
+$colorQuery = "SELECT * FROM product_colors WHERE product_id = ?";
+$stmt = mysqli_prepare($conn, $colorQuery);
 mysqli_stmt_bind_param($stmt, 'i', $id);
 mysqli_stmt_execute($stmt);
 $colors = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
@@ -66,11 +70,12 @@ if (!$selected && $editing_cart_item) {
 }
 $selected = $selected ?? ($colors[0] ?? null);
 
-// STEP 5: Get the sizes and stock of the selected color
+// STEP 5: Get the sizes and stock of the selected color.
+// This query asks: "show every size variant for this color, including how many are in stock".
 $variants = [];
 if ($selected) {
-    $q = "SELECT * FROM product_variants WHERE product_color_id = ?";
-    $stmt = mysqli_prepare($conn, $q);
+    $variantQuery = "SELECT * FROM product_variants WHERE product_color_id = ?";
+    $stmt = mysqli_prepare($conn, $variantQuery);
     mysqli_stmt_bind_param($stmt, 'i', $selected['product_color_id']);
     mysqli_stmt_execute($stmt);
     $variants = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);

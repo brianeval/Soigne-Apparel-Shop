@@ -3,6 +3,7 @@
   include_once("includes/header.php");
   include_once("includes/config.php");
 
+  // This query gets products that are currently in stock so the homepage can show available items.
   $q = "SELECT DISTINCT p.*
       FROM products p
       JOIN product_colors pc ON pc.product_id = p.product_id
@@ -45,7 +46,7 @@
         <?php while ($p = mysqli_fetch_assoc($result)) { 
 
 
-          // Get the first color's image of this product
+          // This query picks the first available color image for the product so the product card has a picture.
           $q2 = "SELECT image FROM product_colors WHERE product_id = ? LIMIT 1";
           $stmt = mysqli_prepare($conn, $q2);
           mysqli_stmt_bind_param($stmt, 'i', $p['product_id']);

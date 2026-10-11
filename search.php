@@ -9,6 +9,7 @@ $brands = [];
 if ($search_term !== '') {
     $like = '%' . $search_term . '%';
 
+    // This query finds matching products by name or category.
     $product_sql = "SELECT p.product_id, p.name, p.price, p.category, pc.image,
                          (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
                     FROM products p
@@ -22,6 +23,7 @@ if ($search_term !== '') {
     mysqli_stmt_execute($stmt);
     $products = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 
+    // This query finds matching brands by name.
     $brand_sql = "SELECT supplier_id, name, image
                   FROM suppliers
                   WHERE LOWER(name) LIKE LOWER(?)
