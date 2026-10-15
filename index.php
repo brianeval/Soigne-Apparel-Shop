@@ -8,7 +8,7 @@
       FROM products p
       JOIN product_colors pc ON pc.product_id = p.product_id
       JOIN product_variants v ON v.product_color_id = pc.product_color_id
-      WHERE v.stock > 0";
+      WHERE v.stock > 0 LIMIT 5";
   $result = mysqli_query($conn, $q);
 ?>
   <main>
@@ -40,7 +40,7 @@
     <section class="section">
       <div class="section-head">
         <h2>All Products</h2>
-        <a href="#">View all</a>
+        <a href="product_view.php">View all</a>
       </div>
       <div class="product-row">
         <?php while ($p = mysqli_fetch_assoc($result)) { 

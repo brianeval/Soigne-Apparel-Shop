@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'add_color') {
             $color = trim(is_string($_POST['color'] ?? null) ? $_POST['color'] : '');
             $image = trim(is_string($_POST['image'] ?? null) ? $_POST['image'] : '');
-            if ($color === '' || mb_strlen($color) > 30) $errors[] = 'Enter a color name up to 30 characters.';
+            if ($color === '' || mb_strlen($color) > 80) $errors[] = 'Enter a color name up to 80 characters.';
             if (mb_strlen($image) > 255) $errors[] = 'Image path must be 255 characters or fewer.';
             if (!$errors) {
                 $stmt = mysqli_prepare($conn, "INSERT INTO product_colors (product_id, color, image) VALUES (?, ?, ?)");
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $color_id = filter_var($_POST['product_color_id'] ?? null, FILTER_VALIDATE_INT);
             $color = trim(is_string($_POST['color'] ?? null) ? $_POST['color'] : '');
             $image = trim(is_string($_POST['image'] ?? null) ? $_POST['image'] : '');
-            if ($color_id === false || $color_id < 1 || $color === '' || mb_strlen($color) > 30 || mb_strlen($image) > 255) {
+            if ($color_id === false || $color_id < 1 || $color === '' || mb_strlen($color) > 80 || mb_strlen($image) > 255) {
                 $errors[] = 'Enter a valid color name and image path.';
             } else {
                 $stmt = mysqli_prepare($conn, "UPDATE product_colors SET color = ?, image = ? WHERE product_color_id = ? AND product_id = ?");
@@ -269,7 +269,7 @@ include __DIR__ . '/../includes/header.php';
   <form method="post" class="manage-form manage-add-color">
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="add_color">
-    <label>New color<input name="color" maxlength="30" required placeholder="e.g. Navy"></label>
+    <label>New color<input name="color" maxlength="80" required placeholder="e.g. Navy"></label>
     <label>Image filename<input name="image" maxlength="255" placeholder="e.g. shirt-navy.jpg"></label>
     <div><button class="admin-button" type="submit">Add color</button></div>
   </form>
@@ -280,7 +280,7 @@ include __DIR__ . '/../includes/header.php';
         <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="update_color">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
-        <label>Color<input name="color" maxlength="30" required value="<?php echo admin_escape($color['color']); ?>"></label>
+        <label>Color<input name="color" maxlength="80" required value="<?php echo admin_escape($color['color']); ?>"></label>
         <label>Image filename<input name="image" maxlength="255" value="<?php echo admin_escape($color['image']); ?>"></label>
         <div class="manage-row-actions"><button class="manage-small-button" type="submit">Save color</button></div>
       </form>

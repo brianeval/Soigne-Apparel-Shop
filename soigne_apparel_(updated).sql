@@ -69,7 +69,7 @@ CREATE TABLE products (
 CREATE TABLE product_colors (
   product_color_id INT AUTO_INCREMENT PRIMARY KEY,
   product_id       INT         NOT NULL,
-  color            VARCHAR(30) NOT NULL,
+  color            VARCHAR(80) NOT NULL,
   image            VARCHAR(255),
   FOREIGN KEY (product_id) REFERENCES products(product_id),
   UNIQUE KEY uniq_product_color (product_id, color)
@@ -189,21 +189,13 @@ FROM users
 WHERE username = 'juandc';
 
 -- Suppliers / brands
-INSERT INTO suppliers (name) VALUES ('Soigné Basics'), ('Northline Outdoors');
 INSERT INTO suppliers (name, image) VALUES ('H&M', 'h-m-logo.png');
 
-SET @supplier_basics = (SELECT supplier_id FROM suppliers WHERE name = 'Soigné Basics');
-SET @supplier_northline = (SELECT supplier_id FROM suppliers WHERE name = 'Northline Outdoors');
 SET @supplier_hm = (SELECT supplier_id FROM suppliers WHERE name = 'H&M');
 
 -- Products
 -- department: men / women / kids
 INSERT INTO products (supplier_id, name, category, department, price, description) VALUES
-(@supplier_basics, 'Airy Cotton Crew Neck T-Shirt',    'T-shirts',  'men',   590.00,  'Lightweight everyday tee in breathable cotton.'),
-(@supplier_basics, 'Premium Linen Long Sleeve Shirt',  'Shirts',    'women', 1490.00, 'Soft linen shirt that stays cool in the heat.'),
-(@supplier_basics, 'Relaxed Ankle Chino Pants',        'Pants',     'men',   1290.00, 'Relaxed fit chinos with a cropped ankle.'),
-(@supplier_northline, 'Lightweight Packable Jacket',   'Outerwear', 'women', 1790.00, 'Water-resistant jacket that folds into its own pocket.'),
-(@supplier_northline, 'Quick-Dry Sports Shorts',       'Shorts',    'kids',  790.00,  'Fast-drying shorts for training and travel.'),
 (@supplier_hm, 'Felted Button-Detail Jacket',          'Outerwear', 'women', 2880.00, 'Short jacket in soft, felted fabric. Band collar and an open front with decorative trim and spherical buttons.');
 
 
@@ -213,21 +205,10 @@ SELECT p.product_id, colors.color, colors.image
 FROM products p
 JOIN suppliers s ON s.supplier_id = p.supplier_id
 JOIN (
-  SELECT 'Airy Cotton Crew Neck T-Shirt' AS product_name, 'Red' AS color, 'tee-red.jpg' AS image
-  UNION ALL SELECT 'Airy Cotton Crew Neck T-Shirt', 'Black', 'tee-black.jpg'
-  UNION ALL SELECT 'Premium Linen Long Sleeve Shirt', 'White', 'linen-shirt-white.jpg'
-  UNION ALL SELECT 'Premium Linen Long Sleeve Shirt', 'Navy', 'linen-shirt-navy.jpg'
-  UNION ALL SELECT 'Relaxed Ankle Chino Pants', 'Beige', 'chino-beige.jpg'
-  UNION ALL SELECT 'Relaxed Ankle Chino Pants', 'Navy', 'chino-navy.jpg'
-  UNION ALL SELECT 'Lightweight Packable Jacket', 'Olive', 'jacket-olive.jpg'
-  UNION ALL SELECT 'Lightweight Packable Jacket', 'Black', 'jacket-black.jpg'
-  UNION ALL SELECT 'Quick-Dry Sports Shorts', 'Black', 'shorts-black.jpg'
-  UNION ALL SELECT 'Quick-Dry Sports Shorts', 'Gray', 'shorts-gray.jpg'
-  UNION ALL SELECT 'Felted Button-Detail Jacket', 'Dark Khaki Green', 'h&m_jacket_khaki.png'
+ SELECT 'Felted Button-Detail Jacket' AS product_name, 'Dark Khaki Green' AS color, 'h&m_jacket_khaki.png' AS image
 ) AS colors ON colors.product_name = p.name
-WHERE (p.name IN ('Airy Cotton Crew Neck T-Shirt', 'Premium Linen Long Sleeve Shirt', 'Relaxed Ankle Chino Pants') AND s.name = 'Soigné Basics')
-   OR (p.name IN ('Lightweight Packable Jacket', 'Quick-Dry Sports Shorts') AND s.name = 'Northline Outdoors')
-   OR (p.name = 'Felted Button-Detail Jacket' AND s.name = 'H&M');
+WHERE p.name = 'Felted Button-Detail Jacket'
+ AND s.name = 'H&M';
 
 -- Variants: sizes S, M, L for every color, starting with 0 stock
 -- (stock is added by the sample restocks below)
@@ -246,30 +227,6 @@ CROSS JOIN (SELECT 'S' AS size UNION ALL SELECT 'M' UNION ALL SELECT 'L') s
 WHERE supplier.name = 'H&M'
   AND p.name = 'Felted Button-Detail Jacket'
   AND pc.color = 'Dark Khaki Green';
-
--- Restock 1: Soigné Basics, 10 of every variant at 40% of the selling price
-INSERT INTO restocks (batch_number, supplier_id, restock_date)
-VALUES ('RS-2026-00001', @supplier_basics, '2026-09-01');
-SET @restock_basics = LAST_INSERT_ID();
-
-INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost)
-SELECT @restock_basics, v.variant_id, 10, ROUND(p.price * 0.40, 2)
-FROM product_variants v
-JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-JOIN products p        ON p.product_id = pc.product_id
-WHERE p.supplier_id = @supplier_basics;
-
--- Restock 2: Northline Outdoors, 10 of every variant at 45% of the selling price
-INSERT INTO restocks (batch_number, supplier_id, restock_date)
-VALUES ('RS-2026-00002', @supplier_northline, '2026-09-03');
-SET @restock_northline = LAST_INSERT_ID();
-
-INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost)
-SELECT @restock_northline, v.variant_id, 10, ROUND(p.price * 0.45, 2)
-FROM product_variants v
-JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-JOIN products p        ON p.product_id = pc.product_id
-WHERE p.supplier_id = @supplier_northline;
 
 -- Restock only M and L of the H&M jacket; S remains out of stock
 INSERT INTO restocks (batch_number, supplier_id, restock_date)
@@ -290,37 +247,6 @@ WHERE p.name = 'Felted Button-Detail Jacket'
 UPDATE product_variants v
 JOIN restock_items ri ON ri.variant_id = v.variant_id
 SET v.stock = v.stock + ri.quantity;
-
--- One sample paid order: Juan buys 2 Red / M tees and 1 Black / L jacket
-INSERT INTO orders (user_id, status, shipping_address, created_at)
-SELECT user_id, 'paid', '123 Sample St., Quezon City, Metro Manila', '2026-09-20 14:30:00'
-FROM users
-WHERE username = 'juandc';
-SET @sample_order = LAST_INSERT_ID();
-
-INSERT INTO order_items (order_id, variant_id, quantity, price)
-SELECT @sample_order, v.variant_id, 2, 590.00
-FROM product_variants v
-JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-JOIN products p ON p.product_id = pc.product_id
-JOIN suppliers s ON s.supplier_id = p.supplier_id
-WHERE p.name = 'Airy Cotton Crew Neck T-Shirt' AND s.name = 'Soigné Basics'
-  AND pc.color = 'Red' AND v.size = 'M';
-
-INSERT INTO order_items (order_id, variant_id, quantity, price)
-SELECT @sample_order, v.variant_id, 1, 1790.00
-FROM product_variants v
-JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-JOIN products p ON p.product_id = pc.product_id
-JOIN suppliers s ON s.supplier_id = p.supplier_id
-WHERE p.name = 'Lightweight Packable Jacket' AND s.name = 'Northline Outdoors'
-  AND pc.color = 'Black' AND v.size = 'L';
-
--- Reduce stock for the sold items
-UPDATE product_variants v
-JOIN order_items oi ON oi.variant_id = v.variant_id
-SET v.stock = v.stock - oi.quantity
-WHERE oi.order_id = @sample_order;
 
 -- One sample monthly bill
 INSERT INTO expenses (expense_date, billing_month, category, description, amount)
