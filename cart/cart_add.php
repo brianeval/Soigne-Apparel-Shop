@@ -3,11 +3,37 @@ session_start();
 include_once ('../includes/config.php');
 require_once __DIR__ . '/../includes/customer_auth.php';
 
-// Only active customer accounts can add products to a cart.
-require_active_customer($conn, BASE_URL . 'cart/cart.php');
+// Keep an administrator's add-to-cart request while they sign in with a customer account.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_SESSION['role'] ?? '') === 'admin') {
+    $_SESSION['pending_cart_add'] = [
+        'variant_id' => (int)($_POST['variant_id'] ?? 0),
+        'quantity' => max(1, (int)($_POST['quantity'] ?? 1)),
+    ];
+    $resume_path = BASE_URL . 'cart/cart_add.php?resume=1';
+    header('Location: ' . BASE_URL . 'users/login.php?redirect=' . urlencode($resume_path));
+    exit;
+}
 
-// Only accept the Add to cart form
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+$is_resume = $_SERVER['REQUEST_METHOD'] === 'GET'
+    && ($_GET['resume'] ?? '') === '1'
+    && isset($_SESSION['pending_cart_add'])
+    && is_array($_SESSION['pending_cart_add']);
+$redirect_path = $is_resume
+    ? BASE_URL . 'cart/cart_add.php?resume=1'
+    : BASE_URL . 'cart/cart.php';
+
+// Only active customer accounts can add products to a cart.
+require_active_customer($conn, $redirect_path);
+
+if ($is_resume) {
+    $pending_add = $_SESSION['pending_cart_add'];
+    unset($_SESSION['pending_cart_add']);
+    $variant_id = (int)($pending_add['variant_id'] ?? 0);
+    $quantity = max(1, (int)($pending_add['quantity'] ?? 1));
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $variant_id = (int)($_POST['variant_id'] ?? 0);
+    $quantity = max(1, (int)($_POST['quantity'] ?? 1));
+} else {
     header('Location: ' . BASE_URL . 'cart/cart.php');
     exit;
 }
@@ -19,8 +45,6 @@ function flash_and_go($type, $text) {
 }
 
 $user_id    = (int)$_SESSION['user_id'];
-$variant_id = (int)($_POST['variant_id'] ?? 0);
-$quantity   = max(1, (int)($_POST['quantity'] ?? 1));
 
 // This query checks whether the chosen size exists and how many items are left in stock.
 $stmt = mysqli_prepare($conn, "SELECT stock FROM product_variants WHERE variant_id = ?");

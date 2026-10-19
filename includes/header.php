@@ -107,12 +107,12 @@ if (!isset($page_title)) {
   </header>
 
   <nav class="sub-nav" aria-label="Men categories">
-    <a href="#">New arrivals</a>
-    <a href="#">T-shirts</a>
-    <a href="#">Shirts</a>
-    <a href="#">Pants</a>
-    <a href="#">Shorts</a>
-    <a href="#">Outerwear</a>
-    <a href="#">Innerwear</a>
-    <a href="#">Accessories</a>
+
+    <a href="<?php echo BASE_URL; ?>category.php?category=t-shirts">T-shirts</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=shirts">Shirts</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=pants">Pants</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=shorts">Shorts</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=outerwear">Outerwear</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=sweaters">Sweaters</a>
+  
   </nav>

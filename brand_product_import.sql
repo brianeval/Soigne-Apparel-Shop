@@ -28,7 +28,8 @@ CREATE TEMPORARY TABLE tmp_brand_products (
   name VARCHAR(150) NOT NULL,
   category VARCHAR(50) NOT NULL,
   price DECIMAL(10,2) NOT NULL,
-  color VARCHAR(80) NOT NULL
+  color VARCHAR(80) NOT NULL,
+  department VARCHAR(20) NOT NULL DEFAULT 'men'
 );
 
 CREATE TEMPORARY TABLE tmp_brand_images (
@@ -172,10 +173,25 @@ INSERT INTO tmp_brand_products (brand, name, category, price, color) VALUES
 ('H&M', 'BAGGY DENIM SHORTS', 'Shorts', 1990.00, 'Denim gray'),
 ('H&M', 'WINDPROOF AND WATER-REPELLENT JACKET', 'Outerwear', 2490.00, 'Khaki green');
 
+-- Additional verified women's and kids' products; no image files are assigned yet.
+INSERT INTO tmp_brand_products (brand, name, category, price, color, department) VALUES
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'T-shirts', 1045.00, 'Black/White', 'women'),
+('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'T-shirts', 1077.00, 'Black', 'women'),
+('Nike', 'Nike Sportswear Kids'' T-Shirt', 'T-shirts', 627.00, 'White', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'T-shirts', 1045.00, 'Black', 'kids'),
+('H&M', 'Oxford Shirt', 'Shirts', 749.00, 'White', 'women'),
+('H&M', 'Knit T-Shirt', 'T-shirts', 599.00, 'Beige melange', 'women'),
+('H&M', 'Cotton T-shirt', 'T-shirts', 299.00, 'White', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'T-shirts', 399.00, 'Cerise', 'kids'),
+('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'T-shirts', 499.00, 'Off White', 'women'),
+('PENSHOPPE', 'Cherry Muse Slim Graphic T-Shirt', 'T-shirts', 499.00, 'Black', 'women'),
+('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'T-shirts', 499.00, 'Red', 'women'),
+('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Shirts', 1199.00, 'Blush', 'women');
+
 INSERT INTO products (supplier_id, name, category, department, price, description)
-SELECT suppliers.supplier_id, source.name, source.category, 'men', source.price, NULL
+SELECT suppliers.supplier_id, source.name, source.category, source.department, source.price, NULL
 FROM (
-  SELECT DISTINCT brand, name, category, price
+  SELECT DISTINCT brand, name, category, price, department
   FROM tmp_brand_products
 ) AS source
 JOIN suppliers ON suppliers.name = source.brand
@@ -184,6 +200,7 @@ WHERE NOT EXISTS (
   FROM products AS existing
   WHERE existing.supplier_id = suppliers.supplier_id
     AND existing.name = source.name
+    AND existing.department = source.department
 );
 
 INSERT INTO product_colors (product_id, color, image)
@@ -193,6 +210,7 @@ JOIN suppliers ON suppliers.name = source.brand
 JOIN products AS p
   ON p.supplier_id = suppliers.supplier_id
  AND p.name = source.name
+ AND p.department = source.department
 LEFT JOIN tmp_brand_images AS images
   ON images.brand = source.brand
  AND images.name = source.name
@@ -204,7 +222,8 @@ CREATE TEMPORARY TABLE tmp_brand_sizes (
   brand VARCHAR(120) NOT NULL,
   name VARCHAR(150) NOT NULL,
   color VARCHAR(80) NOT NULL,
-  size VARCHAR(20) NOT NULL
+  size VARCHAR(20) NOT NULL,
+  department VARCHAR(20) NOT NULL DEFAULT 'men'
 );
 
 INSERT INTO tmp_brand_sizes (brand, name, color, size) VALUES
@@ -408,6 +427,70 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size) VALUES
 ('Nike', 'ACG Dolomiti Gilet', 'Black/Summit White', 'XL'),
 ('Nike', 'ACG Dolomiti Gilet', 'Black/Summit White', '2XL');
 
+INSERT INTO tmp_brand_sizes (brand, name, color, size, department) VALUES
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'XS', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'S', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'M', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'L', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'XL', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', '2XL', 'women'),
+('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'XS', 'women'),
+('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'S', 'women'),
+('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'M', 'women'),
+('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'L', 'women'),
+('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'XL', 'women'),
+('Nike', 'Nike Sportswear Kids'' T-Shirt', 'White', 'XS', 'kids'),
+('Nike', 'Nike Sportswear Kids'' T-Shirt', 'White', 'S', 'kids'),
+('Nike', 'Nike Sportswear Kids'' T-Shirt', 'White', 'M', 'kids'),
+('Nike', 'Nike Sportswear Kids'' T-Shirt', 'White', 'L', 'kids'),
+('Nike', 'Nike Sportswear Kids'' T-Shirt', 'White', 'XL', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'XS', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'S', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'M', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'L', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'XL', 'kids'),
+('H&M', 'Oxford Shirt', 'White', 'XS', 'women'),
+('H&M', 'Oxford Shirt', 'White', 'S', 'women'),
+('H&M', 'Oxford Shirt', 'White', 'M', 'women'),
+('H&M', 'Oxford Shirt', 'White', 'L', 'women'),
+('H&M', 'Oxford Shirt', 'White', 'XL', 'women'),
+('H&M', 'Knit T-Shirt', 'Beige melange', 'XXS', 'women'),
+('H&M', 'Knit T-Shirt', 'Beige melange', 'XS', 'women'),
+('H&M', 'Knit T-Shirt', 'Beige melange', 'S', 'women'),
+('H&M', 'Knit T-Shirt', 'Beige melange', 'M', 'women'),
+('H&M', 'Knit T-Shirt', 'Beige melange', 'L', 'women'),
+('H&M', 'Knit T-Shirt', 'Beige melange', 'XL', 'women'),
+('H&M', 'Knit T-Shirt', 'Beige melange', 'XXL', 'women'),
+('H&M', 'Cotton T-shirt', 'White', '92', 'kids'),
+('H&M', 'Cotton T-shirt', 'White', '98/104', 'kids'),
+('H&M', 'Cotton T-shirt', 'White', '110/116', 'kids'),
+('H&M', 'Cotton T-shirt', 'White', '122/128', 'kids'),
+('H&M', 'Cotton T-shirt', 'White', '134/140', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', '134/140', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', '146/152', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', '158/164', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', '170', 'kids'),
+('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'S', 'women'),
+('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'M', 'women'),
+('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'L', 'women'),
+('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'XL', 'women'),
+('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'XXL', 'women'),
+('PENSHOPPE', 'Cherry Muse Slim Graphic T-Shirt', 'Black', 'S', 'women'),
+('PENSHOPPE', 'Cherry Muse Slim Graphic T-Shirt', 'Black', 'M', 'women'),
+('PENSHOPPE', 'Cherry Muse Slim Graphic T-Shirt', 'Black', 'L', 'women'),
+('PENSHOPPE', 'Cherry Muse Slim Graphic T-Shirt', 'Black', 'XL', 'women'),
+('PENSHOPPE', 'Cherry Muse Slim Graphic T-Shirt', 'Black', 'XXL', 'women'),
+('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'Red', 'S', 'women'),
+('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'Red', 'M', 'women'),
+('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'Red', 'L', 'women'),
+('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'Red', 'XL', 'women'),
+('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'Red', 'XXL', 'women'),
+('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Blush', 'S', 'women'),
+('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Blush', 'M', 'women'),
+('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Blush', 'L', 'women'),
+('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Blush', 'XL', 'women'),
+('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Blush', 'XXL', 'women');
+
 INSERT IGNORE INTO product_variants (product_color_id, size, stock)
 SELECT pc.product_color_id, sizes.size, 0
 FROM tmp_brand_sizes AS sizes
@@ -415,13 +498,17 @@ JOIN tmp_brand_products AS size_color
   ON size_color.brand = sizes.brand
  AND size_color.name = sizes.name
  AND size_color.color = sizes.color
+ AND size_color.department = sizes.department
 JOIN suppliers ON suppliers.name = sizes.brand
 JOIN products AS p
   ON p.supplier_id = suppliers.supplier_id
  AND p.name = sizes.name
+ AND p.department = sizes.department
 JOIN tmp_brand_products AS product_color
   ON product_color.brand = sizes.brand
  AND product_color.name = sizes.name
+ AND product_color.color = sizes.color
+ AND product_color.department = sizes.department
 JOIN product_colors AS pc
   ON pc.product_id = p.product_id
  AND pc.color = product_color.color;

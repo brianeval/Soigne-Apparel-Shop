@@ -339,3 +339,115 @@ URL: https://www2.hm.com/en_ph/productpage.1351382003.html
 Unverified requested brands/categories
 
 No BENCH product pages could be verified; the official site was inaccessible or blocked. The UNIQLO Philippines site could not be reached. H&M: Pants had no verified direct product pages; only 2 Chinos, 4 Sweaters, 4 Jeans, and 1 Outerwear product were verified. Follow-up color checks received HTTP 403 for H&M product pages, so the SQL retains the one color previously recorded for each listing; additional H&M colorways could not be verified. For a number of H&M products, size options were not visible on the page. Nike pages did not yield verified products for Sweaters, Jeans, or Chinos. PENSHOPPE product pages mostly returned HTTP 429 during the color check, so their SQL colors remain the one previously recorded; alternate colors could not be verified. Nike's additional colorways listed above were confirmed from official Nike PH product pages. The requested five-per-brand/category quota was not met consistently; only verified listings are included in the SQL import. No product images are included.
+
+Additional verified women's and kids' listings
+
+Prices are the displayed Philippine peso prices at research time; sale prices are
+used where shown and may change. These products are added to the import SQL.
+
+Nike Philippines
+
+Department: Women
+Product: Nike Sportswear Women's T-Shirt
+Category: T-shirts
+Price: PHP 1,045
+URL: https://www.nike.com/ph/t/sportswear-womens-t-shirt-d4gKTP
+
+Department: Women
+Product: Nike Sportswear Women's Loose T-Shirt
+Category: T-shirts
+Price: PHP 1,077 (sale; was PHP 1,795)
+URL: https://www.nike.com/ph/t/sportswear-womens-loose-t-shirt-EU0dXZC1
+
+Department: Kids
+Product: Nike Sportswear Kids' T-Shirt
+Category: T-shirts
+Price: PHP 627 (sale; was PHP 1,045)
+URL: https://www.nike.com/ph/t/sportswear-kids-t-shirt-gd7dtHvs
+
+Department: Kids
+Product: Nike Sportswear Older Kids' T-Shirt
+Category: T-shirts
+Price: PHP 1,045
+URL: https://www.nike.com/ph/t/sportswear-older-kids-t-shirt-M7wMcMB7
+
+H&M Philippines
+
+Department: Women
+Product: Oxford Shirt (white)
+Category: Shirts
+Price: PHP 749 (sale; was PHP 999)
+URL: https://www2.hm.com/en_ph/productpage.0925212001.html
+
+Department: Women
+Product: Knit T-Shirt (beige melange)
+Category: T-shirts
+Price: PHP 599 (sale; was PHP 1,490)
+URL: https://www2.hm.com/en_ph/productpage.1299721001.html
+
+Department: Kids
+Product: Cotton T-shirt (white)
+Category: T-shirts
+Price: PHP 299
+URL: https://www2.hm.com/en_ph/productpage.0611503058.html
+
+Department: Kids
+Product: Cotton Jersey T-shirt (cerise)
+Category: T-shirts
+Price: PHP 399
+URL: https://www2.hm.com/en_ph/productpage.1144340003.html
+
+PENSHOPPE Philippines
+
+Department: Women
+Product: Low Power Mode Slim Graphic T-Shirt (Off White)
+Category: T-shirts
+Price: PHP 499
+URL: https://www.penshoppe.com/products/low-power-mode-slim-graphic-t-shirt-997018-off-white
+
+Department: Women
+Product: Cherry Muse Slim Graphic T-Shirt (Black)
+Category: T-shirts
+Price: PHP 499
+URL: https://www.penshoppe.com/products/cherry-muse-slim-graphic-t-shirt-997017-black
+
+Department: Women
+Product: Essentials Relaxed Striped T-Shirt (Red)
+Category: T-shirts
+Price: PHP 499
+URL: https://www.penshoppe.com/products/essentials-relaxed-striped-t-shirt-993619-red
+
+Department: Women
+Product: Long Sleeve Striped Button-Down Top with Bows (Blush)
+Category: Shirts
+Price: PHP 1,199
+URL: https://www.penshoppe.com/products/long-sleeve-striped-button-down-top-with-bows-996974-blush
+
+No PENSHOPPE kids' product could be verified in the official catalog, so none
+was added. Imported variant stock starts at zero; this is separate from online
+availability, and the SQL records displayed size options even when the source
+page showed them out of stock.
+
+Verified color and size options
+
+Nike Philippines (the pages displayed size selectors without per-size stock):
+- Women's T-Shirt: Black/White; XS, S, M, L, XL, 2XL.
+- Women's Loose T-Shirt: Black; XS, S, M, L, XL.
+- Kids' T-Shirt: White; XS, S, M, L, XL.
+- Older Kids' T-Shirt: Black; XS, S, M, L, XL.
+
+H&M Philippines (sizes below are those shown on the source pages):
+- Women's Oxford Shirt, White: XS, S, M, L, XL marked available.
+- Women's Knit T-Shirt, Beige melange: XXS, XS, S, M, L, XL, XXL shown;
+  all marked out of stock.
+- Kids' Cotton T-shirt, White: 92 available; 98/104, 110/116, 122/128,
+  134/140 marked out of stock.
+- Kids' Cotton Jersey T-shirt, Cerise: 134/140, 146/152, 158/164, 170
+  marked available.
+
+PENSHOPPE Philippines (each page said in stock, without per-size status):
+- Women's Low Power Mode Slim Graphic T-Shirt, Off White: S, M, L, XL, XXL.
+- Women's Cherry Muse Slim Graphic T-Shirt, Black: S, M, L, XL, XXL.
+- Women's Essentials Relaxed Striped T-Shirt, Red: S, M, L, XL, XXL.
+- Women's Long Sleeve Striped Button-Down Top with Bows, Blush:
+  S, M, L, XL, XXL.

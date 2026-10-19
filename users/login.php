@@ -9,10 +9,18 @@ function safe_redirect($path) {
 
 $redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
-// Send signed-in users to the right area for their role.
+$cart_redirects = [
+    BASE_URL . 'cart/cart.php',
+    BASE_URL . 'cart/cart_add.php?resume=1',
+];
+$is_cart_redirect = in_array($redirect, $cart_redirects, true);
+
+// Keep administrators in the admin area except when they are switching to a customer account for cart access.
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
-    header('Location: ' . BASE_URL . 'admin/index.php');
-    exit;
+    if (!$is_cart_redirect) {
+        header('Location: ' . BASE_URL . 'admin/index.php');
+        exit;
+    }
 }
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'customer') {
     header('Location: ' . $redirect);
@@ -62,6 +70,10 @@ include_once('../includes/header.php');
   <div class="login-card">
     <h1>Sign in</h1>
     <p class="login-sub">Welcome back. Sign in to manage your cart and orders.</p>
+
+    <?php if (($_SESSION['role'] ?? '') === 'admin' && $is_cart_redirect) { ?>
+      <p class="login-sub">Your cart is for customer accounts. Sign in with an active customer account to continue.</p>
+    <?php } ?>
 
     <?php if ($error !== '') { ?>
       <p class="login-error" role="alert"><?php echo htmlspecialchars($error); ?></p>

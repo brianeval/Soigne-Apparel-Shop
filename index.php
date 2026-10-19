@@ -16,7 +16,7 @@
       <div class="hero-text">
         <h1>Clothes made to be worn every day</h1>
         <p>Clean cuts and breathable fabrics for the Manila heat. The new season is here.</p>
-        <a href="#" class="btn">Shop new arrivals</a>
+        <a href="product_view.php" class="btn">Shop new arrivals</a>
       </div>
       <div class="hero-img" role="img" aria-label="Model wearing a linen shirt"></div>
     </section>
@@ -24,16 +24,16 @@
     <section class="section">
       <h2>Shop by category</h2>
       <div class="cat-grid">
-        <a href="#" class="cat c1"><img src="<?php echo BASE_URL; ?>images/whiteshirt.jpg" alt=""><span>T-shirts</span></a>
-        <a href="#" class="cat c2"><img src="<?php echo BASE_URL; ?>images/shirt-category-removebg-preview.png" alt="White button-up shirt"><span>Shirts</span></a>
-        <a href="#" class="cat c3"><img src="<?php echo BASE_URL; ?>images/polo-removebg-preview.png" alt="Polo shirt"><span>Polos</span></a>
-        <a href="#" class="cat c4"><img src="<?php echo BASE_URL; ?>images/hoodies-removebg-preview.png" alt="Hoodie"><span>Hoodies</span></a>
-        <a href="#" class="cat c5"><img src="<?php echo BASE_URL; ?>images/sweatshirt-removebg-preview.png" alt="Sweater"><span>Sweaters</span></a>
-        <a href="#" class="cat c6"><img src="<?php echo BASE_URL; ?>images/pants-removebg-preview.png" alt="Pants"><span>Pants</span></a>
-        <a href="#" class="cat c7"><img src="<?php echo BASE_URL; ?>images/jeans-removebg-preview.png" alt="Jeans"><span>Jeans</span></a>
-        <a href="#" class="cat c8"><img src="<?php echo BASE_URL; ?>images/chinos-removebg-preview.png" alt="Chinos"><span>Chinos</span></a>
-        <a href="#" class="cat c9"><img src="<?php echo BASE_URL; ?>images/shorts-removebg-preview.png" alt="Khaki shorts"><span>Shorts</span></a>
-        <a href="#" class="cat c10"><img src="<?php echo BASE_URL; ?>images/outerwear-removebg-preview.png" alt="Outerwear jacket"><span>Outerwear</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=t-shirts" class="cat c1"><img src="<?php echo BASE_URL; ?>images/whiteshirt.jpg" alt=""><span>T-shirts</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=shirts" class="cat c2"><img src="<?php echo BASE_URL; ?>images/shirt-category-removebg-preview.png" alt="White button-up shirt"><span>Shirts</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=polos" class="cat c3"><img src="<?php echo BASE_URL; ?>images/polo-removebg-preview.png" alt="Polo shirt"><span>Polos</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=hoodies" class="cat c4"><img src="<?php echo BASE_URL; ?>images/hoodies-removebg-preview.png" alt="Hoodie"><span>Hoodies</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=sweaters" class="cat c5"><img src="<?php echo BASE_URL; ?>images/sweatshirt-removebg-preview.png" alt="Sweater"><span>Sweaters</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=pants" class="cat c6"><img src="<?php echo BASE_URL; ?>images/pants-removebg-preview.png" alt="Pants"><span>Pants</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=jeans" class="cat c7"><img src="<?php echo BASE_URL; ?>images/jeans-removebg-preview.png" alt="Jeans"><span>Jeans</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=chinos" class="cat c8"><img src="<?php echo BASE_URL; ?>images/chinos-removebg-preview.png" alt="Chinos"><span>Chinos</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=shorts" class="cat c9"><img src="<?php echo BASE_URL; ?>images/shorts-removebg-preview.png" alt="Khaki shorts"><span>Shorts</span></a>
+        <a href="<?php echo BASE_URL; ?>category.php?category=outerwear" class="cat c10"><img src="<?php echo BASE_URL; ?>images/outerwear-removebg-preview.png" alt="Outerwear jacket"><span>Outerwear</span></a>
       </div>
     </section>
 
@@ -74,7 +74,7 @@
       <div class="feature-text">
         <h2>Basics that last</h2>
         <p>Plain colors, honest fabrics, and fits that work with everything already in your closet.</p>
-        <a href="#" class="btn btn-outline">Shop the basics</a>
+        <a href="product_view.php" class="btn btn-outline">Shop the basics</a>
       </div>
     </section>
 

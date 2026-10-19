@@ -1,11 +1,6 @@
 <?php
 function require_active_customer(mysqli $conn, string $redirect_path): void
 {
-    if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
-        header('Location: ' . BASE_URL . 'admin/index.php');
-        exit;
-    }
-
     if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'customer') {
         header('Location: ' . BASE_URL . 'users/login.php?redirect=' . urlencode($redirect_path));
         exit;
