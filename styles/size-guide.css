@@ -1,0 +1,352 @@
+.size-guide-page {
+  width: min(100% - 40px, 960px);
+  margin: 0 auto;
+  padding: 48px 0 72px;
+}
+
+.size-guide-heading {
+  margin-bottom: 28px;
+}
+
+.size-guide-eyebrow {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.size-guide-heading h1 {
+  font-size: clamp(32px, 5vw, 44px);
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+
+.size-guide-heading > p:last-child {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.department-guide-tabs {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.department-guide-tab {
+  padding: 10px 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.department-guide-tab.is-selected {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+.women-size-guide[hidden] {
+  display: none;
+}
+
+.women-fit-label {
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.size-guide-card {
+  border: 1px solid var(--line);
+}
+
+.guide-type-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+
+.guide-type-tab {
+  min-width: 130px;
+  padding: 15px 20px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+
+.guide-type-tab.is-active {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+.guide-type-tab span {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.bottom-guide {
+  padding: 28px;
+}
+
+.bottom-guide h2 {
+  margin-bottom: 4px;
+  font-size: 24px;
+}
+
+.guide-instructions {
+  margin-bottom: 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.top-fit-tabs {
+  display: flex;
+  gap: 24px;
+  margin: 0 0 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.top-fit-tab {
+  padding: 10px 8px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.top-fit-tab.is-selected {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+.top-fit-panel[hidden] {
+  display: none;
+}
+
+.size-guide-note {
+  margin: -6px 0 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.size-guide-note[hidden] {
+  display: none;
+}
+
+.size-range-fieldset {
+  border: 0;
+  margin: 0 0 20px;
+}
+
+.size-range-fieldset legend {
+  width: 100%;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.size-range-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 620px;
+}
+
+.women-bottom-range-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.kids-size-options {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.size-range-option {
+  min-height: 50px;
+  padding: 10px 14px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.size-range-option:hover {
+  background: var(--stone);
+}
+
+.size-range-option.is-selected {
+  background: var(--ink);
+  color: #fff;
+}
+
+.size-range-option:focus-visible,
+.measurement-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.measurement-section {
+  border-top: 1px solid var(--line);
+}
+
+.measurement-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 17px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.toggle-mark {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.toggle-mark::before,
+.toggle-mark::after {
+  position: absolute;
+  top: 7px;
+  left: 1px;
+  width: 14px;
+  height: 1px;
+  background: currentColor;
+  content: "";
+}
+
+.toggle-mark::after {
+  transform: rotate(90deg);
+  transition: transform 120ms ease;
+}
+
+.measurement-toggle[aria-expanded="true"] .toggle-mark::after {
+  transform: rotate(0);
+}
+
+.measurement-panel {
+  padding: 0 0 18px;
+}
+
+.measurement-panel[hidden] {
+  display: none;
+}
+
+.measurement-table-wrap {
+  overflow-x: auto;
+}
+
+.measurement-table {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  text-align: center;
+}
+
+.measurement-table th,
+.measurement-table td {
+  padding: 13px 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 15px;
+}
+
+.measurement-table thead th {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.measurement-table .measurement-label {
+  width: 145px;
+  text-align: left;
+}
+
+.measurement-table thead .measurement-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 600px) {
+  .size-guide-page {
+    width: min(100% - 28px, 960px);
+    padding: 28px 0 48px;
+  }
+
+  .bottom-guide {
+    padding: 20px 14px;
+  }
+
+  .guide-type-tab {
+    min-width: 0;
+    flex: 1;
+    padding: 13px 14px;
+  }
+
+  .department-guide-tabs {
+    gap: 16px;
+  }
+
+  .top-fit-tabs {
+    gap: 16px;
+  }
+
+  .size-range-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .women-bottom-range-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .kids-size-options {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .size-range-option {
+    min-height: 46px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .size-range-option,
+  .toggle-mark::after {
+    transition: none;
+  }
+}

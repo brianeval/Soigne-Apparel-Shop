@@ -11,6 +11,40 @@ ALTER TABLE product_colors
 
 START TRANSACTION;
 
+UPDATE product_variants AS v
+JOIN product_colors AS pc ON pc.product_color_id = v.product_color_id
+JOIN products AS p ON p.product_id = pc.product_id
+JOIN suppliers AS s ON s.supplier_id = p.supplier_id
+SET v.size = CASE p.name
+  WHEN 'Cotton T-shirt' THEN CASE v.size
+    WHEN '92' THEN 'XS'
+    WHEN '98/104' THEN 'S'
+    WHEN '110/116' THEN 'M'
+    WHEN '122/128' THEN 'L'
+    WHEN '134/140' THEN 'XL'
+  END
+  WHEN 'Cotton Jersey T-shirt' THEN CASE v.size
+    WHEN '134/140' THEN 'S'
+    WHEN '146/152' THEN 'M'
+    WHEN '158/164' THEN 'L'
+    WHEN '170' THEN 'XL'
+  END
+END
+WHERE s.name = 'H&M'
+  AND p.department = 'kids'
+  AND p.name IN ('Cotton T-shirt', 'Cotton Jersey T-shirt')
+  AND v.size IN ('92', '98/104', '110/116', '122/128', '134/140', '146/152', '158/164', '170');
+
+UPDATE product_colors AS pc
+JOIN products AS p ON p.product_id = pc.product_id
+JOIN suppliers AS s ON s.supplier_id = p.supplier_id
+SET pc.color = 'Black',
+    pc.image = 'Nike_T-Shirt_NS_BLK.jpg'
+WHERE s.name = 'Nike'
+  AND p.name = 'Nike Sportswear Women''s T-Shirt'
+  AND p.department = 'women'
+  AND pc.color = 'Black/White';
+
 INSERT INTO suppliers (name)
 VALUES ('PENSHOPPE')
 ON DUPLICATE KEY UPDATE supplier_id = LAST_INSERT_ID(supplier_id);
@@ -66,7 +100,7 @@ INSERT INTO tmp_brand_images (brand, name, color, image) VALUES
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Black', 'Nike_Hoodie_JMBH_BLK.jpg'),
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Burgundy Crush', 'Nike_Hoodie_JMBH_BC.jpg'),
 ('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'Nike_Pants_PSGFT_BLK.jpg'),
-('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple/Black/Black', 'Nike_Shorts_NMDF10_SPBB.jpg'),
+('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', 'Nike_Shorts_NMDF10_SPBB.jpg'),
 ('Nike', 'ACG Dolomiti Gilet', 'Black/Summit White', 'Nike_Outerwear_ACGDG_BLK.jpg'),
 ('H&M', '3-PACK REGULAR FIT T-SHIRTS', 'Black/Burgundy', 'H&M_T-Shirt_3PRF_BLKBG.jpg'),
 ('H&M', 'SLIM FIT T-SHIRT', 'Black', 'H&M_T-Shirt_SFT_BLK.jpg'),
@@ -105,6 +139,27 @@ INSERT INTO tmp_brand_images (brand, name, color, image) VALUES
 ('H&M', 'BAGGY DENIM SHORTS', 'Denim gray', 'H&M_Shorts_BDS_DG.jpg'),
 ('H&M', 'WINDPROOF AND WATER-REPELLENT JACKET', 'Khaki green', 'H&M_Outerwear_WWRJ_KHG.jpg');
 
+INSERT INTO tmp_brand_images (brand, name, color, image) VALUES
+('H&M', 'Oxford Shirt', 'White', 'H&M_Shirt_OS_WHT.jpg'),
+('H&M', 'Oxford Shirt', 'Blue', 'H&M_Shirt_OS_BLUE.jpg'),
+('H&M', 'Oxford Shirt', 'Light Pink', 'H&M_Shirt_OS_LP.jpg'),
+('H&M', 'Knit T-Shirt', 'Beige melange', 'H&M_T-Shirt_KTS_BM.jpg'),
+('H&M', 'Knit T-Shirt', 'Cream', 'H&M_T-Shirt_KTS_CREAM.jpg'),
+('H&M', 'Cotton T-shirt', 'White', 'H&M_T-Shirt_CTS_WHT.jpg'),
+('H&M', 'Cotton T-shirt', 'Light Red', 'H&M_T-Shirt_CTS_LR.jpg'),
+('H&M', 'Cotton T-shirt', 'Light Turqoise', 'H&M_T-Shirt_CTS_LT.jpg'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', 'H&M_T-Shirt_CJTS_CERISE.jpg'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black', 'Nike_T-Shirt_NS_BLK.jpg'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'White', 'Nike_T-Shirt_NS_WHT.jpg'),
+('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'Nike_T-Shirt_NSLT_BLK.jpg'),
+('Nike', 'Nike Sportswear Kids'' T-Shirt', 'White', 'Nike_T-Shirt_NSK_WHT.jpg'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'Nike_T-Shirt_NSOK_BLK.jpg'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'White', 'Nike_T-Shirt_NSOK_WHT.jpg'),
+('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'Penshoppe_T-Shirt_LPMSGTS_OW.jpg'),
+('PENSHOPPE', 'Cherry Muse Slim Graphic T-Shirt', 'Black', 'Penshoppe_T-Shirt_CMSGTS_BLK.jpg'),
+('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'Red', 'Penshoppe_T-Shirt_ERSTS_RED.jpg'),
+('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Blush', 'Penshoppe_Shirt_LSSBDTB_BLU.jpg');
+
 INSERT INTO tmp_brand_products (brand, name, category, price, color) VALUES
 ('PENSHOPPE', 'Prodigy Boxy Graphic T-Shirt', 'T-shirts', 549.00, 'Black'),
 ('PENSHOPPE', 'Boxy Shirt', 'Shirts', 899.00, 'Red'),
@@ -134,7 +189,7 @@ INSERT INTO tmp_brand_products (brand, name, category, price, color) VALUES
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Hoodies', 3795.00, 'Black'),
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Hoodies', 3795.00, 'Burgundy Crush'),
 ('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Pants', 3195.00, 'Black'),
-('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Shorts', 3295.00, 'Space Purple/Black/Black'),
+('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Shorts', 3295.00, 'Space Purple'),
 ('Nike', 'ACG Dolomiti Gilet', 'Outerwear', 5395.00, 'Black/Summit White'),
 ('H&M', '3-PACK REGULAR FIT T-SHIRTS', 'T-shirts', 999.00, 'Black/Burgundy'),
 ('H&M', 'SLIM FIT T-SHIRT', 'T-shirts', 399.00, 'Black'),
@@ -173,15 +228,22 @@ INSERT INTO tmp_brand_products (brand, name, category, price, color) VALUES
 ('H&M', 'BAGGY DENIM SHORTS', 'Shorts', 1990.00, 'Denim gray'),
 ('H&M', 'WINDPROOF AND WATER-REPELLENT JACKET', 'Outerwear', 2490.00, 'Khaki green');
 
--- Additional verified women's and kids' products; no image files are assigned yet.
+-- Additional verified women's and kids' products and uploaded colorways.
 INSERT INTO tmp_brand_products (brand, name, category, price, color, department) VALUES
-('Nike', 'Nike Sportswear Women''s T-Shirt', 'T-shirts', 1045.00, 'Black/White', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'T-shirts', 1045.00, 'Black', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'T-shirts', 1045.00, 'White', 'women'),
 ('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'T-shirts', 1077.00, 'Black', 'women'),
 ('Nike', 'Nike Sportswear Kids'' T-Shirt', 'T-shirts', 627.00, 'White', 'kids'),
 ('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'T-shirts', 1045.00, 'Black', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'T-shirts', 1045.00, 'White', 'kids'),
 ('H&M', 'Oxford Shirt', 'Shirts', 749.00, 'White', 'women'),
+('H&M', 'Oxford Shirt', 'Shirts', 749.00, 'Blue', 'women'),
+('H&M', 'Oxford Shirt', 'Shirts', 749.00, 'Light Pink', 'women'),
 ('H&M', 'Knit T-Shirt', 'T-shirts', 599.00, 'Beige melange', 'women'),
+('H&M', 'Knit T-Shirt', 'T-shirts', 599.00, 'Cream', 'women'),
 ('H&M', 'Cotton T-shirt', 'T-shirts', 299.00, 'White', 'kids'),
+('H&M', 'Cotton T-shirt', 'T-shirts', 299.00, 'Light Red', 'kids'),
+('H&M', 'Cotton T-shirt', 'T-shirts', 299.00, 'Light Turqoise', 'kids'),
 ('H&M', 'Cotton Jersey T-shirt', 'T-shirts', 399.00, 'Cerise', 'kids'),
 ('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'T-shirts', 499.00, 'Off White', 'women'),
 ('PENSHOPPE', 'Cherry Muse Slim Graphic T-Shirt', 'T-shirts', 499.00, 'Black', 'women'),
@@ -416,11 +478,11 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size) VALUES
 ('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'US L'),
 ('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'US XL'),
 ('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'US XXL'),
-('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple/Black/Black', 'S'),
-('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple/Black/Black', 'M'),
-('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple/Black/Black', 'L'),
-('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple/Black/Black', 'XL'),
-('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple/Black/Black', '2XL'),
+('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', 'S'),
+('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', 'M'),
+('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', 'L'),
+('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', 'XL'),
+('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', '2XL'),
 ('Nike', 'ACG Dolomiti Gilet', 'Black/Summit White', 'S'),
 ('Nike', 'ACG Dolomiti Gilet', 'Black/Summit White', 'M'),
 ('Nike', 'ACG Dolomiti Gilet', 'Black/Summit White', 'L'),
@@ -428,12 +490,18 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size) VALUES
 ('Nike', 'ACG Dolomiti Gilet', 'Black/Summit White', '2XL');
 
 INSERT INTO tmp_brand_sizes (brand, name, color, size, department) VALUES
-('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'XS', 'women'),
-('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'S', 'women'),
-('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'M', 'women'),
-('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'L', 'women'),
-('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', 'XL', 'women'),
-('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black/White', '2XL', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black', 'XS', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black', 'S', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black', 'M', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black', 'L', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black', 'XL', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'Black', '2XL', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'White', 'XS', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'White', 'S', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'White', 'M', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'White', 'L', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'White', 'XL', 'women'),
+('Nike', 'Nike Sportswear Women''s T-Shirt', 'White', '2XL', 'women'),
 ('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'XS', 'women'),
 ('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'S', 'women'),
 ('Nike', 'Nike Sportswear Women''s Loose T-Shirt', 'Black', 'M', 'women'),
@@ -449,11 +517,26 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size, department) VALUES
 ('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'M', 'kids'),
 ('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'L', 'kids'),
 ('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'Black', 'XL', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'White', 'XS', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'White', 'S', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'White', 'M', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'White', 'L', 'kids'),
+('Nike', 'Nike Sportswear Older Kids'' T-Shirt', 'White', 'XL', 'kids'),
 ('H&M', 'Oxford Shirt', 'White', 'XS', 'women'),
 ('H&M', 'Oxford Shirt', 'White', 'S', 'women'),
 ('H&M', 'Oxford Shirt', 'White', 'M', 'women'),
 ('H&M', 'Oxford Shirt', 'White', 'L', 'women'),
 ('H&M', 'Oxford Shirt', 'White', 'XL', 'women'),
+('H&M', 'Oxford Shirt', 'Blue', 'XS', 'women'),
+('H&M', 'Oxford Shirt', 'Blue', 'S', 'women'),
+('H&M', 'Oxford Shirt', 'Blue', 'M', 'women'),
+('H&M', 'Oxford Shirt', 'Blue', 'L', 'women'),
+('H&M', 'Oxford Shirt', 'Blue', 'XL', 'women'),
+('H&M', 'Oxford Shirt', 'Light Pink', 'XS', 'women'),
+('H&M', 'Oxford Shirt', 'Light Pink', 'S', 'women'),
+('H&M', 'Oxford Shirt', 'Light Pink', 'M', 'women'),
+('H&M', 'Oxford Shirt', 'Light Pink', 'L', 'women'),
+('H&M', 'Oxford Shirt', 'Light Pink', 'XL', 'women'),
 ('H&M', 'Knit T-Shirt', 'Beige melange', 'XXS', 'women'),
 ('H&M', 'Knit T-Shirt', 'Beige melange', 'XS', 'women'),
 ('H&M', 'Knit T-Shirt', 'Beige melange', 'S', 'women'),
@@ -461,15 +544,32 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size, department) VALUES
 ('H&M', 'Knit T-Shirt', 'Beige melange', 'L', 'women'),
 ('H&M', 'Knit T-Shirt', 'Beige melange', 'XL', 'women'),
 ('H&M', 'Knit T-Shirt', 'Beige melange', 'XXL', 'women'),
-('H&M', 'Cotton T-shirt', 'White', '92', 'kids'),
-('H&M', 'Cotton T-shirt', 'White', '98/104', 'kids'),
-('H&M', 'Cotton T-shirt', 'White', '110/116', 'kids'),
-('H&M', 'Cotton T-shirt', 'White', '122/128', 'kids'),
-('H&M', 'Cotton T-shirt', 'White', '134/140', 'kids'),
-('H&M', 'Cotton Jersey T-shirt', 'Cerise', '134/140', 'kids'),
-('H&M', 'Cotton Jersey T-shirt', 'Cerise', '146/152', 'kids'),
-('H&M', 'Cotton Jersey T-shirt', 'Cerise', '158/164', 'kids'),
-('H&M', 'Cotton Jersey T-shirt', 'Cerise', '170', 'kids'),
+('H&M', 'Knit T-Shirt', 'Cream', 'XXS', 'women'),
+('H&M', 'Knit T-Shirt', 'Cream', 'XS', 'women'),
+('H&M', 'Knit T-Shirt', 'Cream', 'S', 'women'),
+('H&M', 'Knit T-Shirt', 'Cream', 'M', 'women'),
+('H&M', 'Knit T-Shirt', 'Cream', 'L', 'women'),
+('H&M', 'Knit T-Shirt', 'Cream', 'XL', 'women'),
+('H&M', 'Knit T-Shirt', 'Cream', 'XXL', 'women'),
+('H&M', 'Cotton T-shirt', 'White', 'XS', 'kids'),
+('H&M', 'Cotton T-shirt', 'White', 'S', 'kids'),
+('H&M', 'Cotton T-shirt', 'White', 'M', 'kids'),
+('H&M', 'Cotton T-shirt', 'White', 'L', 'kids'),
+('H&M', 'Cotton T-shirt', 'White', 'XL', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Red', 'XS', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Red', 'S', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Red', 'M', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Red', 'L', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Red', 'XL', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Turqoise', 'XS', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Turqoise', 'S', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Turqoise', 'M', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Turqoise', 'L', 'kids'),
+('H&M', 'Cotton T-shirt', 'Light Turqoise', 'XL', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', 'S', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', 'M', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', 'L', 'kids'),
+('H&M', 'Cotton Jersey T-shirt', 'Cerise', 'XL', 'kids'),
 ('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'S', 'women'),
 ('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'M', 'women'),
 ('PENSHOPPE', 'Low Power Mode Slim Graphic T-Shirt', 'Off White', 'L', 'women'),

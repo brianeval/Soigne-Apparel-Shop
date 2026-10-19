@@ -3,11 +3,9 @@
     include_once("includes/header.php");
     include_once("includes/config.php");
 
-    $q = "SELECT DISTINCT p.*
+    $q = "SELECT p.*
       FROM products p
-      JOIN product_colors pc ON pc.product_id = p.product_id
-      JOIN product_variants v ON v.product_color_id = pc.product_color_id
-      WHERE v.stock > 0";
+      ORDER BY p.product_id DESC";
     $result = mysqli_query($conn, $q);
 
 ?>

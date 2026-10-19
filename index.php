@@ -3,12 +3,11 @@
   include_once("includes/header.php");
   include_once("includes/config.php");
 
-  // This query gets products that are currently in stock so the homepage can show available items.
-  $q = "SELECT DISTINCT p.*
+  // Show the newest products on the homepage, including items that are currently sold out.
+  $q = "SELECT p.*
       FROM products p
-      JOIN product_colors pc ON pc.product_id = p.product_id
-      JOIN product_variants v ON v.product_color_id = pc.product_color_id
-      WHERE v.stock > 0 LIMIT 5";
+      ORDER BY p.product_id DESC
+      LIMIT 5";
   $result = mysqli_query($conn, $q);
 ?>
   <main>
