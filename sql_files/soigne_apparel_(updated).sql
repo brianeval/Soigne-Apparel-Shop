@@ -16,7 +16,7 @@ DROP VIEW  IF EXISTS all_costs, restock_totals, order_totals;
 DROP TABLE IF EXISTS restock_items, restocks, expenses,
                      order_items, orders, cart,
                      product_variants, product_colors, products,
-                     suppliers, customers, users;
+                     categories, suppliers, customers, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------------
@@ -50,6 +50,15 @@ CREATE TABLE suppliers (
   image       VARCHAR(255) NULL
 ) ENGINE=InnoDB;
 
+CREATE TABLE categories (
+  category_id INT AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+INSERT INTO categories (name) VALUES
+  ('T-shirts'), ('Shirts'), ('Polos'), ('Hoodies'), ('Sweaters'),
+  ('Pants'), ('Jeans'), ('Chinos'), ('Shorts'), ('Outerwear');
+
 -- ---------------------------------------------------------------------
 -- 4. Products, colors (one image per color) and variants (size + stock)
 -- ---------------------------------------------------------------------
@@ -58,12 +67,17 @@ CREATE TABLE products (
   supplier_id INT NOT NULL,
   name        VARCHAR(150)  NOT NULL,
   category    VARCHAR(50),
+  category_id INT NULL,
   department  ENUM('men','women','kids') NOT NULL DEFAULT 'men',
   price       DECIMAL(10,2) NOT NULL,
   description TEXT,
   created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_department (department),
-  FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
+  INDEX idx_products_category_id (category_id),
+  FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id),
+  FOREIGN KEY (category_id) REFERENCES categories(category_id)
+    ON UPDATE CASCADE
+    ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE product_colors (
@@ -195,8 +209,8 @@ SET @supplier_hm = (SELECT supplier_id FROM suppliers WHERE name = 'H&M');
 
 -- Products
 -- department: men / women / kids
-INSERT INTO products (supplier_id, name, category, department, price, description) VALUES
-(@supplier_hm, 'Felted Button-Detail Jacket',          'Outerwear', 'women', 2880.00, 'Short jacket in soft, felted fabric. Band collar and an open front with decorative trim and spherical buttons.');
+INSERT INTO products (supplier_id, name, category, category_id, department, price, description) VALUES
+(@supplier_hm, 'Felted Button-Detail Jacket', 'Outerwear', (SELECT category_id FROM categories WHERE name = 'Outerwear'), 'women', 2880.00, 'Short jacket in soft, felted fabric. Band collar and an open front with decorative trim and spherical buttons.');
 
 
 -- One image per color (put matching files in your images/ folder)

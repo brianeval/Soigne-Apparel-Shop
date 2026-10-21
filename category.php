@@ -23,16 +23,17 @@ if (!is_string($category_slug) || !isset($categories[$category_slug])) {
 
 $category_name = $categories[$category_slug];
 $stmt = mysqli_prepare($conn,
-    "SELECT p.product_id, p.name, p.price, p.category, pc.image,
+    "SELECT p.product_id, p.name, p.price, c.name AS category, pc.image,
             (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
      FROM products p
+     JOIN categories c ON c.category_id = p.category_id
      LEFT JOIN product_colors pc
        ON pc.product_color_id = (
          SELECT MIN(product_color_id)
          FROM product_colors
          WHERE product_id = p.product_id
        )
-     WHERE p.category = ?
+     WHERE c.name = ?
      ORDER BY p.product_id DESC"
 );
 mysqli_stmt_bind_param($stmt, 's', $category_name);

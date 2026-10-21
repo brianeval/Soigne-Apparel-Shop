@@ -30,20 +30,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'update_product') {
             $supplier_id = filter_var($_POST['supplier_id'] ?? null, FILTER_VALIDATE_INT);
             $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
-            $category = trim(is_string($_POST['category'] ?? null) ? $_POST['category'] : '');
+            $category_id_input = $_POST['category_id'] ?? '';
+            $category_id = $category_id_input === '' ? null : filter_var($category_id_input, FILTER_VALIDATE_INT);
             $department = $_POST['department'] ?? '';
             $price = filter_var($_POST['price'] ?? null, FILTER_VALIDATE_FLOAT);
             $description = trim(is_string($_POST['description'] ?? null) ? $_POST['description'] : '');
 
             if ($supplier_id === false || $supplier_id < 1) $errors[] = 'Choose a valid brand.';
             if ($name === '' || mb_strlen($name) > 150) $errors[] = 'Enter a product name up to 150 characters.';
-            if (mb_strlen($category) > 50) $errors[] = 'Category must be 50 characters or fewer.';
+            if ($category_id_input !== '' && ($category_id === false || $category_id < 1)) $errors[] = 'Choose a valid category.';
             if (!in_array($department, ['men', 'women', 'kids'], true)) $errors[] = 'Choose a valid department.';
             if ($price === false || $price < 0 || $price > 99999999.99) $errors[] = 'Enter a valid price.';
 
             if (!$errors) {
-                $stmt = mysqli_prepare($conn, "UPDATE products SET supplier_id = ?, name = ?, category = ?, department = ?, price = ?, description = ? WHERE product_id = ?");
-                mysqli_stmt_bind_param($stmt, 'isssdsi', $supplier_id, $name, $category, $department, $price, $description, $product_id);
+                $category = null;
+                if ($category_id !== null) {
+                    $category_stmt = mysqli_prepare($conn, "SELECT name FROM categories WHERE category_id = ?");
+                    mysqli_stmt_bind_param($category_stmt, 'i', $category_id);
+                    mysqli_stmt_execute($category_stmt);
+                    $category_row = mysqli_fetch_assoc(mysqli_stmt_get_result($category_stmt));
+                    if (!$category_row) {
+                        $errors[] = 'Choose a valid category.';
+                    } else {
+                        $category = $category_row['name'];
+                    }
+                }
+            }
+
+            if (!$errors) {
+                $stmt = mysqli_prepare($conn, "UPDATE products SET supplier_id = ?, name = ?, category_id = ?, category = ?, department = ?, price = ?, description = ? WHERE product_id = ?");
+                mysqli_stmt_bind_param($stmt, 'isissdsi', $supplier_id, $name, $category_id, $category, $department, $price, $description, $product_id);
                 mysqli_stmt_execute($stmt);
                 admin_set_flash('success', 'Product details updated.');
                 header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id);
@@ -217,6 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
+$categories = mysqli_fetch_all(mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name"), MYSQLI_ASSOC);
 $colors_stmt = mysqli_prepare($conn,
     "SELECT pc.product_color_id, pc.color, pc.image, v.variant_id, v.size, v.stock
      FROM product_colors pc
@@ -256,7 +273,7 @@ include __DIR__ . '/../includes/header.php';
     <input type="hidden" name="action" value="update_product">
     <label>Product name<input name="name" maxlength="150" required value="<?php echo admin_escape($_POST['name'] ?? $product['name']); ?>"></label>
     <label>Brand<select name="supplier_id" required><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo (int)$supplier['supplier_id'] === (int)$product['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
-    <label>Category<input name="category" maxlength="50" value="<?php echo admin_escape($_POST['category'] ?? $product['category']); ?>"></label>
+    <label>Category<select name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { $selected_category_id = $_POST['category_id'] ?? $product['category_id']; ?><option value="<?php echo (int)$category_option['category_id']; ?>" <?php echo (string)$selected_category_id === (string)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
     <label>Department<select name="department"><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $key => $label) { ?><option value="<?php echo $key; ?>" <?php echo $product['department'] === $key ? 'selected' : ''; ?>><?php echo $label; ?></option><?php } ?></select></label>
     <label>Price (₱)<input type="number" name="price" min="0" max="99999999.99" step="0.01" required value="<?php echo admin_escape($_POST['price'] ?? $product['price']); ?>"></label>
     <label class="manage-form-wide">Description<textarea name="description" rows="3"><?php echo admin_escape($_POST['description'] ?? $product['description']); ?></textarea></label>

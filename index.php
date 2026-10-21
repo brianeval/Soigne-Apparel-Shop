@@ -11,13 +11,31 @@
   $result = mysqli_query($conn, $q);
 ?>
   <main>
-    <section class="hero">
-      <div class="hero-text">
-        <h1>Clothes made to be worn every day</h1>
-        <p>Clean cuts and breathable fabrics for the Manila heat. The new season is here.</p>
-        <a href="product_view.php" class="btn">Shop new arrivals</a>
+    <section class="hero" aria-label="Featured collections">
+      <div class="hero-slide is-active" data-hero-slide aria-hidden="false">
+        <div class="hero-text">
+          <h1>Clothes made to be worn every day</h1>
+          <p>Clean cuts and breathable fabrics for the Manila heat. The new season is here.</p>
+          <a href="product_view.php" class="btn">Shop new arrivals</a>
+        </div>
+        <div class="hero-img" role="img" aria-label="Model wearing a linen shirt"></div>
       </div>
-      <div class="hero-img" role="img" aria-label="Model wearing a linen shirt"></div>
+      <div class="hero-slide hero-slide-nike" data-hero-slide aria-hidden="true">
+        <div class="hero-text">
+          <h1>Made to move. Styled by you.</h1>
+          <p>Discover Nike favorites made for every day, every workout, and everywhere in between.</p>
+          <a href="<?php echo BASE_URL; ?>brands.php?brand=Nike" class="btn">Shop Nike products</a>
+        </div>
+        <div class="hero-img" role="img" aria-label="Nike apparel collection"></div>
+      </div>
+      <div class="hero-controls" role="group" aria-label="Featured slide controls">
+        <button class="hero-arrow" type="button" data-hero-prev aria-label="Previous slide">&lsaquo;</button>
+        <div class="hero-dots">
+          <button class="hero-dot is-active" type="button" data-hero-dot="0" aria-label="Show slide 1 of 2" aria-pressed="true"></button>
+          <button class="hero-dot" type="button" data-hero-dot="1" aria-label="Show slide 2 of 2" aria-pressed="false"></button>
+        </div>
+        <button class="hero-arrow" type="button" data-hero-next aria-label="Next slide">&rsaquo;</button>
+      </div>
     </section>
 
     <section class="section">
@@ -78,6 +96,80 @@
     </section>
 
   </main>
+
+<script>
+(function () {
+  var hero = document.querySelector('.hero');
+  if (!hero) return;
+
+  var slides = Array.prototype.slice.call(hero.querySelectorAll('[data-hero-slide]'));
+  var dots = Array.prototype.slice.call(hero.querySelectorAll('[data-hero-dot]'));
+  var currentSlide = 0;
+  var timer;
+  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function showSlide(index) {
+    currentSlide = (index + slides.length) % slides.length;
+    slides.forEach(function (slide, slideIndex) {
+      var active = slideIndex === currentSlide;
+      slide.classList.toggle('is-active', active);
+      slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+    });
+    dots.forEach(function (dot, dotIndex) {
+      var active = dotIndex === currentSlide;
+      dot.classList.toggle('is-active', active);
+      dot.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  function stopAutoplay() {
+    window.clearInterval(timer);
+  }
+
+  function startAutoplay() {
+    stopAutoplay();
+    if (!reducedMotion && !hero.matches(':hover') && !hero.contains(document.activeElement)) {
+      timer = window.setInterval(function () {
+        showSlide(currentSlide + 1);
+      }, 3000);
+    }
+  }
+
+  hero.querySelector('[data-hero-prev]').addEventListener('click', function () {
+    showSlide(currentSlide - 1);
+    startAutoplay();
+  });
+  hero.querySelector('[data-hero-next]').addEventListener('click', function () {
+    showSlide(currentSlide + 1);
+    startAutoplay();
+  });
+  dots.forEach(function (dot) {
+    dot.addEventListener('click', function () {
+      showSlide(Number(dot.getAttribute('data-hero-dot')));
+      startAutoplay();
+    });
+  });
+
+  hero.addEventListener('mouseenter', stopAutoplay);
+  hero.addEventListener('mouseleave', startAutoplay);
+  hero.addEventListener('focusin', stopAutoplay);
+  hero.addEventListener('focusout', function (event) {
+    if (!hero.contains(event.relatedTarget)) startAutoplay();
+  });
+
+  function sizeHero() {
+    var header = document.querySelector('.site-header');
+    var subnav = document.querySelector('.sub-nav');
+    var occupiedHeight = (header ? header.getBoundingClientRect().height : 0) +
+      (subnav ? subnav.getBoundingClientRect().height : 0);
+    hero.style.setProperty('--hero-height', Math.max(240, window.innerHeight - occupiedHeight) + 'px');
+  }
+
+  window.addEventListener('resize', sizeHero);
+  sizeHero();
+  startAutoplay();
+})();
+</script>
 
 <?php
   include_once("includes/footer.php");

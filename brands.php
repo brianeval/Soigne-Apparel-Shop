@@ -4,9 +4,24 @@
 include_once ('includes/config.php');
 
 $brand_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$brand_name = isset($_GET['brand']) && is_string($_GET['brand']) ? trim($_GET['brand']) : '';
 $brand    = null;
 $brands   = [];
 $products = [];
+
+if ($brand_name !== '') {
+    $stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE name = ?");
+    mysqli_stmt_bind_param($stmt, 's', $brand_name);
+    mysqli_stmt_execute($stmt);
+    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+
+    if (!$brand) {
+        http_response_code(404);
+        exit('Brand not found.');
+    }
+
+    $brand_id = (int)$brand['supplier_id'];
+}
 
 if ($brand_id > 0) {
     // --- One brand and its products ---
@@ -22,9 +37,10 @@ if ($brand_id > 0) {
     }
 
     // This query gets every product from the selected brand, along with a preview image and color count.
-    $q = "SELECT p.product_id, p.name, p.price, p.category, pc.image,
+    $q = "SELECT p.product_id, p.name, p.price, COALESCE(c.name, p.category) AS category, pc.image,
                  (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
           FROM products p
+          LEFT JOIN categories c ON c.category_id = p.category_id
           LEFT JOIN product_colors pc
             ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
           WHERE p.supplier_id = ?

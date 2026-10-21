@@ -6,7 +6,19 @@
 .manage-list-panel { padding: 20px 0 0; overflow: hidden; }
 .manage-list-panel > .manage-panel-heading { padding: 0 20px; }
 .manage-form { display: grid; gap: 14px; }
-.manage-product-create { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.manage-product-create { grid-template-columns: minmax(0, 1fr); align-items: start; }
+.manage-product-top { grid-column: 1 / -1; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.manage-product-top .manage-panel-heading { margin: 0; }
+.product-image-picker { display: flex; align-items: center; gap: 12px; }
+.product-image-preview { width: 180px; height: 180px; display: grid; place-items: center; overflow: hidden; border: 1px dashed #cbd3c8; border-radius: 6px; background: #f7f8f5; color: #858a83; font-size: 12px; text-align: center; }
+.product-image-preview img { width: 100%; height: 100%; object-fit: contain; }
+.product-image-picker-actions { display: grid; justify-items: start; gap: 3px; }
+.product-image-choose { display: inline-flex !important; min-height: 36px; cursor: pointer; }
+.product-image-input { position: absolute; width: 1px !important; min-height: 0 !important; height: 1px !important; padding: 0 !important; border: 0 !important; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+.product-image-input:focus-visible + .product-image-choose { outline: 3px solid #8fa991; outline-offset: 3px; }
+.product-image-picker-actions small { max-width: 190px; overflow-wrap: anywhere; }
+.manage-form input[type="hidden"] { display: none; }
+.manage-product-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 14px; }
 .manage-form label { display: grid; gap: 6px; color: #525950; font-size: 13px; font-weight: 600; }
 .manage-form input, .manage-form select, .manage-form textarea,
 .manage-inline-form input, .manage-filter input, .manage-filter select {
@@ -15,6 +27,8 @@
 .manage-form textarea { min-height: 84px; resize: vertical; }
 .manage-form input:focus, .manage-form select:focus, .manage-form textarea:focus,
 .manage-inline-form input:focus, .manage-filter input:focus, .manage-filter select:focus { border-color: var(--admin-green); outline: 2px solid rgba(82,107,85,.12); }
+.manage-product-fields input:not([type="file"]), .manage-product-fields select { height: 40px; min-height: 40px; }
+.manage-product-fields textarea { min-height: 84px; }
 .manage-form-wide { grid-column: 1 / -1; }
 .order-customer-details { grid-column: 1 / -1; display: grid; grid-template-columns: 185px minmax(0, 1fr); align-items: start; gap: 14px; }
 .order-customer-details textarea { min-height: 84px; }
@@ -64,7 +78,7 @@
 .manage-order-item { padding: 12px; border: 1px solid #ecefea; border-radius: 6px; font-size: 13px; }
 .manage-order-item small { display: block; margin-top: 4px; color: #727970; font-size: 12px; }
 @media (max-width: 850px) {
-  .manage-product-create { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .manage-product-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .manage-add-color { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .manage-add-color > div { grid-column: 1 / -1; }
   .manage-add-color > div .admin-button { min-width: 130px; }
@@ -74,7 +88,10 @@
   .manage-panel { padding: 15px; }
   .manage-list-panel { padding: 15px 0 0; }
   .manage-list-panel > .manage-panel-heading { padding: 0 15px; }
-  .manage-product-create, .manage-add-color, .manage-color-edit, .manage-order-view { grid-template-columns: 1fr; }
+  .manage-product-fields, .manage-add-color, .manage-color-edit, .manage-order-view { grid-template-columns: 1fr; }
+  .manage-product-top { align-items: stretch; flex-direction: column; }
+  .product-image-picker { align-self: flex-end; max-width: 100%; }
+  .product-image-preview { width: min(180px, 42vw); height: min(180px, 42vw); }
   .order-customer-details { grid-template-columns: 1fr; }
   .manage-color-edit .manage-row-actions { padding: 0; }
   .manage-form-wide, .manage-add-color > div { grid-column: auto; }

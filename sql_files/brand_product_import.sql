@@ -2,6 +2,7 @@
 -- Additional Nike colorways are included where their official pages were accessible.
 -- H&M and PENSHOPPE pages blocked follow-up checks, so their previously recorded colors remain.
 -- Import into the existing soigne_apparel database after applying the main schema.
+-- For an existing database, run migrate_product_categories.sql before this import.
 -- Images are linked to filenames in images/ when a matching image is available.
 -- Unmatched or color-mismatched images remain NULL. Availability/stock is initialized to 0.
 -- Product-page URLs and research limitations are documented in product_links.txt.
@@ -250,13 +251,14 @@ INSERT INTO tmp_brand_products (brand, name, category, price, color, department)
 ('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'T-shirts', 499.00, 'Red', 'women'),
 ('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Shirts', 1199.00, 'Blush', 'women');
 
-INSERT INTO products (supplier_id, name, category, department, price, description)
-SELECT suppliers.supplier_id, source.name, source.category, source.department, source.price, NULL
+INSERT INTO products (supplier_id, name, category_id, category, department, price, description)
+SELECT suppliers.supplier_id, source.name, categories.category_id, source.category, source.department, source.price, NULL
 FROM (
   SELECT DISTINCT brand, name, category, price, department
   FROM tmp_brand_products
 ) AS source
 JOIN suppliers ON suppliers.name = source.brand
+JOIN categories ON categories.name = source.category
 WHERE NOT EXISTS (
   SELECT 1
   FROM products AS existing
