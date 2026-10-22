@@ -87,12 +87,6 @@
     </section>
 
     <section class="feature">
-      <div class="feature-img" role="img" aria-label="Folded basics"></div>
-      <div class="feature-text">
-        <h2>Basics that last</h2>
-        <p>Plain colors, honest fabrics, and fits that work with everything already in your closet.</p>
-        <a href="product_view.php" class="btn btn-outline">Shop the basics</a>
-      </div>
     </section>
 
   </main>

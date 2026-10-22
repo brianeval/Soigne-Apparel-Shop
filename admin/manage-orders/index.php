@@ -175,111 +175,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$customers = mysqli_fetch_all(mysqli_query($conn, "SELECT user_id, username FROM users WHERE role = 'customer' AND status = 'active' ORDER BY username"), MYSQLI_ASSOC);
-$variants = mysqli_fetch_all(mysqli_query($conn,
-    "SELECT v.variant_id, v.size, v.stock, p.product_id, p.name AS product_name, pc.color
-     FROM product_variants v
-     JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-     JOIN products p ON p.product_id = pc.product_id
-     ORDER BY p.name, pc.color, v.size"
-), MYSQLI_ASSOC);
-$products = [];
-foreach ($variants as $variant) {
-    $products[(int)$variant['product_id']] = $variant['product_name'];
-}
-$orders_result = mysqli_query($conn,
+$ongoing_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE status IN ('pending', 'shipped', 'delivered')"))['total'];
+$history_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE status IN ('paid', 'cancelled')"))['total'];
+$ongoing_pagination = admin_pagination_page($ongoing_order_count, 10, 'ongoing_page');
+$history_pagination = admin_pagination_page($history_order_count, 10, 'history_page');
+$ongoing_limit = $ongoing_pagination['page_size'];
+$ongoing_offset = $ongoing_pagination['offset'];
+$history_limit = $history_pagination['page_size'];
+$history_offset = $history_pagination['offset'];
+$ongoing_orders_result = mysqli_query($conn,
     "SELECT o.order_id, o.status, o.created_at, o.shipping_address, u.username,
             COALESCE(SUM(oi.quantity), 0) AS item_count,
             COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total
      FROM orders o
      JOIN users u ON u.user_id = o.user_id
      LEFT JOIN order_items oi ON oi.order_id = o.order_id
+     WHERE o.status IN ('pending', 'shipped', 'delivered')
      GROUP BY o.order_id, o.status, o.created_at, o.shipping_address, u.username
-     ORDER BY o.created_at DESC, o.order_id DESC"
+     ORDER BY o.created_at DESC, o.order_id DESC
+     LIMIT $ongoing_limit OFFSET $ongoing_offset"
 );
-$orders = mysqli_fetch_all($orders_result, MYSQLI_ASSOC);
+$ongoing_orders = mysqli_fetch_all($ongoing_orders_result, MYSQLI_ASSOC);
+$history_orders_result = mysqli_query($conn,
+    "SELECT o.order_id, o.status, o.created_at, o.shipping_address, u.username,
+            COALESCE(SUM(oi.quantity), 0) AS item_count,
+            COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total
+     FROM orders o
+     JOIN users u ON u.user_id = o.user_id
+     LEFT JOIN order_items oi ON oi.order_id = o.order_id
+     WHERE o.status IN ('paid', 'cancelled')
+     GROUP BY o.order_id, o.status, o.created_at, o.shipping_address, u.username
+     ORDER BY o.created_at DESC, o.order_id DESC
+     LIMIT $history_limit OFFSET $history_offset"
+);
+$history_orders = mysqli_fetch_all($history_orders_result, MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Orders';
 $admin_active_page = 'orders';
 include __DIR__ . '/../includes/header.php';
 ?>
 <section class="admin-page-heading">
-  <div><p class="admin-eyebrow">SALES</p><h1>Manage Orders</h1><p>Create orders, review details, and maintain order status.</p></div>
+  <div><p class="admin-eyebrow">SALES</p><h1>Manage Orders</h1><p>Review ongoing orders, manage fulfillment, and view order history.</p></div>
 </section>
-<?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
 <?php if ($errors) { ?><div class="manage-alert is-error" role="alert"><ul><?php foreach ($errors as $error) { ?><li><?php echo admin_escape($error); ?></li><?php } ?></ul></div><?php } ?>
-
-<section class="manage-panel">
-  <div class="manage-panel-heading"><div><p class="admin-eyebrow">MANUAL ORDER</p><h2>Create an order</h2></div></div>
-  <?php if (!$customers || !$variants) { ?><p class="manage-empty">An active customer and at least one product size are required to create an order.</p><?php } else { ?>
-    <form method="post" class="manage-form manage-product-create">
-      <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
-      <input type="hidden" name="action" value="create">
-      <div class="order-customer-details">
-        <label>Customer<select name="user_id" required><option value="">Choose a customer</option><?php foreach ($customers as $customer) { ?><option value="<?php echo (int)$customer['user_id']; ?>"><?php echo admin_escape($customer['username']); ?></option><?php } ?></select></label>
-        <label>Shipping address<textarea name="shipping_address" maxlength="255" rows="3" required></textarea></label>
-      </div>
-      <div class="manage-form-wide">
-        <strong>Products</strong>
-        <div id="order-product-items">
-          <div class="manage-form order-product-row">
-            <label>Product<select name="product_ids[]" required><option value="">Choose a product</option><?php foreach ($products as $available_product_id => $product_name) { ?><option value="<?php echo $available_product_id; ?>"><?php echo admin_escape($product_name); ?></option><?php } ?></select></label>
-            <label>Color / size<select name="variant_ids[]" required disabled><option value="">Choose a product first</option><?php foreach ($variants as $variant) { ?><option value="<?php echo (int)$variant['variant_id']; ?>" data-product-id="<?php echo (int)$variant['product_id']; ?>"><?php echo admin_escape($variant['color'] . ' · ' . $variant['size'] . ' (' . $variant['stock'] . ' in stock)'); ?></option><?php } ?></select></label>
-            <label>Quantity<input type="number" name="quantities[]" min="1" max="1000" required value="1"></label>
-            <button class="manage-small-button is-danger order-remove-item" type="button" aria-label="Remove product">Remove</button>
-          </div>
-        </div>
-      </div>
-      <div class="manage-form-wide order-create-actions">
-        <button class="admin-button" type="submit">Create pending order</button>
-        <button class="manage-small-button" id="order-add-item" type="button">Add another product</button>
-      </div>
-    </form>
-    <template id="order-product-template">
-      <div class="manage-form order-product-row">
-        <label>Product<select name="product_ids[]" required><option value="">Choose a product</option><?php foreach ($products as $available_product_id => $product_name) { ?><option value="<?php echo $available_product_id; ?>"><?php echo admin_escape($product_name); ?></option><?php } ?></select></label>
-        <label>Color / size<select name="variant_ids[]" required disabled><option value="">Choose a product first</option><?php foreach ($variants as $variant) { ?><option value="<?php echo (int)$variant['variant_id']; ?>" data-product-id="<?php echo (int)$variant['product_id']; ?>"><?php echo admin_escape($variant['color'] . ' · ' . $variant['size'] . ' (' . $variant['stock'] . ' in stock)'); ?></option><?php } ?></select></label>
-        <label>Quantity<input type="number" name="quantities[]" min="1" max="1000" required value="1"></label>
-        <button class="manage-small-button is-danger order-remove-item" type="button" aria-label="Remove product">Remove</button>
-      </div>
-    </template>
-    <script>
-      const orderProductItems = document.getElementById('order-product-items');
-      const orderProductTemplate = document.getElementById('order-product-template');
-      const updateAvailableSizes = (row) => {
-        const productSelect = row.querySelector('[name="product_ids[]"]');
-        const sizeSelect = row.querySelector('[name="variant_ids[]"]');
-        sizeSelect.value = '';
-        sizeSelect.disabled = !productSelect.value;
-        sizeSelect.options[0].textContent = productSelect.value ? 'Choose a color and size' : 'Choose a product first';
-        Array.from(sizeSelect.options).slice(1).forEach((option) => {
-          const matchesProduct = option.dataset.productId === productSelect.value;
-          option.hidden = !matchesProduct;
-          option.disabled = !matchesProduct;
-        });
-      };
-      document.getElementById('order-add-item').addEventListener('click', () => {
-        orderProductItems.append(orderProductTemplate.content.cloneNode(true));
-      });
-      orderProductItems.addEventListener('change', (event) => {
-        if (event.target.matches('[name="product_ids[]"]')) {
-          updateAvailableSizes(event.target.closest('.order-product-row'));
-        }
-      });
-      orderProductItems.addEventListener('click', (event) => {
-        if (event.target.closest('.order-remove-item') && orderProductItems.children.length > 1) {
-          event.target.closest('.order-product-row').remove();
-        }
-      });
-    </script>
-  <?php } ?>
-</section>
+<?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
 
 <section class="manage-panel manage-list-panel">
-  <div class="manage-panel-heading"><div><p class="admin-eyebrow">ORDER HISTORY</p><h2>All orders <span class="manage-count"><?php echo count($orders); ?></span></h2></div></div>
-  <?php if ($orders) { ?><div class="admin-table-wrap"><table class="admin-table">
+  <div class="manage-panel-heading"><div><p class="admin-eyebrow">ACTIVE FULFILLMENT</p><h2>Ongoing orders <span class="manage-count"><?php echo $ongoing_order_count; ?></span></h2></div></div>
+  <?php if ($ongoing_orders) { ?><div class="admin-table-wrap"><table class="admin-table">
     <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
-    <tbody><?php foreach ($orders as $order) { ?><tr>
+    <tbody><?php foreach ($ongoing_orders as $order) { ?><tr>
       <td class="order-number">#<?php echo (int)$order['order_id']; ?></td>
       <td><?php echo admin_escape($order['username']); ?></td>
       <td><?php echo admin_escape(date('M j, Y', strtotime($order['created_at']))); ?></td>
@@ -298,6 +243,34 @@ include __DIR__ . '/../includes/header.php';
         <?php } ?>
       </div></td>
     </tr><?php } ?></tbody>
-  </table></div><?php } else { ?><p class="manage-empty">No orders yet.</p><?php } ?>
+  </table></div><?php } else { ?><p class="manage-empty">No ongoing orders.</p><?php } ?>
+  <?php if ($ongoing_orders) { admin_render_pagination($ongoing_pagination['page'], $ongoing_pagination['total_pages'], 'ongoing_page'); } ?>
+</section>
+
+<section class="manage-panel manage-list-panel">
+  <div class="manage-panel-heading"><div><p class="admin-eyebrow">COMPLETED &amp; CANCELLED</p><h2>Order history <span class="manage-count"><?php echo $history_order_count; ?></span></h2></div></div>
+  <?php if ($history_orders) { ?><div class="admin-table-wrap"><table class="admin-table">
+    <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody><?php foreach ($history_orders as $order) { ?><tr>
+      <td class="order-number">#<?php echo (int)$order['order_id']; ?></td>
+      <td><?php echo admin_escape($order['username']); ?></td>
+      <td><?php echo admin_escape(date('M j, Y', strtotime($order['created_at']))); ?></td>
+      <td><?php echo (int)$order['item_count']; ?></td>
+      <td><?php echo peso((float)$order['order_total']); ?></td>
+      <td><span class="status-pill status-<?php echo admin_escape($order['status']); ?>"><?php echo admin_escape(ucfirst($order['status'])); ?></span></td>
+      <td><div class="manage-row-actions">
+        <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/edit.php?id=<?php echo (int)$order['order_id']; ?>">View / Edit</a>
+        <?php if ($order['status'] === 'cancelled') { ?>
+          <form method="post" onsubmit="return confirm('Permanently delete cancelled order #<?php echo (int)$order['order_id']; ?>?');">
+            <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
+            <button class="manage-small-button is-danger" type="submit">Delete</button>
+          </form>
+        <?php } ?>
+      </div></td>
+    </tr><?php } ?></tbody>
+  </table></div><?php } else { ?><p class="manage-empty">No orders in history.</p><?php } ?>
+  <?php if ($history_orders) { admin_render_pagination($history_pagination['page'], $history_pagination['total_pages'], 'history_page'); } ?>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

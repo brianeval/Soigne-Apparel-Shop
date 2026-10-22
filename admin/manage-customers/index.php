@@ -98,6 +98,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$customer_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role = 'customer'"))['total'];
+$customer_pagination = admin_pagination_page($customer_total);
+$customer_limit = $customer_pagination['page_size'];
+$customer_offset = $customer_pagination['offset'];
 $result = mysqli_query($conn,
     "SELECT u.user_id, u.username, u.email, u.status, c.customer_name, c.phone,
             COUNT(DISTINCT o.order_id) AS order_count
@@ -106,7 +110,8 @@ $result = mysqli_query($conn,
      LEFT JOIN orders o ON o.user_id = u.user_id
      WHERE u.role = 'customer'
      GROUP BY u.user_id, u.username, u.email, u.status, c.customer_name, c.phone
-     ORDER BY u.user_id DESC"
+     ORDER BY u.user_id DESC
+     LIMIT $customer_limit OFFSET $customer_offset"
 );
 $customers = mysqli_fetch_all($result, MYSQLI_ASSOC);
 $flash = admin_take_flash();
@@ -136,7 +141,7 @@ include __DIR__ . '/../includes/header.php';
 </section>
 
 <section class="manage-panel manage-list-panel">
-  <div class="manage-panel-heading"><div><p class="admin-eyebrow">CUSTOMER DIRECTORY</p><h2>Customers <span class="manage-count"><?php echo count($customers); ?></span></h2></div></div>
+  <div class="manage-panel-heading"><div><p class="admin-eyebrow">CUSTOMER DIRECTORY</p><h2>Customers <span class="manage-count"><?php echo $customer_total; ?></span></h2></div></div>
   <?php if ($customers) { ?>
     <div class="admin-table-wrap"><table class="admin-table">
       <thead><tr><th>Customer</th><th>Username</th><th>Email</th><th>Orders</th><th>Account</th><th>Actions</th></tr></thead>
@@ -168,6 +173,7 @@ include __DIR__ . '/../includes/header.php';
         </tr>
       <?php } ?></tbody>
     </table></div>
+    <?php admin_render_pagination($customer_pagination['page'], $customer_pagination['total_pages']); ?>
   <?php } else { ?><p class="manage-empty">No customer accounts found.</p><?php } ?>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

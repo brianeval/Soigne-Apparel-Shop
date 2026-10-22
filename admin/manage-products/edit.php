@@ -291,7 +291,11 @@ include __DIR__ . '/../includes/header.php';
     <div><button class="admin-button" type="submit">Add color</button></div>
   </form>
   <?php if (!$colors) { ?><p class="manage-empty">No colors added for this product yet.</p><?php } ?>
-  <?php foreach ($colors as $color) { ?>
+  <?php foreach ($colors as $color) {
+    $variant_page_key = 'variants_' . (int)$color['product_color_id'] . '_page';
+    $variant_pagination = admin_pagination_page(count($color['variants']), 10, $variant_page_key);
+    $visible_variants = array_slice($color['variants'], $variant_pagination['offset'], $variant_pagination['page_size']);
+  ?>
     <div class="manage-color-block">
       <form method="post" class="manage-form manage-color-edit">
         <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
@@ -301,7 +305,7 @@ include __DIR__ . '/../includes/header.php';
         <label>Image filename<input name="image" maxlength="255" value="<?php echo admin_escape($color['image']); ?>"></label>
         <div class="manage-row-actions"><button class="manage-small-button" type="submit">Save color</button></div>
       </form>
-      <div class="manage-variant-heading"><strong>Sizes and stock</strong>
+      <div class="manage-variant-heading"><strong>Sizes and stock (<?php echo count($color['variants']); ?>)</strong>
         <form method="post" class="manage-inline-form">
           <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
           <input type="hidden" name="action" value="add_variant">
@@ -314,7 +318,7 @@ include __DIR__ . '/../includes/header.php';
       <?php if ($color['variants']) { ?>
         <div class="admin-table-wrap"><table class="admin-table manage-variant-table">
           <thead><tr><th>Size</th><th>Stock</th><th>Actions</th></tr></thead>
-          <tbody><?php foreach ($color['variants'] as $variant) { $variant_form_id = 'update-variant-' . $variant['variant_id']; ?>
+          <tbody><?php foreach ($visible_variants as $variant) { $variant_form_id = 'update-variant-' . $variant['variant_id']; ?>
             <tr>
               <td>
                 <form id="<?php echo $variant_form_id; ?>" method="post"></form>
@@ -335,6 +339,7 @@ include __DIR__ . '/../includes/header.php';
             </tr>
           <?php } ?></tbody>
         </table></div>
+        <?php admin_render_pagination($variant_pagination['page'], $variant_pagination['total_pages'], $variant_page_key); ?>
       <?php } else { ?><p class="manage-empty">No sizes added for this color.</p><?php } ?>
       <form method="post" class="manage-delete-color" onsubmit="return confirm('Delete this color and its unused sizes?');">
         <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">

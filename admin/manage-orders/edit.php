@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_execute($update_stmt);
                 mysqli_commit($conn);
                 admin_set_flash('success', 'Order updated.');
-                header('Location: ' . BASE_URL . 'admin/manage-orders/edit.php?id=' . $order_id);
+                header('Location: ' . BASE_URL . 'admin/manage-orders/');
                 exit;
             } catch (RuntimeException $exception) {
                 mysqli_rollback($conn);

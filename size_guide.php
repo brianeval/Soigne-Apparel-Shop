@@ -4,10 +4,12 @@ session_start();
 $page_title = "Size Guide | Soigné";
 $extra_css = 'size-guide.css';
 $dept = 'men';
+$product_size_guide = require __DIR__ . '/includes/product_size_guide.php';
 
 $size_ranges = [
     '25-27' => [
-        'sizes' => ['25', '26', '27'],
+        'label' => $product_size_guide['bottom_ranges']['men']['25-27']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['men']['25-27']['sizes'],
         'waist' => ['64-67', '67-70', '70-73'],
         'low_hip' => ['84-86', '86-88', '88-90'],
         'inside_leg' => [
@@ -17,7 +19,8 @@ $size_ranges = [
         ],
     ],
     '28-30' => [
-        'sizes' => ['28', '29', '30'],
+        'label' => $product_size_guide['bottom_ranges']['men']['28-30']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['men']['28-30']['sizes'],
         'waist' => ['73-76', '76-79', '79-82'],
         'low_hip' => ['90-92', '92-94', '94-96'],
         'inside_leg' => [
@@ -27,7 +30,8 @@ $size_ranges = [
         ],
     ],
     '31-33' => [
-        'sizes' => ['31', '32', '33'],
+        'label' => $product_size_guide['bottom_ranges']['men']['31-33']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['men']['31-33']['sizes'],
         'waist' => ['82-85', '85-88', '88-91'],
         'low_hip' => ['96-98', '98-100', '100-102'],
         'inside_leg' => [
@@ -37,7 +41,8 @@ $size_ranges = [
         ],
     ],
     '34-38' => [
-        'sizes' => ['34', '36', '38'],
+        'label' => $product_size_guide['bottom_ranges']['men']['34-38']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['men']['34-38']['sizes'],
         'waist' => ['91-94', '97-100', '103-106'],
         'low_hip' => ['102-104', '106-108', '110-112'],
         'inside_leg' => [
@@ -47,7 +52,8 @@ $size_ranges = [
         ],
     ],
     '40-44' => [
-        'sizes' => ['40', '42', '44'],
+        'label' => $product_size_guide['bottom_ranges']['men']['40-44']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['men']['40-44']['sizes'],
         'waist' => ['109-112', '115-118', '121-124'],
         'low_hip' => ['114-116', '118-120', '122-124'],
         'inside_leg' => [
@@ -211,12 +217,8 @@ $women_top_ranges = [
 
 $women_bottom_ranges = [
     '32-36' => [
-        'label' => '32-36',
-        'sizes' => ['32', '34', '36'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['32', '34', '36']],
-            ['label' => 'US', 'values' => ['0', '2', '4']],
-        ],
+        'label' => $product_size_guide['bottom_ranges']['women']['32-36']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['women']['32-36']['sizes'],
         'measurements' => [
             'waist' => ['58-62', '62-66', '66-70'],
             'low_hip' => ['79-83', '83-87', '87-91'],
@@ -225,12 +227,8 @@ $women_bottom_ranges = [
         'estimated' => false,
     ],
     '38-42' => [
-        'label' => '38-42',
-        'sizes' => ['38', '40', '42'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['38', '40', '42']],
-            ['label' => 'US', 'values' => ['6', '8', '10']],
-        ],
+        'label' => $product_size_guide['bottom_ranges']['women']['38-42']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['women']['38-42']['sizes'],
         'measurements' => [
             'waist' => ['70-74', '74-78', '78-82'],
             'low_hip' => ['91-95', '95-99', '99-103'],
@@ -239,12 +237,8 @@ $women_bottom_ranges = [
         'estimated' => true,
     ],
     '44-48' => [
-        'label' => '44-48',
-        'sizes' => ['44', '46', '48'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['44', '46', '48']],
-            ['label' => 'US', 'values' => ['12', '14', '16']],
-        ],
+        'label' => $product_size_guide['bottom_ranges']['women']['44-48']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['women']['44-48']['sizes'],
         'measurements' => [
             'waist' => ['82-86', '86-90', '90-94'],
             'low_hip' => ['103-107', '107-111', '111-115'],
@@ -253,12 +247,8 @@ $women_bottom_ranges = [
         'estimated' => true,
     ],
     '50-54' => [
-        'label' => '50-54',
-        'sizes' => ['50', '52', '54'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['50', '52', '54']],
-            ['label' => 'US', 'values' => ['18', '20', '22']],
-        ],
+        'label' => $product_size_guide['bottom_ranges']['women']['50-54']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['women']['50-54']['sizes'],
         'measurements' => [
             'waist' => ['94-100', '100-106', '106-112'],
             'low_hip' => ['115-121', '121-127', '127-133'],
@@ -267,12 +257,8 @@ $women_bottom_ranges = [
         'estimated' => true,
     ],
     '56-60' => [
-        'label' => '56-60',
-        'sizes' => ['56', '58', '60'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['56', '58', '60']],
-            ['label' => 'US', 'values' => ['24', '26', '28']],
-        ],
+        'label' => $product_size_guide['bottom_ranges']['women']['56-60']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['women']['56-60']['sizes'],
         'measurements' => [
             'waist' => ['112-118', '118-124', '124-130'],
             'low_hip' => ['133-139', '139-145', '145-151'],
@@ -281,12 +267,8 @@ $women_bottom_ranges = [
         'estimated' => true,
     ],
     '62' => [
-        'label' => '62',
-        'sizes' => ['62'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['62']],
-            ['label' => 'US', 'values' => ['30']],
-        ],
+        'label' => $product_size_guide['bottom_ranges']['women']['62']['label'],
+        'sizes' => $product_size_guide['bottom_ranges']['women']['62']['sizes'],
         'measurements' => [
             'waist' => ['130-136'],
             'low_hip' => ['151-157'],
@@ -426,13 +408,12 @@ include_once('includes/header.php');
         <legend>Select size range</legend>
         <div class="size-range-options">
           <?php foreach (array_keys($size_ranges) as $index => $range) { ?>
-            <?php $range_parts = explode('-', $range); ?>
             <button
               type="button"
               class="size-range-option<?php echo $index === 0 ? ' is-selected' : ''; ?>"
               data-size-range="<?php echo htmlspecialchars($range); ?>"
               aria-pressed="<?php echo $index === 0 ? 'true' : 'false'; ?>">
-              <?php echo htmlspecialchars($range_parts[0]); ?>&quot;-<?php echo htmlspecialchars($range_parts[1]); ?>&quot;
+              <?php echo htmlspecialchars($size_ranges[$range]['label']); ?>
             </button>
           <?php } ?>
         </div>
@@ -448,7 +429,7 @@ include_once('includes/header.php');
           <div class="measurement-panel" id="waist-panel">
             <div class="measurement-table-wrap">
               <table class="measurement-table" data-measurement="waist">
-                <caption class="visually-hidden">Waist measurements in centimeters by waist size in inches</caption>
+                <caption class="visually-hidden">Waist measurements in centimeters by alpha clothing size</caption>
                 <thead></thead><tbody></tbody>
               </table>
             </div>
@@ -464,7 +445,7 @@ include_once('includes/header.php');
           <div class="measurement-panel" id="low-hip-panel" hidden>
             <div class="measurement-table-wrap">
               <table class="measurement-table" data-measurement="low_hip">
-                <caption class="visually-hidden">Low hip measurements in centimeters by waist size in inches</caption>
+                <caption class="visually-hidden">Low hip measurements in centimeters by alpha clothing size</caption>
                 <thead></thead><tbody></tbody>
               </table>
             </div>
@@ -480,7 +461,7 @@ include_once('includes/header.php');
           <div class="measurement-panel" id="inside-leg-panel" hidden>
             <div class="measurement-table-wrap">
               <table class="measurement-table" data-measurement="inside_leg">
-                <caption class="visually-hidden">Inside leg length measurements in centimeters by waist size in inches</caption>
+                <caption class="visually-hidden">Inside leg length measurements in centimeters by alpha clothing size</caption>
                 <thead></thead><tbody></tbody>
               </table>
             </div>
@@ -749,16 +730,6 @@ echo json_encode($kids_age_guides, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
     });
     head.appendChild(headerRow);
 
-    groupData.size_reference.forEach(function (reference) {
-      var row = document.createElement('tr');
-      addCell(row, reference.label, 'th', 'measurement-label');
-      row.firstChild.scope = 'row';
-      reference.values.forEach(function (value) {
-        addCell(row, value, 'td');
-      });
-      body.appendChild(row);
-    });
-
     var label = measurement === 'arm_length' ? 'Arm length cm' :
       measurement === 'neckline' ? 'Neckline cm' :
       measurement.charAt(0).toUpperCase() + measurement.slice(1) + ' cm';
@@ -803,16 +774,6 @@ echo json_encode($kids_age_guides, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
       });
       head.appendChild(headerRow);
 
-      groupData.size_reference.forEach(function (reference) {
-        var row = document.createElement('tr');
-        addCell(row, reference.label, 'th', 'measurement-label');
-        row.firstChild.scope = 'row';
-        reference.values.forEach(function (value) {
-          addCell(row, value, 'td');
-        });
-        body.appendChild(row);
-      });
-
       addCell(measurementRow, label, 'th', 'measurement-label');
       measurementRow.firstChild.scope = 'row';
       groupData.measurements[measurement].forEach(function (value) {
@@ -846,16 +807,6 @@ echo json_encode($kids_age_guides, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
         headerRow.appendChild(cell);
       });
       head.appendChild(headerRow);
-
-      rangeData.size_reference.forEach(function (reference) {
-        var row = document.createElement('tr');
-        addCell(row, reference.label, 'th', 'measurement-label');
-        row.firstChild.scope = 'row';
-        reference.values.forEach(function (value) {
-          addCell(row, value, 'td');
-        });
-        body.appendChild(row);
-      });
 
       addCell(measurementRow, label, 'th', 'measurement-label');
       measurementRow.firstChild.scope = 'row';

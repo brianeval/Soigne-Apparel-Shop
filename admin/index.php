@@ -35,7 +35,7 @@ $admin_name = $_SESSION['username'] ?? 'Administrator';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard | Soigné Admin</title>
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>admin/styles/admin.css">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>admin/styles/admin.css?v=<?php echo filemtime(__DIR__ . '/styles/admin.css'); ?>">
 </head>
 <body class="admin-dashboard-body">
   <div class="admin-app">
