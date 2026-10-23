@@ -114,5 +114,10 @@ if (!isset($page_title)) {
     <a href="<?php echo BASE_URL; ?>category.php?category=shorts">Shorts</a>
     <a href="<?php echo BASE_URL; ?>category.php?category=outerwear">Outerwear</a>
     <a href="<?php echo BASE_URL; ?>category.php?category=sweaters">Sweaters</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=hoodies">Hoodies</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=chinos">Chinos</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=jeans">Jeans</a>
+    <a href="<?php echo BASE_URL; ?>category.php?category=polos">Polos</a>
+
   
   </nav>

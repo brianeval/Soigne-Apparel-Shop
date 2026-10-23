@@ -60,6 +60,45 @@ function save_product_image_upload(array $upload): ?string
     return 'products/' . $filename;
 }
 
+function save_brand_logo_upload(array $upload): ?string
+{
+    if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        throw new RuntimeException('The brand logo could not be uploaded. Please try again.');
+    }
+    if (!isset($upload['tmp_name'], $upload['size']) || !is_uploaded_file($upload['tmp_name'])) {
+        throw new RuntimeException('Choose a valid brand logo image.');
+    }
+    if ((int)$upload['size'] > 5 * 1024 * 1024) {
+        throw new RuntimeException('Brand logos must be 5 MB or smaller.');
+    }
+
+    $mime_type = (new finfo(FILEINFO_MIME_TYPE))->file($upload['tmp_name']);
+    $allowed_types = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+    ];
+    $image_info = @getimagesize($upload['tmp_name']);
+    if (!isset($allowed_types[$mime_type]) || !$image_info || $image_info['mime'] !== $mime_type) {
+        throw new RuntimeException('Choose a JPEG, PNG, or WebP image for the brand logo.');
+    }
+
+    $directory = __DIR__ . '/../../images/brands';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        throw new RuntimeException('The brand logo could not be saved. Please try again.');
+    }
+
+    $filename = 'brand-' . bin2hex(random_bytes(12)) . '.' . $allowed_types[$mime_type];
+    if (!move_uploaded_file($upload['tmp_name'], $directory . DIRECTORY_SEPARATOR . $filename)) {
+        throw new RuntimeException('The brand logo could not be saved. Please try again.');
+    }
+
+    return $filename;
+}
+
 $categories_result = mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name");
 $categories = mysqli_fetch_all($categories_result, MYSQLI_ASSOC);
 $category_names = [];
@@ -70,6 +109,55 @@ foreach ($categories as $category_row) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Refresh the page and try again.';
+    } elseif (($_POST['action'] ?? '') === 'add_category') {
+        $category_name = trim(is_string($_POST['category_name'] ?? null) ? $_POST['category_name'] : '');
+        if ($category_name === '' || mb_strlen($category_name) > 50) {
+            $errors[] = 'Enter a category name up to 50 characters.';
+        } else {
+            try {
+                $category_stmt = mysqli_prepare($conn, "INSERT INTO categories (name) VALUES (?)");
+                mysqli_stmt_bind_param($category_stmt, 's', $category_name);
+                mysqli_stmt_execute($category_stmt);
+                admin_set_flash('success', 'Category added to the catalog.');
+                header('Location: ' . BASE_URL . 'admin/manage-products/');
+                exit;
+            } catch (mysqli_sql_exception $exception) {
+                $errors[] = $exception->getCode() === 1062
+                    ? 'A category with that name already exists.'
+                    : 'Could not add this category. Please try again.';
+            }
+        }
+    } elseif (($_POST['action'] ?? '') === 'add_brand') {
+        $brand_name = trim(is_string($_POST['brand_name'] ?? null) ? $_POST['brand_name'] : '');
+        $brand_logo = null;
+        if ($brand_name === '' || mb_strlen($brand_name) > 120) {
+            $errors[] = 'Enter a brand name up to 120 characters.';
+        } else {
+            try {
+                $brand_upload = is_array($_FILES['brand_logo'] ?? null) ? $_FILES['brand_logo'] : [];
+                $brand_logo = save_brand_logo_upload($brand_upload);
+                $brand_stmt = mysqli_prepare($conn, "INSERT INTO suppliers (name, image) VALUES (?, ?)");
+                mysqli_stmt_bind_param($brand_stmt, 'ss', $brand_name, $brand_logo);
+                mysqli_stmt_execute($brand_stmt);
+                admin_set_flash('success', 'Brand added to the catalog.');
+                header('Location: ' . BASE_URL . 'admin/manage-products/');
+                exit;
+            } catch (RuntimeException $exception) {
+                $errors[] = $exception->getMessage();
+            } catch (mysqli_sql_exception $exception) {
+                if ($brand_logo !== null) {
+                    $logo_path = __DIR__ . '/../../images/brands/' . $brand_logo;
+                    if (is_file($logo_path) && !unlink($logo_path)) {
+                        $errors[] = 'The brand already exists, and its uploaded logo could not be removed.';
+                    }
+                }
+                if (!$errors) {
+                    $errors[] = $exception->getCode() === 1062
+                        ? 'A brand with that name already exists.'
+                        : 'Could not add this brand. Please try again.';
+                }
+            }
+        }
     } elseif (($_POST['action'] ?? '') === 'create') {
         $supplier_id = filter_var($_POST['supplier_id'] ?? null, FILTER_VALIDATE_INT);
         $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
@@ -343,9 +431,52 @@ include __DIR__ . '/../includes/header.php';
 <?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
 <?php if ($errors) { ?><div class="manage-alert is-error" role="alert"><ul><?php foreach ($errors as $error) { ?><li><?php echo admin_escape($error); ?></li><?php } ?></ul></div><?php } ?>
 
+<div class="catalog-actions" aria-label="Catalog actions">
+  <button class="admin-button" type="button" data-open-dialog="add-product-dialog">Add Product</button>
+  <button class="admin-button admin-button-light" type="button" data-open-dialog="add-category-dialog">Add Category</button>
+  <button class="admin-button admin-button-light" type="button" data-open-dialog="add-brand-dialog">Add Brand</button>
+</div>
+
+<dialog class="catalog-dialog catalog-form-dialog" id="add-category-dialog" aria-labelledby="add-category-title"<?php echo $errors && ($_POST['action'] ?? '') === 'add_category' ? ' data-open-on-load' : ''; ?>>
+  <div class="catalog-dialog-heading">
+    <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-category-title">Add Category</h2></div>
+    <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
+  </div>
+  <form method="post" class="manage-form catalog-simple-form">
+    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+    <input type="hidden" name="action" value="add_category">
+    <label>Category name<input name="category_name" maxlength="50" required value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_category' ? ($_POST['category_name'] ?? '') : ''); ?>"></label>
+    <div class="manage-form-buttons">
+      <button class="admin-button" type="submit">Add Category</button>
+      <button class="manage-small-button" type="button" data-close-dialog>Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="catalog-dialog catalog-form-dialog" id="add-brand-dialog" aria-labelledby="add-brand-title"<?php echo $errors && ($_POST['action'] ?? '') === 'add_brand' ? ' data-open-on-load' : ''; ?>>
+  <div class="catalog-dialog-heading">
+    <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-brand-title">Add Brand</h2></div>
+    <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="manage-form catalog-simple-form">
+    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+    <input type="hidden" name="action" value="add_brand">
+    <label>Brand name<input name="brand_name" maxlength="120" required value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_brand' ? ($_POST['brand_name'] ?? '') : ''); ?>"></label>
+    <label>Brand logo (optional)<input type="file" name="brand_logo" accept="image/jpeg,image/png,image/webp"><small class="manage-secondary">JPEG, PNG, or WebP · 5 MB max</small></label>
+    <div class="manage-form-buttons">
+      <button class="admin-button" type="submit">Add Brand</button>
+      <button class="manage-small-button" type="button" data-close-dialog>Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="catalog-dialog catalog-product-dialog" id="add-product-dialog" aria-labelledby="add-product-title"<?php echo $errors && ($_POST['action'] ?? '') === 'create' ? ' data-open-on-load' : ''; ?>>
+  <div class="catalog-dialog-heading">
+    <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-product-title">Create a product</h2></div>
+    <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
+  </div>
 <?php if (!$suppliers) { ?>
-  <section class="manage-panel">
-    <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2>Create a product</h2></div></div>
+  <section class="manage-panel product-create-panel">
     <p class="manage-empty">Create a brand first before adding a product.</p>
   </section>
 <?php } else { ?>
@@ -634,6 +765,7 @@ include __DIR__ . '/../includes/header.php';
     })();
   </script>
 <?php } ?>
+</dialog>
 
 <section class="manage-panel manage-list-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT CATALOG</p><h2>Products <span class="manage-count"><?php echo $product_total; ?></span></h2></div></div>
@@ -665,6 +797,6 @@ include __DIR__ . '/../includes/header.php';
       <?php } ?></tbody>
     </table></div>
     <?php admin_render_pagination($product_pagination['page'], $product_pagination['total_pages']); ?>
-  <?php } else { ?><p class="manage-empty">No products yet. Use the form above to add your first product.</p><?php } ?>
+  <?php } else { ?><p class="manage-empty">No products yet. Use Add Product above to add your first product.</p><?php } ?>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

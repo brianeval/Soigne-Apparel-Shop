@@ -171,10 +171,6 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.kids-size-options {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
 .size-range-option {
   min-height: 50px;
   padding: 10px 14px;
@@ -333,10 +329,6 @@
 
   .women-bottom-range-options {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .kids-size-options {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .size-range-option {

@@ -8,7 +8,10 @@ $id = (int)($_GET['id'] ?? 0);
 
 // STEP 2: Find the product in the database.
 // This query asks: "give me the row from products where product_id matches the URL id".
-$productQuery = "SELECT * FROM products WHERE product_id = ?";
+$productQuery = "SELECT p.*, COALESCE(c.name, p.category) AS size_guide_category
+                 FROM products p
+                 LEFT JOIN categories c ON c.category_id = p.category_id
+                 WHERE p.product_id = ?";
 $stmt = mysqli_prepare($conn, $productQuery);
 mysqli_stmt_bind_param($stmt, 'i', $id);
 mysqli_stmt_execute($stmt);
@@ -18,6 +21,14 @@ if (!$product) {
     echo "Product not found.";
     exit;
 }
+
+$product_size_guide = require __DIR__ . '/includes/product_size_guide.php';
+$size_guide_department = strtolower(trim($product['department'] ?? 'men'));
+if (!in_array($size_guide_department, ['men', 'women', 'kids'], true)) {
+    $size_guide_department = 'men';
+}
+$category_slug = strtolower(trim($product['size_guide_category'] ?? ''));
+$size_guide_type = $product_size_guide['category_groups'][$category_slug] ?? 'top';
 
 $edit_cart_id = (int)($_GET['cart_id'] ?? 0);
 $editing_cart_item = null;
@@ -139,7 +150,10 @@ include_once('includes/header.php');
       <?php if ($editing_cart_item) { ?>
         <input type="hidden" name="cart_id" value="<?php echo (int)$edit_cart_id; ?>">
       <?php } ?>
-      <h3>Size</h3>
+      <div class="size-heading">
+        <h3>Size</h3>
+        <a class="size-guide-link" href="<?php echo BASE_URL; ?>size_guide.php?dept=<?php echo rawurlencode($size_guide_department); ?>&type=<?php echo rawurlencode($size_guide_type); ?>">Size guide</a>
+      </div>
       <div class="size-options">
         <?php foreach ($variants as $v) { ?>
           <?php if ($v['stock'] > 0) { ?>

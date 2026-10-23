@@ -2,5 +2,6 @@
       </div>
     </main>
   </div>
+  <script src="<?php echo BASE_URL; ?>admin/admin.js?v=<?php echo filemtime(__DIR__ . '/../admin.js'); ?>" defer></script>
 </body>
 </html>

@@ -58,6 +58,24 @@
   margin: 24px 0 10px;
 }
 
+.size-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.size-heading h3 {
+  margin: 0 0 10px;
+}
+
+.size-guide-link {
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* Color choices */
 .color-options a {
   display: inline-block;

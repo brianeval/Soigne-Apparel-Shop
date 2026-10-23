@@ -9,6 +9,23 @@ $brand    = null;
 $brands   = [];
 $products = [];
 
+function brand_logo_filename(string $name, ?string $stored_image): ?string
+{
+    $brand_name = mb_strtolower(trim($name));
+
+    if ($brand_name === 'h&m') {
+        return 'h-m-logo.png';
+    }
+    if ($brand_name === 'nike') {
+        return 'nike-logo.jpg';
+    }
+    if ($brand_name === 'penshoppe') {
+        return 'penshoppe-logo.jpeg';
+    }
+
+    return $stored_image !== null && $stored_image !== '' ? $stored_image : null;
+}
+
 if ($brand_name !== '') {
     $stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE name = ?");
     mysqli_stmt_bind_param($stmt, 's', $brand_name);
@@ -77,9 +94,10 @@ include_once ('includes/header.php');
   <p class="brand-back"><a href="<?php echo BASE_URL; ?>brands.php">&larr; All brands</a></p>
 
   <div class="brand-head">
-    <?php if (!empty($brand['image'])) { ?>
+    <?php $brand_logo = brand_logo_filename($brand['name'], $brand['image'] ?? null); ?>
+    <?php if ($brand_logo !== null) { ?>
       <img class="brand-head-logo"
-           src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($brand['image']); ?>"
+           src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($brand_logo); ?>"
            alt="<?php echo htmlspecialchars($brand['name']); ?>">
     <?php } ?>
     <h1><?php echo htmlspecialchars($brand['name']); ?></h1>
@@ -103,10 +121,11 @@ include_once ('includes/header.php');
   <?php } else { ?>
     <div class="brand-grid">
       <?php foreach ($brands as $b) { ?>
+        <?php $brand_logo = brand_logo_filename($b['name'], $b['image'] ?? null); ?>
         <a class="brand-card" href="<?php echo BASE_URL; ?>brands.php?id=<?php echo (int)$b['supplier_id']; ?>">
           <div class="brand-logo-box">
-            <?php if (!empty($b['image'])) { ?>
-              <img src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($b['image']); ?>"
+            <?php if ($brand_logo !== null) { ?>
+              <img src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($brand_logo); ?>"
                    alt="<?php echo htmlspecialchars($b['name']); ?>" loading="lazy">
             <?php } else { ?>
               <span class="brand-initial"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($b['name'], 0, 1))); ?></span>

@@ -309,7 +309,7 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size) VALUES
 ('PENSHOPPE', 'Essentials Relaxed Pullover Hoodie', 'Evening Sand', 'XS'),
 ('PENSHOPPE', 'Dress Code Relaxed Knit Sweater', 'Midnight Navy', 'L'),
 ('PENSHOPPE', 'Dress Code Comfort Slim Fit Pants', 'Dark Gray', 'XS'),
-('PENSHOPPE', 'Essentials Classic Straight Fit Jeans', 'Light Blue', 'SIZE 28'),
+('PENSHOPPE', 'Essentials Classic Straight Fit Jeans', 'Light Blue', 'XXS'),
 ('PENSHOPPE', 'Slim Fit Ankle Length Chinos', 'Black', 'XS'),
 ('PENSHOPPE', 'Essentials Modern Fit Sports Shorts', 'Black', 'XS'),
 ('PENSHOPPE', 'Penshoppe Play Windbreaker Jacket', 'Black', 'XS'),
@@ -371,6 +371,12 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size) VALUES
 ('H&M', 'FOUR-WAY STRETCH REGULAR-FIT SHIRT', 'Navy blue', 'M'),
 ('H&M', 'FOUR-WAY STRETCH REGULAR-FIT SHIRT', 'Navy blue', 'L'),
 ('H&M', 'FOUR-WAY STRETCH REGULAR-FIT SHIRT', 'Navy blue', 'XL'),
+('H&M', 'COOLING REGULAR-FIT POLO SHIRT', 'Black', 'XS'),
+('H&M', 'COOLING REGULAR-FIT POLO SHIRT', 'Black', 'S'),
+('H&M', 'COOLING REGULAR-FIT POLO SHIRT', 'Black', 'M'),
+('H&M', 'COOLING REGULAR-FIT POLO SHIRT', 'Black', 'L'),
+('H&M', 'COOLING REGULAR-FIT POLO SHIRT', 'Black', 'XL'),
+('H&M', 'COOLING REGULAR-FIT POLO SHIRT', 'Black', 'XXL'),
 ('H&M', 'RELAXED-FIT POLO SHIRT', 'Black/Iron Maiden', 'XS'),
 ('H&M', 'RELAXED-FIT POLO SHIRT', 'Black/Iron Maiden', 'S'),
 ('H&M', 'RELAXED-FIT POLO SHIRT', 'Black/Iron Maiden', 'M'),
@@ -427,12 +433,12 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size) VALUES
 ('H&M', 'WINDPROOF AND WATER-REPELLENT JACKET', 'Khaki green', 'M'),
 ('H&M', 'WINDPROOF AND WATER-REPELLENT JACKET', 'Khaki green', 'L'),
 ('H&M', 'WINDPROOF AND WATER-REPELLENT JACKET', 'Khaki green', 'XL'),
-('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'US XS'),
-('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'US S'),
-('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'US M'),
-('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'US L'),
-('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'US XL'),
-('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'US XXL'),
+('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'XS'),
+('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'S'),
+('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'M'),
+('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'L'),
+('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'XL'),
+('Nike', 'Jordan Sport Space Jam Men''s Crew-Neck T-Shirt', 'Black', 'XXL'),
 ('Nike', 'Nike Sportswear Long-Sleeve T-Shirt', 'Light Bone', 'S'),
 ('Nike', 'Nike Sportswear Long-Sleeve T-Shirt', 'Light Bone', 'M'),
 ('Nike', 'Nike Sportswear Long-Sleeve T-Shirt', 'Light Bone', 'L'),
@@ -464,22 +470,22 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size) VALUES
 ('Nike', 'Nike 24.7 PerfectStretch Men''s Dri-FIT UV Button-Up Shirt', 'Light Orewood Brown/Sail/Light Iron Ore', 'L'),
 ('Nike', 'Nike 24.7 PerfectStretch Men''s Dri-FIT UV Button-Up Shirt', 'Light Orewood Brown/Sail/Light Iron Ore', 'XL'),
 ('Nike', 'Nike 24.7 PerfectStretch Men''s Dri-FIT UV Button-Up Shirt', 'Light Orewood Brown/Sail/Light Iron Ore', '2XL'),
-('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'US XS'),
-('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'US S'),
-('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'US M'),
-('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'US L'),
-('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'US XL'),
-('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'US XXL'),
+('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'XS'),
+('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'S'),
+('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'M'),
+('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'L'),
+('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'XL'),
+('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Jade Smoke/Jade Horizon/Jade Smoke', 'XXL'),
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Black', 'S'),
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Black', 'M'),
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Black', 'L'),
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Black', 'XL'),
 ('Nike', 'Ja Men''s Basketball Hoodie', 'Black', '2XL'),
-('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'US S'),
-('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'US M'),
-('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'US L'),
-('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'US XL'),
-('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'US XXL'),
+('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'S'),
+('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'M'),
+('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'L'),
+('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'XL'),
+('Nike', 'Paris Saint-Germain Men''s Fleece Trousers', 'Black', 'XXL'),
 ('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', 'S'),
 ('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', 'M'),
 ('Nike', 'Nike Men''s Dri-FIT 10cm (approx) Brief-Lined Running Shorts', 'Space Purple', 'L'),
@@ -593,8 +599,59 @@ INSERT INTO tmp_brand_sizes (brand, name, color, size, department) VALUES
 ('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Blush', 'XL', 'women'),
 ('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Blush', 'XXL', 'women');
 
+CREATE TEMPORARY TABLE tmp_missing_size_groups (
+  brand VARCHAR(120) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  color VARCHAR(80) NOT NULL,
+  size_group VARCHAR(20) NOT NULL,
+  department VARCHAR(20) NOT NULL DEFAULT 'men'
+);
+
+INSERT INTO tmp_missing_size_groups (brand, name, color, size_group) VALUES
+('H&M', 'BAGGY DENIM SHORTS', 'Denim gray', 'hm_alpha'),
+('H&M', 'BAGGY JEANS', 'Washed dark denim gray', 'hm_alpha'),
+('H&M', 'LOOSE-FIT COTTON CARGO SHORTS', 'Khaki green', 'hm_alpha'),
+('H&M', 'ORIGINAL STRAIGHT JEANS', 'Denim black', 'hm_alpha'),
+('H&M', 'OVERSHIRT', 'Dark brown', 'hm_alpha'),
+('H&M', 'OVERSIZED PRINTED HOODIE', 'Dark blue/Las Vegas', 'hm_alpha'),
+('H&M', 'REGULAR-FIT CARDIGAN', 'Dark gray melange', 'hm_alpha'),
+('H&M', 'REGULAR-FIT FINE-KNIT SWEATER', 'Dark taupe', 'hm_alpha'),
+('H&M', 'REGULAR-FIT HALF-ZIP SWEATER', 'Black', 'hm_alpha'),
+('H&M', 'REGULAR-FIT LINEN-BLEND SHORTS', 'White', 'hm_alpha'),
+('H&M', 'RELAXED-FIT COTTON CHINOS', 'Dark brown', 'hm_alpha'),
+('H&M', 'RELAXED-FIT COTTON TWILL CHINOS', 'Navy blue', 'hm_alpha'),
+('H&M', 'RELAXED-FIT DENIM SHORTS', 'Denim black', 'hm_alpha'),
+('H&M', 'RELAXED-FIT HALF-ZIP SWEATSHIRT', 'Light gray melange', 'hm_alpha'),
+('H&M', 'ULTRA-BAGGY JEANS', 'Washed light denim blue', 'hm_alpha'),
+('Nike', 'Ja Men''s Basketball Hoodie', 'Burgundy Crush', 'nike_alpha_5'),
+('Nike', 'Jordan Sport Men''s Golf Jacquard Polo', 'Black/Black', 'nike_alpha_6'),
+('Nike', 'Nike 24.7 PerfectStretch Men''s Dri-FIT UV Button-Up Shirt', 'Tattoo/Black/Burgundy Crush', 'nike_alpha_5'),
+('Nike', 'Nike 24.7 PerfectStretch Men''s Dri-FIT UV Button-Up Shirt', 'Black/Black/Dark Smoke Grey', 'nike_alpha_5'),
+('Nike', 'Nike Club Men''s Short-Sleeve Button-Up Shirt', 'Photon Dust/White', 'nike_alpha_6'),
+('Nike', 'Nike Sportswear T-Shirt', 'Black', 'nike_alpha_5'),
+('Nike', 'Nike Sportswear T-Shirt', 'Old Royal', 'nike_alpha_5'),
+('Nike', 'Nike Sportswear T-Shirt', 'White', 'nike_alpha_5');
+
+CREATE TEMPORARY TABLE tmp_missing_size_options (
+  size_group VARCHAR(20) NOT NULL,
+  size VARCHAR(20) NOT NULL
+);
+
+INSERT INTO tmp_missing_size_options (size_group, size) VALUES
+('hm_alpha', 'XS'), ('hm_alpha', 'S'), ('hm_alpha', 'M'),
+('hm_alpha', 'L'), ('hm_alpha', 'XL'), ('hm_alpha', 'XXL'),
+('nike_alpha_5', 'S'), ('nike_alpha_5', 'M'), ('nike_alpha_5', 'L'),
+('nike_alpha_5', 'XL'), ('nike_alpha_5', '2XL'),
+('nike_alpha_6', 'XS'), ('nike_alpha_6', 'S'), ('nike_alpha_6', 'M'),
+('nike_alpha_6', 'L'), ('nike_alpha_6', 'XL'), ('nike_alpha_6', '2XL');
+
+INSERT INTO tmp_brand_sizes (brand, name, color, size, department)
+SELECT missing.brand, missing.name, missing.color, options.size, missing.department
+FROM tmp_missing_size_groups AS missing
+JOIN tmp_missing_size_options AS options ON options.size_group = missing.size_group;
+
 INSERT IGNORE INTO product_variants (product_color_id, size, stock)
-SELECT pc.product_color_id, sizes.size, 0
+SELECT pc.product_color_id, sizes.size, 5
 FROM tmp_brand_sizes AS sizes
 JOIN tmp_brand_products AS size_color
   ON size_color.brand = sizes.brand
@@ -619,13 +676,18 @@ UPDATE product_variants AS v
 JOIN product_colors AS pc ON pc.product_color_id = v.product_color_id
 JOIN products AS p ON p.product_id = pc.product_id
 JOIN suppliers AS s ON s.supplier_id = p.supplier_id
-SET v.stock = 10
-WHERE s.name = 'Nike'
-  AND p.name = 'Nike Sportswear Long-Sleeve T-Shirt'
-  AND pc.color = 'Anthracite';
+JOIN tmp_brand_sizes AS sizes
+  ON sizes.brand = s.name
+ AND sizes.name = p.name
+ AND sizes.department = p.department
+ AND sizes.color = pc.color
+ AND sizes.size = v.size
+SET v.stock = 5;
 
 DROP TEMPORARY TABLE tmp_brand_sizes;
 DROP TEMPORARY TABLE tmp_brand_images;
 DROP TEMPORARY TABLE tmp_brand_products;
+DROP TEMPORARY TABLE tmp_missing_size_options;
+DROP TEMPORARY TABLE tmp_missing_size_groups;
 
 COMMIT;

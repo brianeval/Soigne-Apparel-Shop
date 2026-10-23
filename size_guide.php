@@ -73,7 +73,7 @@ $top_ranges = [
                 'sizes' => ['XXS', 'XS', 'S'],
                 'size_reference' => [
                     ['label' => 'EUR', 'values' => ['38S', '40-42', '44-46']],
-                    ['label' => 'US', 'values' => ['28R', '30R-32R', '34R-36R']],
+                    ['label' => 'US', 'values' => ['XXS', '30R-32R', '34R-36R']],
                 ],
                 'measurements' => [
                     'chest' => ['74-78', '78-86', '86-90'],
@@ -278,30 +278,20 @@ $women_bottom_ranges = [
     ],
 ];
 
-$kids_age_guides = [
-    '3-8y' => [
-        'label' => '3-8Y',
-        'sizes' => ['XS', 'S', 'M', 'L', 'XL'],
-        'measurements' => [
-            ['label' => 'Height (cm)', 'values' => ['96-104', '104-110', '110-116', '116-122', '122-128']],
-            ['label' => 'Age', 'values' => ['3-4Y', '4-5Y', '5-6Y', '6-7Y', '7-8Y']],
-            ['label' => 'Chest (cm)', 'values' => ['53-56', '56-59', '59-61', '61-63', '63-66']],
-            ['label' => 'Waist (cm)', 'values' => ['54-56', '56-58', '58-59', '59-60', '60-61']],
-            ['label' => 'Low hip (cm)', 'values' => ['56-59', '59-61', '61-63', '63-66', '66-70']],
-            ['label' => 'Inside leg (cm), estimated', 'values' => ['43-46', '46-49', '49-52', '52-56', '56-60']],
-        ],
+$kids_top_guide = [
+    'sizes' => ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+    'size_ranges' => [
+        'xxs-s' => ['label' => 'XXS-S', 'indexes' => [0, 1, 2]],
+        'm-xl' => ['label' => 'M-XL', 'indexes' => [3, 4, 5]],
+        'xxl-3xl' => ['label' => 'XXL-3XL', 'indexes' => [6, 7]],
     ],
-    '7-15y' => [
-        'label' => '7-15Y',
-        'sizes' => ['XS', 'S', 'M', 'L', 'XL'],
-        'measurements' => [
-            ['label' => 'Height (cm)', 'values' => ['122-128', '128-137', '137-147', '147-158', '158-170']],
-            ['label' => 'Age', 'values' => ['7-8Y', '8-10Y', '10-12Y', '12-13Y', '13-15Y']],
-            ['label' => 'Chest (cm)', 'values' => ['61.5-65', '65-70', '70-77', '77-84', '84-91.5']],
-            ['label' => 'Waist (cm)', 'values' => ['50-56', '56-62', '62-68', '68-74', '74-80']],
-            ['label' => 'Low hip (cm)', 'values' => ['63-67', '67-74', '74-80', '80-88', '88-96']],
-            ['label' => 'Inside leg (cm), estimated', 'values' => ['56-60', '60-65', '65-70', '70-75', '75-80']],
-        ],
+    'measurements' => [
+        ['label' => 'Numeric size', 'values' => ['6-7', '8-9', '8-9 Plus', '10-12', '14-16', '10-12 Plus', '18-20', '14-16 Plus']],
+        ['label' => 'Age', 'values' => ['7-8', '8-10', '8-10', '10-12', '12-13', '10-12', '13-15', '12-13']],
+        ['label' => 'Height (cm)', 'values' => ['122-128', '128-137', '131-140', '137-147', '147-158', '140-150', '158-170', '150-160']],
+        ['label' => 'Chest (cm)', 'values' => ['61.5-65', '65-70', '70-78', '70-77', '77-84', '78-86', '84-91.5', '86-94']],
+        ['label' => 'Waist (cm)', 'values' => ['50-56', '56-62', '61-67', '62-68', '68-74', '67-73', '74-80', '73-79']],
+        ['label' => 'Hip (cm)', 'values' => ['63-67', '67-74', '78-82', '74-80', '80-88', '82-88', '88-96', '88-95']],
     ],
 ];
 
@@ -570,51 +560,43 @@ include_once('includes/header.php');
   <section class="size-guide-card kids-size-guide" id="kids-size-guide" role="tabpanel" aria-labelledby="kids-size-tab" aria-label="Kids' size guide" data-department-panel="kids" hidden>
     <div class="bottom-guide">
       <h2>Top</h2>
-
-      <div class="top-fit-tabs kids-age-tabs" role="tablist" aria-label="Kids' age">
-        <?php foreach ($kids_age_guides as $age_key => $age_guide) { ?>
-          <button
-            type="button"
-            class="top-fit-tab<?php echo $age_key === array_key_first($kids_age_guides) ? ' is-selected' : ''; ?>"
-            id="kids-age-tab-<?php echo htmlspecialchars($age_key); ?>"
-            role="tab"
-            aria-selected="<?php echo $age_key === array_key_first($kids_age_guides) ? 'true' : 'false'; ?>"
-            aria-controls="kids-age-panel-<?php echo htmlspecialchars($age_key); ?>"
-            data-kids-age="<?php echo htmlspecialchars($age_key); ?>">
-            <?php echo htmlspecialchars($age_guide['label']); ?>
-          </button>
-        <?php } ?>
-      </div>
-
-      <?php foreach ($kids_age_guides as $age_key => $age_guide) { ?>
-        <section
-          class="kids-age-panel"
-          id="kids-age-panel-<?php echo htmlspecialchars($age_key); ?>"
-          role="tabpanel"
-          aria-labelledby="kids-age-tab-<?php echo htmlspecialchars($age_key); ?>"
-          data-kids-age-panel="<?php echo htmlspecialchars($age_key); ?>"<?php echo $age_key === array_key_first($kids_age_guides) ? '' : ' hidden'; ?>>
-          <fieldset class="size-range-fieldset">
-            <legend>Size</legend>
-            <div class="size-range-options kids-size-options">
-              <?php foreach ($age_guide['sizes'] as $size_index => $size) { ?>
-                <button
-                  type="button"
-                  class="size-range-option<?php echo $size_index === 0 ? ' is-selected' : ''; ?>"
-                  data-kids-size="<?php echo htmlspecialchars($age_key . ':' . $size_index); ?>"
-                  aria-pressed="<?php echo $size_index === 0 ? 'true' : 'false'; ?>">
-                  <?php echo htmlspecialchars($size); ?>
-                </button>
+      <fieldset class="size-range-fieldset">
+        <legend>Size range</legend>
+        <div class="size-range-options">
+          <?php foreach ($kids_top_guide['size_ranges'] as $range_key => $range) { ?>
+            <button
+              type="button"
+              class="size-range-option<?php echo $range_key === array_key_first($kids_top_guide['size_ranges']) ? ' is-selected' : ''; ?>"
+              data-kids-range="<?php echo htmlspecialchars($range_key); ?>"
+              aria-pressed="<?php echo $range_key === array_key_first($kids_top_guide['size_ranges']) ? 'true' : 'false'; ?>">
+              <?php echo htmlspecialchars($range['label']); ?>
+            </button>
+          <?php } ?>
+        </div>
+      </fieldset>
+      <div class="measurement-table-wrap kids-basic-table-wrap">
+        <table class="measurement-table kids-basic-table">
+          <caption class="visually-hidden">Kids' top sizes and measurements</caption>
+          <thead>
+            <tr>
+              <th class="measurement-label" scope="col">Measurement</th>
+              <?php foreach ($kids_top_guide['size_ranges']['xxs-s']['indexes'] as $size_index) { ?>
+                <th scope="col"><?php echo htmlspecialchars($kids_top_guide['sizes'][$size_index]); ?></th>
               <?php } ?>
-            </div>
-          </fieldset>
-          <div class="measurement-table-wrap kids-basic-table-wrap">
-            <table class="measurement-table kids-basic-table" data-kids-age-table="<?php echo htmlspecialchars($age_key); ?>">
-              <caption class="visually-hidden">Kids' measurements for ages <?php echo htmlspecialchars($age_guide['label']); ?></caption>
-              <thead></thead><tbody></tbody>
-            </table>
-          </div>
-        </section>
-      <?php } ?>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($kids_top_guide['measurements'] as $measurement) { ?>
+              <tr>
+                <th class="measurement-label" scope="row"><?php echo htmlspecialchars($measurement['label']); ?></th>
+                <?php foreach ($kids_top_guide['size_ranges']['xxs-s']['indexes'] as $size_index) { ?>
+                  <td><?php echo htmlspecialchars($measurement['values'][$size_index]); ?></td>
+                <?php } ?>
+              </tr>
+            <?php } ?>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 </main>
@@ -632,7 +614,7 @@ echo json_encode($women_top_ranges, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS 
 echo json_encode($women_bottom_ranges, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?></script>
 <script type="application/json" id="kids-top-guide-data"><?php
-echo json_encode($kids_age_guides, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+echo json_encode($kids_top_guide, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 ?></script>
 <script>
 (function () {
@@ -640,17 +622,13 @@ echo json_encode($kids_age_guides, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
   var topGuideData = JSON.parse(document.getElementById('top-guide-data').textContent);
   var womenTopGuideData = JSON.parse(document.getElementById('women-top-guide-data').textContent);
   var womenBottomGuideData = JSON.parse(document.getElementById('women-bottom-guide-data').textContent);
-  var kidsAgeGuides = JSON.parse(document.getElementById('kids-top-guide-data').textContent);
+  var kidsTopGuideData = JSON.parse(document.getElementById('kids-top-guide-data').textContent);
   var rangeButtons = document.querySelectorAll('[data-size-range]');
   var tables = document.querySelectorAll('#bottom-guide .measurement-table');
   var selectedTopRanges = {
     regular: Object.keys(topGuideData.regular.groups)[0],
     long: Object.keys(topGuideData.long.groups)[0]
   };
-  var selectedKidsSizes = {};
-  Object.keys(kidsAgeGuides).forEach(function (ageKey) {
-    selectedKidsSizes[ageKey] = 0;
-  });
   function addCell(row, text, tagName, className) {
     var cell = document.createElement(tagName);
     cell.textContent = text;
@@ -817,39 +795,50 @@ echo json_encode($kids_age_guides, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
     });
   }
 
-  function renderKidsTable(table, ageGuide, sizeIndex) {
-    var head = table.querySelector('thead');
-    var body = table.querySelector('tbody');
-    var headerRow = document.createElement('tr');
-
-    head.replaceChildren();
-    body.replaceChildren();
-    addCell(headerRow, 'Measurement', 'th', 'measurement-label');
-    headerRow.firstChild.scope = 'col';
-    addCell(headerRow, ageGuide.sizes[sizeIndex], 'th');
-    headerRow.lastChild.scope = 'col';
-    head.appendChild(headerRow);
-
-    ageGuide.measurements.forEach(function (dataRow) {
-      var row = document.createElement('tr');
-      addCell(row, dataRow.label, 'th', 'measurement-label');
-      row.firstChild.scope = 'row';
-      addCell(row, dataRow.values[sizeIndex], 'td');
-      body.appendChild(row);
-    });
-  }
-
-  function renderKidsAgeGuide(ageKey) {
-    renderKidsTable(
-      document.querySelector('[data-kids-age-table="' + ageKey + '"]'),
-      kidsAgeGuides[ageKey],
-      selectedKidsSizes[ageKey]
-    );
-  }
-
   rangeButtons.forEach(function (button) {
     button.addEventListener('click', function () {
       selectRange(button);
+    });
+  });
+
+  function renderKidsRange(rangeKey) {
+    var indexes = kidsTopGuideData.size_ranges[rangeKey].indexes;
+    var table = document.querySelector('.kids-basic-table');
+    var head = table.querySelector('thead');
+    var body = table.querySelector('tbody');
+    var headerRow = document.createElement('tr');
+    var sizesHeader = document.createElement('th');
+    sizesHeader.className = 'measurement-label';
+    sizesHeader.scope = 'col';
+    sizesHeader.textContent = 'Measurement';
+    headerRow.appendChild(sizesHeader);
+    indexes.forEach(function (sizeIndex) {
+      addCell(headerRow, kidsTopGuideData.sizes[sizeIndex], 'th');
+      headerRow.lastChild.scope = 'col';
+    });
+    head.replaceChildren(headerRow);
+
+    var rows = kidsTopGuideData.measurements.map(function (measurement) {
+      var row = document.createElement('tr');
+      addCell(row, measurement.label, 'th', 'measurement-label');
+      row.firstChild.scope = 'row';
+      indexes.forEach(function (sizeIndex) {
+        addCell(row, measurement.values[sizeIndex], 'td');
+      });
+      return row;
+    });
+    body.replaceChildren.apply(body, rows);
+  }
+
+  document.querySelectorAll('[data-kids-range]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var rangeKey = button.getAttribute('data-kids-range');
+      document.querySelectorAll('[data-kids-range]').forEach(function (rangeButton) {
+        var selected = rangeButton === button;
+        rangeButton.classList.toggle('is-selected', selected);
+        rangeButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      });
+      renderKidsRange(rangeKey);
     });
   });
 
@@ -956,36 +945,6 @@ echo json_encode($kids_age_guides, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
     });
   });
 
-  document.querySelectorAll('[data-kids-age]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var ageKey = button.getAttribute('data-kids-age');
-      document.querySelectorAll('[data-kids-age]').forEach(function (ageButton) {
-        var selected = ageButton === button;
-        ageButton.classList.toggle('is-selected', selected);
-        ageButton.setAttribute('aria-selected', selected ? 'true' : 'false');
-      });
-      document.querySelectorAll('[data-kids-age-panel]').forEach(function (panel) {
-        panel.hidden = panel.getAttribute('data-kids-age-panel') !== ageKey;
-      });
-      renderKidsAgeGuide(ageKey);
-    });
-  });
-
-  document.querySelectorAll('[data-kids-size]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var selection = button.getAttribute('data-kids-size').split(':');
-      var ageKey = selection[0];
-      var sizeIndex = Number(selection[1]);
-      selectedKidsSizes[ageKey] = sizeIndex;
-      document.querySelectorAll('[data-kids-age-panel="' + ageKey + '"] [data-kids-size]').forEach(function (sizeButton) {
-        var selected = sizeButton === button;
-        sizeButton.classList.toggle('is-selected', selected);
-        sizeButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      });
-      renderKidsAgeGuide(ageKey);
-    });
-  });
-
   document.querySelectorAll('.measurement-toggle').forEach(function (toggle) {
     toggle.addEventListener('click', function () {
       var expanded = toggle.getAttribute('aria-expanded') === 'true';
@@ -994,6 +953,18 @@ echo json_encode($kids_age_guides, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS |
       panel.hidden = expanded;
     });
   });
+
+  var params = new URLSearchParams(window.location.search);
+  var requestedDepartment = params.get('dept');
+  var requestedType = params.get('type');
+  if (['men', 'women', 'kids'].indexOf(requestedDepartment) !== -1) {
+    document.querySelector('[data-department-tab="' + requestedDepartment + '"]').click();
+    if (requestedDepartment === 'men' && ['top', 'bottom'].indexOf(requestedType) !== -1) {
+      document.querySelector('[data-guide-type="' + requestedType + '"]').click();
+    } else if (requestedDepartment === 'women' && ['top', 'bottom'].indexOf(requestedType) !== -1) {
+      document.querySelector('[data-women-guide-type="' + requestedType + '"]').click();
+    }
+  }
 
   if (rangeButtons.length) selectRange(rangeButtons[0]);
   renderTopRange('regular', selectedTopRanges.regular);
