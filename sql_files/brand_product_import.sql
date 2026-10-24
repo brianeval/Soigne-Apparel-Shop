@@ -251,8 +251,8 @@ INSERT INTO tmp_brand_products (brand, name, category, price, color, department)
 ('PENSHOPPE', 'Essentials Relaxed Striped T-Shirt', 'T-shirts', 499.00, 'Red', 'women'),
 ('PENSHOPPE', 'Long Sleeve Striped Button-Down Top with Bows', 'Shirts', 1199.00, 'Blush', 'women');
 
-INSERT INTO products (supplier_id, name, category_id, category, department, price, description)
-SELECT suppliers.supplier_id, source.name, categories.category_id, source.category, source.department, source.price, NULL
+INSERT INTO products (supplier_id, name, category_id, department, price, description)
+SELECT suppliers.supplier_id, source.name, categories.category_id, source.department, source.price, NULL
 FROM (
   SELECT DISTINCT brand, name, category, price, department
   FROM tmp_brand_products

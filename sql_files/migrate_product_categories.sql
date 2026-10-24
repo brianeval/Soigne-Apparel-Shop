@@ -1,6 +1,6 @@
 -- One-time migration for an existing soigne_apparel database.
 -- Run this file after selecting the soigne_apparel database.
--- The legacy products.category column is retained temporarily for compatibility.
+-- After this migration, run normalize_product_category.sql to remove the legacy text column.
 
 CREATE TABLE categories (
   category_id INT AUTO_INCREMENT PRIMARY KEY,

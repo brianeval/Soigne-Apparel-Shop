@@ -43,23 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($price === false || $price < 0 || $price > 99999999.99) $errors[] = 'Enter a valid price.';
 
             if (!$errors) {
-                $category = null;
                 if ($category_id !== null) {
-                    $category_stmt = mysqli_prepare($conn, "SELECT name FROM categories WHERE category_id = ?");
+                    $category_stmt = mysqli_prepare($conn, "SELECT category_id FROM categories WHERE category_id = ?");
                     mysqli_stmt_bind_param($category_stmt, 'i', $category_id);
                     mysqli_stmt_execute($category_stmt);
                     $category_row = mysqli_fetch_assoc(mysqli_stmt_get_result($category_stmt));
                     if (!$category_row) {
                         $errors[] = 'Choose a valid category.';
-                    } else {
-                        $category = $category_row['name'];
                     }
                 }
             }
 
             if (!$errors) {
-                $stmt = mysqli_prepare($conn, "UPDATE products SET supplier_id = ?, name = ?, category_id = ?, category = ?, department = ?, price = ?, description = ? WHERE product_id = ?");
-                mysqli_stmt_bind_param($stmt, 'isissdsi', $supplier_id, $name, $category_id, $category, $department, $price, $description, $product_id);
+                $stmt = mysqli_prepare($conn, "UPDATE products SET supplier_id = ?, name = ?, category_id = ?, department = ?, price = ?, description = ? WHERE product_id = ?");
+                mysqli_stmt_bind_param($stmt, 'isisdsi', $supplier_id, $name, $category_id, $department, $price, $description, $product_id);
                 mysqli_stmt_execute($stmt);
                 admin_set_flash('success', 'Product details updated.');
                 header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id);

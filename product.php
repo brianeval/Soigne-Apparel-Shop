@@ -8,7 +8,7 @@ $id = (int)($_GET['id'] ?? 0);
 
 // STEP 2: Find the product in the database.
 // This query asks: "give me the row from products where product_id matches the URL id".
-$productQuery = "SELECT p.*, COALESCE(c.name, p.category) AS size_guide_category
+$productQuery = "SELECT p.*, c.name AS size_guide_category
                  FROM products p
                  LEFT JOIN categories c ON c.category_id = p.category_id
                  WHERE p.product_id = ?";

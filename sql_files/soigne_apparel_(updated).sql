@@ -66,7 +66,6 @@ CREATE TABLE products (
   product_id  INT AUTO_INCREMENT PRIMARY KEY,
   supplier_id INT NOT NULL,
   name        VARCHAR(150)  NOT NULL,
-  category    VARCHAR(50),
   category_id INT NULL,
   department  ENUM('men','women','kids') NOT NULL DEFAULT 'men',
   price       DECIMAL(10,2) NOT NULL,
@@ -236,8 +235,8 @@ SET @supplier_hm = (SELECT supplier_id FROM suppliers WHERE name = 'H&M');
 
 -- Products
 -- department: men / women / kids
-INSERT INTO products (supplier_id, name, category, category_id, department, price, description) VALUES
-(@supplier_hm, 'Felted Button-Detail Jacket', 'Outerwear', (SELECT category_id FROM categories WHERE name = 'Outerwear'), 'women', 2880.00, 'Short jacket in soft, felted fabric. Band collar and an open front with decorative trim and spherical buttons.');
+INSERT INTO products (supplier_id, name, category_id, department, price, description) VALUES
+(@supplier_hm, 'Felted Button-Detail Jacket', (SELECT category_id FROM categories WHERE name = 'Outerwear'), 'women', 2880.00, 'Short jacket in soft, felted fabric. Band collar and an open front with decorative trim and spherical buttons.');
 
 
 -- One image per color (put matching files in your images/ folder)

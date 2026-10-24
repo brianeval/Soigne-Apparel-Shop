@@ -288,8 +288,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $category = $category_name;
-
         if ($errors && $saved_images) {
             foreach ($saved_images as $saved_image) {
                 $image_path = __DIR__ . '/../../images/' . $saved_image;
@@ -303,8 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$errors) {
             mysqli_begin_transaction($conn);
             try {
-                $stmt = mysqli_prepare($conn, "INSERT INTO products (supplier_id, name, category_id, category, department, price, description) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                mysqli_stmt_bind_param($stmt, 'isissds', $supplier_id, $name, $category_id, $category, $department, $price, $description);
+                $stmt = mysqli_prepare($conn, "INSERT INTO products (supplier_id, name, category_id, department, price, description) VALUES (?, ?, ?, ?, ?, ?)");
+                mysqli_stmt_bind_param($stmt, 'isisds', $supplier_id, $name, $category_id, $department, $price, $description);
                 mysqli_stmt_execute($stmt);
                 $new_product_id = mysqli_insert_id($conn);
 
@@ -402,7 +400,7 @@ $product_pagination = admin_pagination_page($product_total);
 $product_limit = $product_pagination['page_size'];
 $product_offset = $product_pagination['offset'];
 $products_result = mysqli_query($conn,
-    "SELECT p.product_id, p.name, COALESCE(c.name, p.category) AS category, p.department, p.price, s.name AS supplier_name,
+    "SELECT p.product_id, p.name, c.name AS category, p.department, p.price, s.name AS supplier_name,
             COUNT(DISTINCT pc.product_color_id) AS color_count,
             (SELECT COUNT(*)
              FROM order_items oi
@@ -415,7 +413,7 @@ $products_result = mysqli_query($conn,
      LEFT JOIN categories c ON c.category_id = p.category_id
      LEFT JOIN product_colors pc ON pc.product_id = p.product_id
      LEFT JOIN product_variants v ON v.product_color_id = pc.product_color_id
-     GROUP BY p.product_id, p.name, c.name, p.category, p.department, p.price, s.name
+     GROUP BY p.product_id, p.name, c.name, p.department, p.price, s.name
      ORDER BY p.product_id DESC
      LIMIT $product_limit OFFSET $product_offset"
 );

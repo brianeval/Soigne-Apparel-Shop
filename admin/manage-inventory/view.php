@@ -22,7 +22,7 @@ if (!$restock) {
 }
 
 $items_stmt = mysqli_prepare($conn,
-    'SELECT p.name AS product_name, COALESCE(c.name, p.category, \'Uncategorized\') AS category_name,
+    'SELECT p.name AS product_name, COALESCE(c.name, \'Uncategorized\') AS category_name,
             pc.color, v.size, ri.quantity, ri.unit_cost,
             ri.quantity * ri.unit_cost AS line_total
      FROM restock_items ri

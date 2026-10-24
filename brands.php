@@ -54,7 +54,7 @@ if ($brand_id > 0) {
     }
 
     // This query gets every product from the selected brand, along with a preview image and color count.
-    $q = "SELECT p.product_id, p.name, p.price, COALESCE(c.name, p.category) AS category, pc.image,
+    $q = "SELECT p.product_id, p.name, p.price, c.name AS category, pc.image,
                  (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
           FROM products p
           LEFT JOIN categories c ON c.category_id = p.category_id

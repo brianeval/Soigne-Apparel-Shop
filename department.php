@@ -14,7 +14,7 @@ $dept_label = $allowed[$dept];
 
 // Products in this department, each with the image of its first color.
 // This query gets all products in the chosen department and attaches the first color image for each one.
-$q = "SELECT p.product_id, p.name, p.price, COALESCE(c.name, p.category) AS category, pc.image,
+$q = "SELECT p.product_id, p.name, p.price, c.name AS category, pc.image,
              (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
       FROM products p
       LEFT JOIN categories c ON c.category_id = p.category_id

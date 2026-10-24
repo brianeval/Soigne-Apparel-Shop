@@ -207,10 +207,6 @@ $suppliers_result = mysqli_query($conn, 'SELECT supplier_id, name FROM suppliers
 $suppliers = mysqli_fetch_all($suppliers_result, MYSQLI_ASSOC);
 $categories_result = mysqli_query($conn, 'SELECT category_id, name FROM categories ORDER BY name');
 $categories = mysqli_fetch_all($categories_result, MYSQLI_ASSOC);
-$category_names = [];
-foreach ($categories as $category) {
-    $category_names[(int)$category['category_id']] = $category['name'];
-}
 
 $variant_options_result = mysqli_query($conn,
     'SELECT v.variant_id, v.stock, v.size, pc.color, p.name AS product_name, p.supplier_id, p.department,
@@ -293,10 +289,9 @@ if ($filter_supplier !== null) {
     $inventory_params[] = $filter_supplier;
 }
 if ($filter_category !== null) {
-    $inventory_conditions[] = '(p.category_id = ? OR (p.category_id IS NULL AND p.category = ?))';
-    $inventory_types .= 'is';
+    $inventory_conditions[] = 'p.category_id = ?';
+    $inventory_types .= 'i';
     $inventory_params[] = $filter_category;
-    $inventory_params[] = $category_names[$filter_category] ?? '';
 }
 if ($filter_color !== '') {
     $inventory_conditions[] = 'pc.color = ?';
@@ -328,7 +323,7 @@ $inventory_list_params[] = $inventory_offset;
 $inventory_list_types = $inventory_types . 'ii';
 $inventory_stmt = mysqli_prepare($conn,
     'SELECT v.variant_id, v.stock, v.size, pc.color, p.name AS product_name, p.department,
-            COALESCE(c.name, p.category, \'Uncategorized\') AS category_name, s.name AS supplier_name
+            COALESCE(c.name, \'Uncategorized\') AS category_name, s.name AS supplier_name
      FROM product_variants v
      JOIN product_colors pc ON pc.product_color_id = v.product_color_id
      JOIN products p ON p.product_id = pc.product_id
