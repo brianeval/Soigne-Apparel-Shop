@@ -25,13 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
-            // This query locks the order row so the app can safely check if it is still pending before making changes.
-            $stmt = mysqli_prepare($conn, "SELECT order_id, status FROM orders WHERE order_id = ? AND user_id = ? FOR UPDATE");
+            // This query locks the order row so customer changes remain limited to pending orders.
+            $stmt = mysqli_prepare($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = ? AND user_id = ? FOR UPDATE");
             mysqli_stmt_bind_param($stmt, 'ii', $order_id, $user_id);
             mysqli_stmt_execute($stmt);
             $locked_order = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
 
-            if (!$locked_order || $locked_order['status'] !== 'pending') {
+            if (!$locked_order || $locked_order['fulfillment_status'] !== 'pending') {
                 mysqli_rollback($conn);
                 $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Only pending orders can be changed or cancelled.'];
             } elseif ($action === 'cancel_order') {
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // This query marks the order as cancelled only if it is still pending and still belongs to this user.
-                $stmt = mysqli_prepare($conn, "UPDATE orders SET status = 'cancelled' WHERE order_id = ? AND user_id = ? AND status = 'pending'");
+                $stmt = mysqli_prepare($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = ? AND user_id = ? AND fulfillment_status = 'pending' AND payment_status = 'unpaid'");
                 mysqli_stmt_bind_param($stmt, 'ii', $order_id, $user_id);
                 mysqli_stmt_execute($stmt);
                 if (mysqli_stmt_affected_rows($stmt) !== 1) {
@@ -189,13 +189,13 @@ unset($_SESSION['orders_flash']);
 
 // This query loads all of the current user's orders and totals for the order list page.
 $stmt = mysqli_prepare($conn,
-    "SELECT o.order_id, o.status, o.shipping_address, o.created_at,
+    "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at,
             COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total,
             COALESCE(SUM(oi.quantity), 0) AS item_count
      FROM orders o
      LEFT JOIN order_items oi ON oi.order_id = o.order_id
      WHERE o.user_id = ?
-     GROUP BY o.order_id, o.status, o.shipping_address, o.created_at
+     GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at
      ORDER BY o.order_id DESC"
 );
 mysqli_stmt_bind_param($stmt, 'i', $user_id);
@@ -269,8 +269,14 @@ $order_tabs = [
     [
         'id' => 'received',
         'label' => 'Received',
-        'statuses' => ['delivered', 'received'],
+        'statuses' => ['delivered'],
         'empty_message' => 'No received orders right now.',
+    ],
+    [
+        'id' => 'failed-delivery',
+        'label' => 'Failed Delivery',
+        'statuses' => ['failed_delivery'],
+        'empty_message' => 'No failed deliveries.',
     ],
     [
         'id' => 'review-me',
@@ -319,7 +325,15 @@ include_once __DIR__ . '/../includes/header.php';
       <?php foreach ($order_tabs as $tab_index => $tab) { ?>
         <?php
           $tab_orders = array_filter($orders, function ($order) use ($tab) {
-              return in_array(strtolower((string)($order['status'] ?? '')), $tab['statuses'], true);
+              $fulfillment_status = strtolower((string)($order['fulfillment_status'] ?? 'pending'));
+              $payment_status = strtolower((string)($order['payment_status'] ?? 'unpaid'));
+              if ($tab['id'] === 'review-me') {
+                  return $payment_status === 'paid';
+              }
+              if ($tab['id'] === 'cancellations') {
+                  return $fulfillment_status === 'cancelled';
+              }
+              return $payment_status !== 'paid' && in_array($fulfillment_status, $tab['statuses'], true);
           });
         ?>
         <section class="orders-tab-panel" role="tabpanel"
@@ -338,8 +352,9 @@ include_once __DIR__ . '/../includes/header.php';
         <div class="orders-list">
           <?php foreach ($tab_orders as $order) { ?>
             <?php
-              $status = strtolower((string)($order['status'] ?? 'pending'));
-              $status_label = ucfirst($status);
+              $status = strtolower((string)($order['fulfillment_status'] ?? 'pending'));
+              $payment_status = strtolower((string)($order['payment_status'] ?? 'unpaid'));
+              $status_label = ucwords(str_replace('_', ' ', $status));
               $created = date('M j, Y', strtotime($order['created_at']));
             ?>
             <article class="order-card">
@@ -348,7 +363,10 @@ include_once __DIR__ . '/../includes/header.php';
               <p class="order-label">Order #<?php echo (int)$order['order_id']; ?></p>
               <p class="order-date">Placed on <?php echo htmlspecialchars($created); ?></p>
             </div>
-            <span class="order-status status-<?php echo htmlspecialchars($status); ?>"><?php echo htmlspecialchars($status_label); ?></span>
+            <div class="order-statuses">
+              <span class="order-status status-<?php echo htmlspecialchars($status); ?>"><?php echo htmlspecialchars($status_label); ?></span>
+              <span class="order-status status-<?php echo htmlspecialchars($payment_status); ?>"><?php echo htmlspecialchars(ucfirst($payment_status)); ?></span>
+            </div>
           </div>
 
           <div class="order-summary">
@@ -414,7 +432,7 @@ include_once __DIR__ . '/../includes/header.php';
                           <p>Qty: <?php echo (int)$item['quantity']; ?> · <?php echo htmlspecialchars(peso((float)$item['price'])); ?> each</p>
                         <?php } ?>
                       </div>
-                      <?php if ($status === 'paid') { ?>
+                      <?php if ($payment_status === 'paid') { ?>
                         <?php if (in_array(($item['review_status'] ?? ''), ['pending', 'published'], true)) { ?>
                           <button class="rate-product-button" type="button"
                                   data-review-action="update"

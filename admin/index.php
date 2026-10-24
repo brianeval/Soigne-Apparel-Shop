@@ -6,22 +6,22 @@ $stats_result = mysqli_query($conn,
         (SELECT COUNT(*) FROM products) AS product_count,
         (SELECT COUNT(*) FROM orders) AS order_count,
         (SELECT COUNT(*) FROM users WHERE role = 'customer') AS customer_count,
-        (SELECT COUNT(*) FROM orders WHERE status = 'pending') AS pending_count,
+        (SELECT COUNT(*) FROM orders WHERE fulfillment_status = 'pending' AND payment_status = 'unpaid') AS pending_count,
         (SELECT COALESCE(SUM(oi.quantity * oi.price), 0)
          FROM order_items oi
          JOIN orders o ON o.order_id = oi.order_id
-         WHERE o.status = 'paid') AS sales_total"
+         WHERE o.payment_status = 'paid') AS sales_total"
 );
 $stats = mysqli_fetch_assoc($stats_result);
 
 $recent_orders_result = mysqli_query($conn,
-    "SELECT o.order_id, o.status, o.created_at, u.username,
+    "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, u.username,
             COALESCE(SUM(oi.quantity), 0) AS item_count,
             COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total
      FROM orders o
      JOIN users u ON u.user_id = o.user_id
      LEFT JOIN order_items oi ON oi.order_id = o.order_id
-     GROUP BY o.order_id, o.status, o.created_at, u.username
+     GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.created_at, u.username
      ORDER BY o.created_at DESC, o.order_id DESC
      LIMIT 6"
 );
@@ -160,7 +160,7 @@ $admin_name = $_SESSION['username'] ?? 'Administrator';
                       <td><?php echo htmlspecialchars(date('M j, Y', strtotime($order['created_at']))); ?></td>
                       <td><?php echo (int)$order['item_count']; ?></td>
                       <td><?php echo peso((float)$order['order_total']); ?></td>
-                      <td><span class="status-pill status-<?php echo htmlspecialchars($order['status']); ?>"><?php echo htmlspecialchars(ucfirst($order['status'])); ?></span></td>
+                      <td><span class="status-pill status-<?php echo htmlspecialchars($order['fulfillment_status']); ?>"><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $order['fulfillment_status']))); ?></span> <span class="status-pill status-<?php echo htmlspecialchars($order['payment_status']); ?>"><?php echo htmlspecialchars(ucfirst($order['payment_status'])); ?></span></td>
                     </tr>
                   <?php } ?>
                 </tbody>

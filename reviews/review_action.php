@@ -29,13 +29,13 @@ if ($order_id === false || $order_id < 1 || $order_item_id === false || $order_i
 }
 
 $stmt = mysqli_prepare($conn,
-    "SELECT o.status
+    "SELECT o.payment_status
      FROM orders o
      JOIN order_items oi ON oi.order_id = o.order_id
      JOIN product_variants v ON v.variant_id = oi.variant_id
      JOIN product_colors pc ON pc.product_color_id = v.product_color_id
      WHERE o.order_id = ? AND oi.order_item_id = ? AND o.user_id = ?
-       AND pc.product_id = ? AND o.status IN ('paid', 'shipped', 'delivered')
+       AND pc.product_id = ? AND o.payment_status = 'paid'
      LIMIT 1"
 );
 mysqli_stmt_bind_param($stmt, 'iiii', $order_id, $order_item_id, $user_id, $product_id);

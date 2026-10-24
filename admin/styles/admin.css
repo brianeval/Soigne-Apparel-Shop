@@ -141,8 +141,10 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .status-pill { display: inline-block; padding: 5px 9px; border-radius: 6px; background: #f0f1ef; color: #626960; font-size: 12px; }
 .status-pending { background: #fbf3e2; color: #99762f; }
 .status-paid { background: #f3f1ee; color: #525252; }
+.status-unpaid { background: #f1f1f1; color: #626262; }
 .status-shipped { background: #edf0fb; color: #6877a5; }
 .status-delivered { background: #e9f3eb; color: #547858; }
+.status-failed_delivery { background: #fff0e0; color: #8a4c08; }
 .status-cancelled { background: #f9ecea; color: #a25d56; }
 .admin-empty { display: grid; justify-items: center; gap: 6px; padding: 35px 16px 40px; color: #838980; text-align: center; }
 .admin-empty > svg { width: 23px; height: 23px; margin-bottom: 4px; fill: none; stroke: #8e958b; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }

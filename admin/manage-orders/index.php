@@ -124,18 +124,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             mysqli_begin_transaction($conn);
             try {
-                $status_stmt = mysqli_prepare($conn, "SELECT status FROM orders WHERE order_id = ? FOR UPDATE");
+                $status_stmt = mysqli_prepare($conn, "SELECT fulfillment_status, payment_status FROM orders WHERE order_id = ? FOR UPDATE");
                 mysqli_stmt_bind_param($status_stmt, 'i', $order_id);
                 mysqli_stmt_execute($status_stmt);
                 $order = mysqli_fetch_assoc(mysqli_stmt_get_result($status_stmt));
                 if (!$order) {
                     throw new RuntimeException('Order not found.');
                 }
-                if (!in_array($order['status'], ['pending', 'cancelled'], true)) {
-                    throw new RuntimeException('Only pending or cancelled orders can be deleted.');
+                if ($order['payment_status'] !== 'unpaid'
+                    || !in_array($order['fulfillment_status'], ['pending', 'cancelled', 'failed_delivery'], true)) {
+                    throw new RuntimeException('Only unpaid pending, cancelled, or failed-delivery orders can be deleted.');
                 }
 
-                if ($order['status'] === 'pending') {
+                if ($order['fulfillment_status'] === 'pending') {
                     $order_items_stmt = mysqli_prepare($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ? FOR UPDATE");
                     mysqli_stmt_bind_param($order_items_stmt, 'i', $order_id);
                     mysqli_stmt_execute($order_items_stmt);
@@ -152,11 +153,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $items_stmt = mysqli_prepare($conn, "DELETE FROM order_items WHERE order_id = ?");
                 mysqli_stmt_bind_param($items_stmt, 'i', $order_id);
                 mysqli_stmt_execute($items_stmt);
-                $delete_stmt = mysqli_prepare($conn, "DELETE FROM orders WHERE order_id = ? AND status IN ('pending', 'cancelled')");
+                $delete_stmt = mysqli_prepare($conn, "DELETE FROM orders WHERE order_id = ? AND fulfillment_status IN ('pending', 'cancelled', 'failed_delivery') AND payment_status = 'unpaid'");
                 mysqli_stmt_bind_param($delete_stmt, 'i', $order_id);
                 mysqli_stmt_execute($delete_stmt);
                 if (mysqli_stmt_affected_rows($delete_stmt) !== 1) {
-                    throw new RuntimeException('Order status changed. Only pending or cancelled orders can be deleted.');
+                    throw new RuntimeException('Order status changed. Only unpaid pending, cancelled, or failed-delivery orders can be deleted.');
                 }
                 mysqli_commit($conn);
                 admin_set_flash('success', 'Order deleted.');
@@ -175,8 +176,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$ongoing_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE status IN ('pending', 'shipped', 'delivered')"))['total'];
-$history_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE status IN ('paid', 'cancelled')"))['total'];
+$ongoing_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE payment_status = 'unpaid' AND fulfillment_status IN ('pending', 'shipped')"))['total'];
+$history_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE payment_status = 'paid' OR fulfillment_status IN ('delivered', 'cancelled', 'failed_delivery')"))['total'];
 $ongoing_pagination = admin_pagination_page($ongoing_order_count, 10, 'ongoing_page');
 $history_pagination = admin_pagination_page($history_order_count, 10, 'history_page');
 $ongoing_limit = $ongoing_pagination['page_size'];
@@ -184,27 +185,27 @@ $ongoing_offset = $ongoing_pagination['offset'];
 $history_limit = $history_pagination['page_size'];
 $history_offset = $history_pagination['offset'];
 $ongoing_orders_result = mysqli_query($conn,
-    "SELECT o.order_id, o.status, o.created_at, o.shipping_address, u.username,
+    "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username,
             COALESCE(SUM(oi.quantity), 0) AS item_count,
             COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total
      FROM orders o
      JOIN users u ON u.user_id = o.user_id
      LEFT JOIN order_items oi ON oi.order_id = o.order_id
-     WHERE o.status IN ('pending', 'shipped', 'delivered')
-     GROUP BY o.order_id, o.status, o.created_at, o.shipping_address, u.username
+     WHERE o.payment_status = 'unpaid' AND o.fulfillment_status IN ('pending', 'shipped')
+     GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username
      ORDER BY o.created_at DESC, o.order_id DESC
      LIMIT $ongoing_limit OFFSET $ongoing_offset"
 );
 $ongoing_orders = mysqli_fetch_all($ongoing_orders_result, MYSQLI_ASSOC);
 $history_orders_result = mysqli_query($conn,
-    "SELECT o.order_id, o.status, o.created_at, o.shipping_address, u.username,
+    "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username,
             COALESCE(SUM(oi.quantity), 0) AS item_count,
             COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total
      FROM orders o
      JOIN users u ON u.user_id = o.user_id
      LEFT JOIN order_items oi ON oi.order_id = o.order_id
-     WHERE o.status IN ('paid', 'cancelled')
-     GROUP BY o.order_id, o.status, o.created_at, o.shipping_address, u.username
+     WHERE o.payment_status = 'paid' OR o.fulfillment_status IN ('delivered', 'cancelled', 'failed_delivery')
+     GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username
      ORDER BY o.created_at DESC, o.order_id DESC
      LIMIT $history_limit OFFSET $history_offset"
 );
@@ -230,11 +231,11 @@ include __DIR__ . '/../includes/header.php';
       <td><?php echo admin_escape(date('M j, Y', strtotime($order['created_at']))); ?></td>
       <td><?php echo (int)$order['item_count']; ?></td>
       <td><?php echo peso((float)$order['order_total']); ?></td>
-      <td><span class="status-pill status-<?php echo admin_escape($order['status']); ?>"><?php echo admin_escape(ucfirst($order['status'])); ?></span></td>
+      <td><span class="status-pill status-<?php echo admin_escape($order['fulfillment_status']); ?>"><?php echo admin_escape(ucwords(str_replace('_', ' ', $order['fulfillment_status']))); ?></span> <span class="status-pill status-<?php echo admin_escape($order['payment_status']); ?>"><?php echo admin_escape(ucfirst($order['payment_status'])); ?></span></td>
       <td><div class="manage-row-actions">
         <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/edit.php?id=<?php echo (int)$order['order_id']; ?>">View / Edit</a>
-        <?php if (in_array($order['status'], ['pending', 'cancelled'], true)) { ?>
-          <form method="post" onsubmit="return confirm('Permanently delete order #<?php echo (int)$order['order_id']; ?>?<?php echo $order['status'] === 'pending' ? ' Its reserved stock will be returned.' : ''; ?>');">
+        <?php if (in_array($order['fulfillment_status'], ['pending', 'cancelled'], true)) { ?>
+          <form method="post" onsubmit="return confirm('Permanently delete order #<?php echo (int)$order['order_id']; ?>?<?php echo $order['fulfillment_status'] === 'pending' ? ' Its reserved stock will be returned.' : ''; ?>');">
             <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
@@ -257,11 +258,11 @@ include __DIR__ . '/../includes/header.php';
       <td><?php echo admin_escape(date('M j, Y', strtotime($order['created_at']))); ?></td>
       <td><?php echo (int)$order['item_count']; ?></td>
       <td><?php echo peso((float)$order['order_total']); ?></td>
-      <td><span class="status-pill status-<?php echo admin_escape($order['status']); ?>"><?php echo admin_escape(ucfirst($order['status'])); ?></span></td>
+      <td><span class="status-pill status-<?php echo admin_escape($order['fulfillment_status']); ?>"><?php echo admin_escape(ucwords(str_replace('_', ' ', $order['fulfillment_status']))); ?></span> <span class="status-pill status-<?php echo admin_escape($order['payment_status']); ?>"><?php echo admin_escape(ucfirst($order['payment_status'])); ?></span></td>
       <td><div class="manage-row-actions">
-        <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/edit.php?id=<?php echo (int)$order['order_id']; ?>">View / Edit</a>
-        <?php if ($order['status'] === 'cancelled') { ?>
-          <form method="post" onsubmit="return confirm('Permanently delete cancelled order #<?php echo (int)$order['order_id']; ?>?');">
+        <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/edit.php?id=<?php echo (int)$order['order_id']; ?>">View</a>
+        <?php if (in_array($order['fulfillment_status'], ['cancelled', 'failed_delivery'], true)) { ?>
+          <form method="post" onsubmit="return confirm('Permanently delete this <?php echo $order['fulfillment_status'] === 'failed_delivery' ? 'failed-delivery' : 'cancelled'; ?> order #<?php echo (int)$order['order_id']; ?>?');">
             <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">

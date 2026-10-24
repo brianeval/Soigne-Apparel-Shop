@@ -133,6 +133,13 @@
   letter-spacing: 0.04em;
 }
 
+.order-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .status-pending {
   background: #f8f1d6;
   color: #7a5a08;
@@ -141,6 +148,11 @@
 .status-paid {
   background: #e9f6ee;
   color: #1e6b2e;
+}
+
+.status-unpaid {
+  background: #f1f1f1;
+  color: #626262;
 }
 
 .status-shipped,
@@ -153,6 +165,11 @@
 .status-cancelled {
   background: #fdecea;
   color: #b3261e;
+}
+
+.status-failed_delivery {
+  background: #fff0e0;
+  color: #8a4c08;
 }
 
 .order-summary {
@@ -588,6 +605,10 @@
 
   .order-header {
     gap: 10px;
+  }
+
+  .order-statuses {
+    justify-content: flex-start;
   }
 
   .order-actions {

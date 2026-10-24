@@ -57,6 +57,9 @@
 .manage-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 17px; }
 .manage-panel-heading .admin-eyebrow { margin-bottom: 5px; }
 .manage-panel-heading h2 { margin: 0; font-family: var(--admin-font); font-size: 19px; font-weight: 600; }
+.manage-order-statuses { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.manage-order-final { margin: 14px 0 0; font-size: 16px; font-weight: 400; line-height: 1.5; }
+.manage-order-complete { color: #547858; }
 .manage-count { display: inline-grid; min-width: 25px; height: 25px; place-items: center; margin-left: 5px; padding: 0 6px; border-radius: 7px; background: #f3f1ee; color: var(--admin-accent); font: 600 12px var(--admin-font); vertical-align: 2px; }
 .manage-list-panel { padding: 20px 0 0; overflow: hidden; }
 .manage-list-panel > .manage-panel-heading { padding: 0 20px; }

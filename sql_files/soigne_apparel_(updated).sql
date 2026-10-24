@@ -114,7 +114,8 @@ CREATE TABLE cart (
 CREATE TABLE orders (
   order_id         INT AUTO_INCREMENT PRIMARY KEY,
   user_id          INT NOT NULL,
-  status           ENUM('pending','paid','shipped','delivered','cancelled') NOT NULL DEFAULT 'pending',
+  fulfillment_status ENUM('pending','shipped','delivered','failed_delivery','cancelled') NOT NULL DEFAULT 'pending',
+  payment_status   ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
   shipping_address VARCHAR(255) NOT NULL,        -- snapshot at checkout
   created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(user_id)
