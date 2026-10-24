@@ -51,6 +51,8 @@
   object-fit: cover;
   display: block;
 }
+.dept-img .product-image-tile { aspect-ratio: auto; }
+.dept-name { display: block; text-decoration: none; }
 
 .dept-name {
   font-size: 14px;

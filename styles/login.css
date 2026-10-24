@@ -63,6 +63,13 @@
   font-size: 13px;
 }
 
+.register-photo-help {
+  display: block;
+  margin: -2px 0 18px;
+  color: #6b6b6b;
+  font-size: 12px;
+}
+
 .register-avatar-preview {
   display: block;
   width: 72px;

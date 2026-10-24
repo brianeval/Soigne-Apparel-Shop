@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/product_images.php';
 
 $errors = [];
 $product_size_guide = require __DIR__ . '/../../includes/product_size_guide.php';
@@ -18,46 +19,6 @@ function product_size_options(array $guide, string $department, ?string $categor
         $guide['sizes'][$department]['top'] ?? [],
         $guide['sizes'][$department]['bottom'] ?? []
     )));
-}
-
-function save_product_image_upload(array $upload): ?string
-{
-    if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-        return null;
-    }
-    if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-        throw new RuntimeException('The product image could not be uploaded. Please try again.');
-    }
-    if (!isset($upload['tmp_name'], $upload['size']) || !is_uploaded_file($upload['tmp_name'])) {
-        throw new RuntimeException('Choose a valid product image.');
-    }
-    if ((int)$upload['size'] > 5 * 1024 * 1024) {
-        throw new RuntimeException('Product images must be 5 MB or smaller.');
-    }
-
-    $file_info = new finfo(FILEINFO_MIME_TYPE);
-    $mime_type = $file_info->file($upload['tmp_name']);
-    $allowed_types = [
-        'image/jpeg' => 'jpg',
-        'image/png' => 'png',
-        'image/webp' => 'webp',
-    ];
-    $image_info = @getimagesize($upload['tmp_name']);
-    if (!isset($allowed_types[$mime_type]) || !$image_info || $image_info['mime'] !== $mime_type) {
-        throw new RuntimeException('Choose a JPEG, PNG, or WebP image for the product.');
-    }
-
-    $directory = __DIR__ . '/../../images/products';
-    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
-        throw new RuntimeException('The product image could not be saved. Please try again.');
-    }
-
-    $filename = 'product-' . bin2hex(random_bytes(12)) . '.' . $allowed_types[$mime_type];
-    if (!move_uploaded_file($upload['tmp_name'], $directory . DIRECTORY_SEPARATOR . $filename)) {
-        throw new RuntimeException('The product image could not be saved. Please try again.');
-    }
-
-    return 'products/' . $filename;
 }
 
 function save_brand_logo_upload(array $upload): ?string
@@ -206,11 +167,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $color_name = trim(is_string($posted_color['name'] ?? null) ? $posted_color['name'] : '');
                 $selected_sizes = $posted_color['sizes'] ?? [];
                 $posted_stocks = is_array($posted_color['stocks'] ?? null) ? $posted_color['stocks'] : [];
-                $upload = $_FILES['color_images'] ?? null;
-                $upload_error = is_array($upload) && isset($upload['error'][$color_index])
-                    ? (int)$upload['error'][$color_index]
-                    : UPLOAD_ERR_NO_FILE;
-                $has_image = $upload_error !== UPLOAD_ERR_NO_FILE;
+                $upload = is_array($_FILES['color_images'] ?? null) ? $_FILES['color_images'] : [];
+                $color_uploads = product_color_uploads($upload, (int)$color_index);
+                $has_image = (bool)$color_uploads;
 
                 if ($color_name === '' && !$selected_sizes && !$has_image) {
                     continue;
@@ -220,9 +179,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errors[] = 'Enter a color name up to 80 characters and select at least one size for each color.';
                     continue;
                 }
-                if ($has_image && $upload_error !== UPLOAD_ERR_OK) {
-                    $errors[] = 'A color image could not be uploaded. Please try again.';
+                if (count($color_uploads) > 10) {
+                    $errors[] = 'Choose no more than 10 images for each color.';
                     continue;
+                }
+                $valid_uploads = [];
+                foreach ($color_uploads as $color_upload) {
+                    if (($color_upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                        $errors[] = 'A color image could not be uploaded. Please try again.';
+                        continue 2;
+                    }
+                    $valid_uploads[] = $color_upload;
                 }
 
                 $valid_sizes = [];
@@ -259,13 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'name' => $color_name,
                     'sizes' => $valid_sizes,
                     'stocks' => $size_stocks,
-                    'upload' => $has_image ? [
-                        'name' => $upload['name'][$color_index] ?? '',
-                        'type' => $upload['type'][$color_index] ?? '',
-                        'tmp_name' => $upload['tmp_name'][$color_index] ?? '',
-                        'error' => $upload_error,
-                        'size' => $upload['size'][$color_index] ?? 0,
-                    ] : null,
+                    'uploads' => $valid_uploads,
                 ];
             }
             if (!$colors_to_create && !$errors) {
@@ -275,15 +236,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$errors) {
             foreach ($colors_to_create as $index => $color) {
-                if ($color['upload'] === null) {
-                    continue;
-                }
-                try {
-                    $colors_to_create[$index]['image'] = save_product_image_upload($color['upload']);
-                    $saved_images[] = $colors_to_create[$index]['image'];
-                } catch (RuntimeException $exception) {
-                    $errors[] = $exception->getMessage();
-                    break;
+                $colors_to_create[$index]['images'] = [];
+                foreach ($color['uploads'] as $upload) {
+                    try {
+                        $image_path = save_product_image_upload($upload);
+                        if ($image_path !== null) {
+                            $colors_to_create[$index]['images'][] = $image_path;
+                            $saved_images[] = $image_path;
+                        }
+                    } catch (RuntimeException $exception) {
+                        $errors[] = $exception->getMessage();
+                        break 2;
+                    }
                 }
             }
         }
@@ -307,13 +271,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $new_product_id = mysqli_insert_id($conn);
 
                 $color_stmt = mysqli_prepare($conn, "INSERT INTO product_colors (product_id, color, image) VALUES (?, ?, ?)");
+                $image_stmt = mysqli_prepare($conn, "INSERT INTO product_color_images (product_color_id, image_path, sort_order) VALUES (?, ?, ?)");
                 $variant_stmt = mysqli_prepare($conn, "INSERT INTO product_variants (product_color_id, size, stock) VALUES (?, ?, ?)");
                 foreach ($colors_to_create as $color) {
-                    $image_path = $color['image'] ?? null;
+                    $image_path = $color['images'][0] ?? null;
                     mysqli_stmt_bind_param($color_stmt, 'iss', $new_product_id, $color['name'], $image_path);
                     mysqli_stmt_execute($color_stmt);
                     $new_color_id = mysqli_insert_id($conn);
 
+                    foreach ($color['images'] as $sort_order => $image_path) {
+                        mysqli_stmt_bind_param($image_stmt, 'isi', $new_color_id, $image_path, $sort_order);
+                        mysqli_stmt_execute($image_stmt);
+                    }
                     foreach ($color['sizes'] as $size) {
                         $stock = $color['stocks'][$size];
                         mysqli_stmt_bind_param($variant_stmt, 'isi', $new_color_id, $size, $stock);
@@ -544,12 +513,12 @@ include __DIR__ . '/../includes/header.php';
                 </div>
               </div>
               <div class="product-color-image">
-                <div class="product-image-preview" data-product-image-preview><span>Image preview</span><img alt="Selected color image preview" hidden></div>
+                <div class="product-image-preview" data-product-image-preview><span>Image preview</span><div class="product-image-preview-list" data-product-image-list></div></div>
                 <div class="product-image-picker-actions">
-                  <input class="product-image-input" data-color-image id="color-image-<?php echo $color_index; ?>" type="file" name="color_images[<?php echo $color_index; ?>]" accept="image/jpeg,image/png,image/webp">
-                  <label class="admin-button admin-button-light product-image-choose" for="color-image-<?php echo $color_index; ?>">Choose image</label>
-                  <small class="manage-secondary" data-product-image-name>No image selected</small>
-                  <small class="manage-secondary">JPEG, PNG, or WebP · 5 MB max</small>
+                  <input class="product-image-input" data-color-image id="color-image-<?php echo $color_index; ?>" type="file" name="color_images[<?php echo $color_index; ?>][]" accept="image/jpeg,image/png,image/webp" multiple>
+                  <label class="admin-button admin-button-light product-image-choose" for="color-image-<?php echo $color_index; ?>">Choose images</label>
+                  <small class="manage-secondary" data-product-image-name>No images selected</small>
+                  <small class="manage-secondary">Up to 10 JPEG, PNG, or WebP images · 5 MB each. Choose more than once to add files.</small>
                 </div>
               </div>
             </div>
@@ -574,6 +543,7 @@ include __DIR__ . '/../includes/header.php';
       var sizeGuideSizes = JSON.parse(document.getElementById('product-size-guide-data').textContent);
       var nextColorIndex = colorList.children.length;
       var previewUrls = new WeakMap();
+      var selectedImageFiles = new WeakMap();
 
       function updateAvailableSizes() {
         var selectedCategory = categorySelect.options[categorySelect.selectedIndex];
@@ -675,28 +645,53 @@ include __DIR__ . '/../includes/header.php';
           updateStockPanel(row);
         } else if (event.target.matches('[data-color-image]')) {
           var preview = row.querySelector('[data-product-image-preview]');
-          var image = preview.querySelector('img');
+          var imageList = preview.querySelector('[data-product-image-list]');
           var placeholder = preview.querySelector('span');
           var filename = row.querySelector('[data-product-image-name]');
-          var previousUrl = previewUrls.get(event.target);
-          if (previousUrl) URL.revokeObjectURL(previousUrl);
-
-          var file = event.target.files && event.target.files[0];
-          if (!file) {
+          (previewUrls.get(event.target) || []).forEach(URL.revokeObjectURL);
+          imageList.replaceChildren();
+          var previousFiles = selectedImageFiles.get(event.target) || [];
+          var files = previousFiles.slice();
+          var exceededLimit = false;
+          Array.prototype.forEach.call(event.target.files || [], function (file) {
+            var alreadySelected = files.some(function (selectedFile) {
+              return selectedFile.name === file.name
+                && selectedFile.size === file.size
+                && selectedFile.lastModified === file.lastModified;
+            });
+            if (!alreadySelected) files.push(file);
+          });
+          if (files.length > 10) {
+            files = previousFiles;
+            exceededLimit = true;
+            filename.textContent = 'Choose up to 10 images; previous selection kept';
+          }
+          var dataTransfer = new DataTransfer();
+          files.forEach(function (file) { dataTransfer.items.add(file); });
+          event.target.files = dataTransfer.files;
+          if (!files.length) {
             previewUrls.delete(event.target);
-            image.hidden = true;
-            image.removeAttribute('src');
+            selectedImageFiles.delete(event.target);
             placeholder.hidden = false;
-            filename.textContent = 'No image selected';
+            if (!exceededLimit) filename.textContent = 'No images selected';
             return;
           }
 
-          var previewUrl = URL.createObjectURL(file);
-          previewUrls.set(event.target, previewUrl);
-          image.src = previewUrl;
-          image.hidden = false;
+          var objectUrls = [];
+          files.forEach(function (file) {
+            var previewUrl = URL.createObjectURL(file);
+            objectUrls.push(previewUrl);
+            var image = document.createElement('img');
+            image.src = previewUrl;
+            image.alt = '';
+            imageList.appendChild(image);
+          });
+          previewUrls.set(event.target, objectUrls);
+          selectedImageFiles.set(event.target, files);
           placeholder.hidden = true;
-          filename.textContent = file.name;
+          if (!exceededLimit) {
+            filename.textContent = files.length + (files.length === 1 ? ' image selected' : ' images selected');
+          }
         }
       });
 
@@ -711,19 +706,20 @@ include __DIR__ . '/../includes/header.php';
         });
         var imageInput = row.querySelector('[data-color-image]');
         var imageId = 'color-image-' + nextColorIndex++;
-        imageInput.name = 'color_images[' + (nextColorIndex - 1) + ']';
+        imageInput.name = 'color_images[' + (nextColorIndex - 1) + '][]';
         imageInput.id = imageId;
         row.querySelector('.product-image-choose').htmlFor = imageId;
         row.querySelector('[data-color-name]').value = '';
         row.querySelector('[data-size-summary]').textContent = 'Choose sizes';
         row.querySelector('[data-stock-toggle]').setAttribute('aria-expanded', 'false');
         row.querySelector('[data-stock-panel]').hidden = true;
-        row.querySelector('[data-product-image-name]').textContent = 'No image selected';
-        row.querySelector('[data-product-image-preview] img').hidden = true;
-        row.querySelector('[data-product-image-preview] img').removeAttribute('src');
+        row.querySelector('[data-product-image-name]').textContent = 'No images selected';
+        row.querySelector('[data-product-image-preview] [data-product-image-list]').replaceChildren();
         row.querySelector('[data-product-image-preview] span').hidden = false;
         row.querySelector('.product-size-picker').open = false;
         imageInput.value = '';
+        selectedImageFiles.delete(imageInput);
+        previewUrls.delete(imageInput);
         colorList.appendChild(row);
         updateRemoveButtons();
         updateAvailableSizes();
@@ -751,8 +747,9 @@ include __DIR__ . '/../includes/header.php';
         if (!removeButton || removeButton.disabled) return;
         var row = removeButton.closest('[data-color-row]');
         var imageInput = row.querySelector('[data-color-image]');
-        var previewUrl = previewUrls.get(imageInput);
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        (previewUrls.get(imageInput) || []).forEach(URL.revokeObjectURL);
+        previewUrls.delete(imageInput);
+        selectedImageFiles.delete(imageInput);
         row.remove();
         updateRemoveButtons();
       });

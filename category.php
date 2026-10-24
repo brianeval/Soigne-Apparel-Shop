@@ -23,7 +23,8 @@ if (!is_string($category_slug) || !isset($categories[$category_slug])) {
 
 $category_name = $categories[$category_slug];
 $stmt = mysqli_prepare($conn,
-    "SELECT p.product_id, p.name, p.price, c.name AS category, pc.image,
+    "SELECT p.product_id, p.name, p.price, c.name AS category,
+            pc.product_color_id AS first_color_id,
             (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
      FROM products p
      JOIN categories c ON c.category_id = p.category_id

@@ -1,28 +1,19 @@
 <?php
 include ('config.php');
 require_once ('profile_image.php');
+require_once __DIR__ . '/customer_auth.php';
 
-if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'customer') {
-    $account_status_stmt = mysqli_prepare($conn, "SELECT status FROM users WHERE user_id = ? AND role = 'customer'");
-    $signed_in_user_id = (int)$_SESSION['user_id'];
-    mysqli_stmt_bind_param($account_status_stmt, 'i', $signed_in_user_id);
-    mysqli_stmt_execute($account_status_stmt);
-    $account_status = mysqli_fetch_assoc(mysqli_stmt_get_result($account_status_stmt));
-
-    if (!$account_status || $account_status['status'] !== 'active') {
-        unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
-    }
-}
+$customer_role = sync_customer_session($conn);
 
 // Count the signed-in user's cart items.
 // This query totals the quantity of all items in the current user's cart for the cart badge.
 $cart_count = 0;
-if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'customer') {
+if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip', 'banned'], true)) {
     $stmt = mysqli_prepare($conn,
         "SELECT COALESCE(SUM(c.quantity), 0) AS item_count
          FROM cart c
          JOIN users u ON u.user_id = c.user_id
-         WHERE c.user_id = ? AND u.role = 'customer' AND u.status = 'active'"
+         WHERE c.user_id = ? AND u.role IN ('customer', 'vip', 'banned') AND u.status = 'active'"
     );
     $user_id = (int)$_SESSION['user_id'];
     mysqli_stmt_bind_param($stmt, 'i', $user_id);
@@ -118,6 +109,39 @@ if (!isset($page_title)) {
     <a href="<?php echo BASE_URL; ?>category.php?category=chinos">Chinos</a>
     <a href="<?php echo BASE_URL; ?>category.php?category=jeans">Jeans</a>
     <a href="<?php echo BASE_URL; ?>category.php?category=polos">Polos</a>
+    <button type="button" class="premium-nav-trigger" data-premium-open>Soigné Premium</button>
 
   
   </nav>
+  <?php if ($customer_role === 'vip' && !empty($_SESSION['vip_expires_at'])) { ?>
+    <p class="premium-member-notice" role="status">
+      Soigné Premium is active through <?php echo htmlspecialchars(date('F j, Y', strtotime($_SESSION['vip_expires_at']))); ?>.
+      Thank you for purchasing VIP — your 10% product discount is applied automatically.
+    </p>
+  <?php } ?>
+  <dialog class="premium-dialog" id="premium-dialog" aria-labelledby="premium-dialog-title">
+    <button type="button" class="premium-dialog-close" data-premium-close aria-label="Close Soigné Premium details">&times;</button>
+    <p class="premium-eyebrow">SOIGNÉ PREMIUM</p>
+    <h2 id="premium-dialog-title">A little more Soigné</h2>
+    <p class="premium-price">₱1,000 <span>/ 1 month</span></p>
+    <p>Enjoy 10% off every product while your Soigné Premium VIP membership is active.</p>
+    <p class="premium-activation-note">Pay through GCash and submit your receipt. An administrator will review the payment and activate VIP after approval.</p>
+    <?php if ($customer_role === 'vip') { ?>
+      <p class="premium-active-note">Your VIP membership is active. Thank you for purchasing Soigné Premium.</p>
+    <?php } elseif (in_array($customer_role, ['customer', 'guest'], true)) { ?>
+      <a class="btn premium-buy-now" href="<?php echo BASE_URL; ?>users/premium_checkout.php">Buy Now</a>
+    <?php } ?>
+  </dialog>
+  <script>
+  (function () {
+    var dialog = document.getElementById('premium-dialog');
+    var openButton = document.querySelector('[data-premium-open]');
+    var closeButton = document.querySelector('[data-premium-close]');
+    if (!dialog || !openButton || !closeButton) return;
+    openButton.addEventListener('click', function () { dialog.showModal(); });
+    closeButton.addEventListener('click', function () { dialog.close(); });
+    dialog.addEventListener('click', function (event) {
+      if (event.target === dialog) dialog.close();
+    });
+  })();
+  </script>

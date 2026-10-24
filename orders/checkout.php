@@ -5,6 +5,12 @@ require_once __DIR__ . '/../includes/customer_auth.php';
 
 require_active_customer($conn, BASE_URL . 'orders/checkout.php');
 
+if (($_SESSION['role'] ?? '') === 'banned') {
+    $_SESSION['flash'] = ['type' => 'error', 'text' => 'Invalid request, account suspended'];
+    header('Location: ' . BASE_URL . 'cart/cart.php');
+    exit;
+}
+
 $user_id = (int)$_SESSION['user_id'];
 $errors = [];
 $success_order_id = $_SESSION['checkout_success'] ?? null;
@@ -107,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     foreach ($items as $item) {
                         $variant_id = (int)$item['variant_id'];
                         $quantity = (int)$item['quantity'];
-                        $price = (float)$item['price'];
+                        $price = round((float)$item['price'] * (($_SESSION['role'] ?? '') === 'vip' ? 0.90 : 1), 2);
 
                         mysqli_stmt_bind_param($item_stmt, 'iiid', $order_id, $variant_id, $quantity, $price);
                         mysqli_stmt_execute($item_stmt);
@@ -168,12 +174,17 @@ mysqli_stmt_bind_param($stmt, 'i', $user_id);
 mysqli_stmt_execute($stmt);
 $items = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 
+$vip_discount_rate = ($_SESSION['role'] ?? '') === 'vip' ? 0.10 : 0;
 $item_count = 0;
 $subtotal = 0;
-foreach ($items as $item) {
+$original_subtotal = 0;
+foreach ($items as &$item) {
+    $item['discounted_price'] = round((float)$item['price'] * (1 - $vip_discount_rate), 2);
+    $original_subtotal += (float)$item['price'] * (int)$item['quantity'];
+    $subtotal += $item['discounted_price'] * (int)$item['quantity'];
     $item_count += (int)$item['quantity'];
-    $subtotal += (float)$item['price'] * (int)$item['quantity'];
 }
+unset($item);
 
 $page_title = 'Checkout | Soigné';
 $extra_css = 'checkout.css';
@@ -223,10 +234,14 @@ include_once('../includes/header.php');
                 <p><?php echo htmlspecialchars($item['color']); ?> &middot; Size <?php echo htmlspecialchars($item['size']); ?></p>
                 <p>Qty: <?php echo (int)$item['quantity']; ?></p>
               </div>
-              <p class="checkout-product-total"><?php echo peso((float)$item['price'] * (int)$item['quantity']); ?></p>
+              <p class="checkout-product-total">
+                <?php if ($vip_discount_rate > 0) { ?><del><?php echo peso((float)$item['price'] * (int)$item['quantity']); ?></del><?php } ?>
+                <?php echo peso((float)$item['discounted_price'] * (int)$item['quantity']); ?>
+              </p>
             </article>
           <?php } ?>
         </div>
+        <?php if ($vip_discount_rate > 0) { ?><p class="checkout-subtotal"><span>VIP discount (10%)</span><strong>-<?php echo peso($original_subtotal - $subtotal); ?></strong></p><?php } ?>
         <p class="checkout-subtotal"><span>Subtotal</span><strong><?php echo peso($subtotal); ?></strong></p>
       </section>
 
@@ -250,6 +265,7 @@ include_once('../includes/header.php');
           <strong>Cash on delivery (COD)</strong>
         </div>
 
+        <?php if ($vip_discount_rate > 0) { ?><p class="checkout-discount-note">Your Soigné Premium 10% discount has been applied.</p><?php } ?>
         <p class="checkout-total"><span>Order total</span><strong><?php echo peso($subtotal); ?></strong></p>
         <button class="btn" type="submit">Place order</button>
         <a class="checkout-back" href="<?php echo BASE_URL; ?>cart/cart.php">Back to cart</a>

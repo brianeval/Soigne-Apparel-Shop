@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/product_images.php';
 
 $product_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if ($product_id === false || $product_id < 1) {
@@ -27,7 +28,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Your session expired. Refresh the page and try again.';
     } else {
         $action = $_POST['action'] ?? '';
-        if ($action === 'update_product') {
+        if ($action === 'add_images') {
+            $color_id = filter_var($_POST['product_color_id'] ?? null, FILTER_VALIDATE_INT);
+            $uploads = product_file_uploads(is_array($_FILES['images'] ?? null) ? $_FILES['images'] : []);
+            $saved_images = [];
+            if ($color_id === false || $color_id < 1) {
+                $errors[] = 'Choose a valid color.';
+            } elseif (!$uploads || count($uploads) > 10) {
+                $errors[] = 'Choose between 1 and 10 images to upload.';
+            } else {
+                $color_stmt = mysqli_prepare($conn,
+                    "SELECT image FROM product_colors WHERE product_color_id = ? AND product_id = ?"
+                );
+                mysqli_stmt_bind_param($color_stmt, 'ii', $color_id, $product_id);
+                mysqli_stmt_execute($color_stmt);
+                $color = mysqli_fetch_assoc(mysqli_stmt_get_result($color_stmt));
+                if (!$color) {
+                    $errors[] = 'Color not found for this product.';
+                } else {
+                    $transaction_started = false;
+                    try {
+                        foreach ($uploads as $upload) {
+                            if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                                throw new RuntimeException('One or more images could not be uploaded. Please try again.');
+                            }
+                            $image_path = save_product_image_upload($upload);
+                            if ($image_path === null) {
+                                throw new RuntimeException('Choose at least one product image.');
+                            }
+                            $saved_images[] = $image_path;
+                        }
+
+                        mysqli_begin_transaction($conn);
+                        $transaction_started = true;
+                        $count_stmt = mysqli_prepare($conn,
+                            "SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order
+                             FROM product_color_images WHERE product_color_id = ?"
+                        );
+                        mysqli_stmt_bind_param($count_stmt, 'i', $color_id);
+                        mysqli_stmt_execute($count_stmt);
+                        $next_order = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($count_stmt))['next_order'];
+                        $image_stmt = mysqli_prepare($conn,
+                            "INSERT INTO product_color_images (product_color_id, image_path, sort_order)
+                             VALUES (?, ?, ?)"
+                        );
+                        foreach ($saved_images as $image_path) {
+                            mysqli_stmt_bind_param($image_stmt, 'isi', $color_id, $image_path, $next_order);
+                            mysqli_stmt_execute($image_stmt);
+                            $next_order++;
+                        }
+                        $legacy_image = $saved_images[0];
+                        $legacy_stmt = mysqli_prepare($conn,
+                            "UPDATE product_colors SET image = ?
+                             WHERE product_color_id = ? AND product_id = ? AND (image IS NULL OR image = '')"
+                        );
+                        mysqli_stmt_bind_param($legacy_stmt, 'sii', $legacy_image, $color_id, $product_id);
+                        mysqli_stmt_execute($legacy_stmt);
+                        mysqli_commit($conn);
+                        $transaction_started = false;
+                        admin_set_flash('success', count($saved_images) . ' image' . (count($saved_images) === 1 ? '' : 's') . ' added.');
+                        header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id);
+                        exit;
+                    } catch (RuntimeException $exception) {
+                        if ($transaction_started) {
+                            mysqli_rollback($conn);
+                        }
+                        foreach ($saved_images as $image_path) {
+                            $file_path = __DIR__ . '/../../images/' . $image_path;
+                            if (is_file($file_path) && !unlink($file_path)) {
+                                $errors[] = 'An uploaded image could not be removed after the upload failed.';
+                            }
+                        }
+                        $errors[] = $exception->getMessage();
+                    } catch (mysqli_sql_exception $exception) {
+                        if ($transaction_started) {
+                            mysqli_rollback($conn);
+                        }
+                        foreach ($saved_images as $image_path) {
+                            $file_path = __DIR__ . '/../../images/' . $image_path;
+                            if (is_file($file_path) && !unlink($file_path)) {
+                                $errors[] = 'An uploaded image could not be removed after the save failed.';
+                            }
+                        }
+                        $errors[] = 'Could not add product images. Please try again.';
+                    }
+                }
+            }
+        } elseif ($action === 'update_product') {
             $supplier_id = filter_var($_POST['supplier_id'] ?? null, FILTER_VALIDATE_INT);
             $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
             $category_id_input = $_POST['category_id'] ?? '';
@@ -251,6 +338,7 @@ foreach ($color_rows as $row) {
         $colors[$color_id]['variants'][] = ['variant_id' => (int)$row['variant_id'], 'size' => $row['size'], 'stock' => (int)$row['stock']];
     }
 }
+$color_images = product_color_image_paths($conn, array_keys($colors));
 $flash = admin_take_flash();
 $admin_page_title = 'Edit Product';
 $admin_active_page = 'products';
@@ -280,6 +368,9 @@ include __DIR__ . '/../includes/header.php';
 
 <section class="manage-panel manage-list-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT OPTIONS</p><h2>Colors, sizes &amp; stock</h2></div></div>
+  <div class="manage-color-gallery-action">
+    <button class="admin-button admin-button-light" type="button" data-open-dialog="product-images-dialog">View All Images</button>
+  </div>
   <form method="post" class="manage-form manage-add-color">
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="add_color">
@@ -301,6 +392,13 @@ include __DIR__ . '/../includes/header.php';
         <label>Color<input name="color" maxlength="80" required value="<?php echo admin_escape($color['color']); ?>"></label>
         <label>Image filename<input name="image" maxlength="255" value="<?php echo admin_escape($color['image']); ?>"></label>
         <div class="manage-row-actions"><button class="manage-small-button" type="submit">Save color</button></div>
+      </form>
+      <form method="post" enctype="multipart/form-data" class="manage-form manage-color-images">
+        <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+        <input type="hidden" name="action" value="add_images">
+        <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
+        <label>Add images for <?php echo admin_escape($color['color']); ?><input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple data-color-gallery-upload required><small class="manage-secondary" data-upload-count>Choose up to 10 JPEG, PNG, or WebP files · 5 MB each. Select again to add more.</small></label>
+        <button class="manage-small-button" type="submit">Upload images</button>
       </form>
       <div class="manage-variant-heading"><strong>Sizes and stock (<?php echo count($color['variants']); ?>)</strong>
         <form method="post" class="manage-inline-form">
@@ -347,4 +445,53 @@ include __DIR__ . '/../includes/header.php';
     </div>
   <?php } ?>
 </section>
+<dialog class="catalog-dialog product-images-dialog" id="product-images-dialog" aria-labelledby="product-images-title">
+  <div class="catalog-dialog-heading">
+    <div><p class="admin-eyebrow">PRODUCT GALLERY</p><h2 id="product-images-title">All images — <?php echo admin_escape($product['name']); ?></h2></div>
+    <button class="catalog-dialog-close" type="button" aria-label="Close image gallery" data-close-dialog>Close</button>
+  </div>
+  <?php $has_product_images = false; foreach ($colors as $color) { $images_for_color = $color_images[(int)$color['product_color_id']] ?? []; if ($images_for_color) { $has_product_images = true; ?>
+    <section class="product-admin-image-group">
+      <h3><?php echo admin_escape($color['color']); ?></h3>
+      <div class="product-admin-image-grid">
+        <?php foreach ($images_for_color as $image_path) { ?>
+          <figure><img src="<?php echo BASE_URL; ?>images/<?php echo admin_escape($image_path); ?>" alt="<?php echo admin_escape($product['name'] . ' - ' . $color['color']); ?>" loading="lazy"></figure>
+        <?php } ?>
+      </div>
+    </section>
+  <?php } } ?>
+  <?php if (!$has_product_images) { ?><p class="manage-empty">No images have been added to this product yet.</p><?php } ?>
+</dialog>
+<script>
+(function () {
+  document.querySelectorAll('[data-color-gallery-upload]').forEach(function (input) {
+    var selectedFiles = [];
+    var countLabel = input.closest('label').querySelector('[data-upload-count]');
+    input.addEventListener('change', function () {
+      var files = selectedFiles.slice();
+      Array.prototype.forEach.call(input.files || [], function (file) {
+        var duplicate = files.some(function (selectedFile) {
+          return selectedFile.name === file.name
+            && selectedFile.size === file.size
+            && selectedFile.lastModified === file.lastModified;
+        });
+        if (!duplicate) files.push(file);
+      });
+
+      if (files.length > 10) {
+        files = selectedFiles;
+        countLabel.textContent = 'Maximum 10 images. Previous selection kept.';
+      } else {
+        countLabel.textContent = files.length + (files.length === 1 ? ' image selected' : ' images selected')
+          + ' · Select again to add more';
+      }
+
+      var dataTransfer = new DataTransfer();
+      files.forEach(function (file) { dataTransfer.items.add(file); });
+      input.files = dataTransfer.files;
+      selectedFiles = files;
+    });
+  });
+})();
+</script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

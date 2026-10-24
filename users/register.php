@@ -1,10 +1,11 @@
 <?php
 session_start();
 include_once('../includes/config.php');
+require_once __DIR__ . '/../includes/profile_image.php';
 
 // Only allow redirects to paths on this site (never full URLs)
 function safe_redirect($path) {
-    return preg_match('#^/(?!/)#', $path) ? $path : 'index.php';
+    return preg_match('#^/(?!/)#', $path) ? $path : BASE_URL . 'index.php';
 }
 
 $redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
@@ -16,7 +17,7 @@ if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
 }
 
 // Already signed in as a customer? No need to register.
-if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'customer') {
+if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
     header('Location: ' . $redirect);
     exit;
 }
@@ -72,6 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // --- Create the account ---
     if (!$errors) {
         $hash = password_hash($password, PASSWORD_DEFAULT);
+        $user_id = 0;
+        $saved_profile_image = null;
 
         try {
             mysqli_begin_transaction($conn);
@@ -87,6 +90,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_stmt_bind_param($stmt, 'isss', $user_id, $name, $phone, $address);
             mysqli_stmt_execute($stmt);
 
+            $profile_upload = $_FILES['profile_photo'] ?? null;
+            if (is_array($profile_upload) && ($profile_upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                $saved_profile_image = save_profile_image_upload($profile_upload, $user_id);
+            }
+
             mysqli_commit($conn);
 
             // Sign the new user in and send them back where they came from
@@ -97,13 +105,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: ' . $redirect);
             exit;
 
+        } catch (RuntimeException $e) {
+            mysqli_rollback($conn);
+            if ($user_id > 0 && $saved_profile_image !== null) {
+                try {
+                    remove_old_profile_images($user_id);
+                } catch (RuntimeException $cleanup_error) {
+                    $errors[] = $cleanup_error->getMessage();
+                }
+            }
+            $errors[] = $e->getMessage();
         } catch (mysqli_sql_exception $e) {
             mysqli_rollback($conn);
-            if ($e->getCode() == 1062) {
-                $errors[] = 'That username or email is already registered.';
-            } else {
-                $errors[] = 'Could not create your account. Please try again.';
+            if ($user_id > 0 && $saved_profile_image !== null) {
+                try {
+                    remove_old_profile_images($user_id);
+                } catch (RuntimeException $cleanup_error) {
+                    $errors[] = $cleanup_error->getMessage();
+                }
             }
+            $errors[] = $e->getCode() === 1062
+                ? 'That username or email is already registered.'
+                : 'Could not create your account. Please try again.';
         }
     }
 }
@@ -128,7 +151,7 @@ include_once('../includes/header.php');
       </div>
     <?php } ?>
 
-    <form method="post" action="register.php">
+    <form method="post" action="register.php" enctype="multipart/form-data">
       <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect); ?>">
 
       <label for="customer_name">Full name</label>
@@ -145,6 +168,10 @@ include_once('../includes/header.php');
 
       <label for="address">Address</label>
       <textarea id="address" name="address"></textarea>
+
+      <label for="profile_photo">Profile image (optional)</label>
+      <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help">
+      <small id="profile-photo-help" class="register-photo-help">JPEG, PNG, or WebP - 5 MB max</small>
 
       <label for="password">Password (at least 8 characters)</label>
       <input type="password" id="password" name="password" required minlength="8">

@@ -1,6 +1,7 @@
 <?php
 session_start();
 include_once('includes/config.php');
+require_once __DIR__ . '/includes/product_images.php';
 
 
 // STEP 1: Get the product id from the URL (product.php?id=4)
@@ -88,6 +89,10 @@ $stmt = mysqli_prepare($conn, $colorQuery);
 mysqli_stmt_bind_param($stmt, 'i', $id);
 mysqli_stmt_execute($stmt);
 $colors = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+$color_image_map = product_color_image_paths(
+    $conn,
+    array_map('intval', array_column($colors, 'product_color_id'))
+);
 
 // STEP 4: Decide which color to show (default is the first one)
 $selected = null;
@@ -109,6 +114,9 @@ if (!$selected && $editing_cart_item) {
     }
 }
 $selected = $selected ?? ($colors[0] ?? null);
+$selected_images = $selected
+    ? ($color_image_map[(int)$selected['product_color_id']] ?? [])
+    : [];
 
 // STEP 5: Get the sizes and stock of the selected color.
 // This query asks: "show every size variant for this color, including how many are in stock".
@@ -143,13 +151,41 @@ include_once('includes/header.php');
 
 <div class="product-page">
 
-  <div class="product-photo">
-    <img src="images/<?php echo htmlspecialchars($selected['image'] ?? ''); ?>" alt="">
+  <div class="product-gallery<?php echo count($selected_images) > 1 ? ' has-thumbnails' : ''; ?>">
+    <?php if (count($selected_images) > 1) { ?>
+      <div class="product-thumbnails" role="group" aria-label="<?php echo htmlspecialchars($selected['color'] ?? 'Product'); ?> product images">
+        <?php foreach ($selected_images as $image_index => $image_path) { ?>
+          <button class="product-thumbnail<?php echo $image_index === 0 ? ' is-active' : ''; ?>"
+                  type="button"
+                  data-product-thumbnail
+                  data-image-src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($image_path, ENT_QUOTES, 'UTF-8'); ?>"
+                  data-image-alt="<?php echo htmlspecialchars($product['name'] . ' - ' . ($selected['color'] ?? '') . ' image ' . ($image_index + 1), ENT_QUOTES, 'UTF-8'); ?>"
+                  aria-label="Show image <?php echo $image_index + 1; ?>"
+                  aria-pressed="<?php echo $image_index === 0 ? 'true' : 'false'; ?>">
+            <img src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($image_path, ENT_QUOTES, 'UTF-8'); ?>"
+                 alt="" loading="lazy">
+          </button>
+        <?php } ?>
+      </div>
+    <?php } ?>
+    <div class="product-photo">
+      <?php if ($selected_images) { ?>
+        <?php $main_image = $selected_images[0]; ?>
+        <button class="product-main-image" type="button"
+                data-image-viewer
+                data-image-src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($main_image, ENT_QUOTES, 'UTF-8'); ?>"
+                data-image-alt="<?php echo htmlspecialchars($product['name'] . ' - ' . ($selected['color'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                aria-label="Enlarge product image">
+          <img src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($main_image, ENT_QUOTES, 'UTF-8'); ?>"
+               alt="<?php echo htmlspecialchars($product['name'] . ' - ' . ($selected['color'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+        </button>
+      <?php } ?>
+    </div>
   </div>
 
   <div class="product-info">
     <h1><?php echo ($product['name']); ?></h1>
-    <p class="price"><?php echo peso($product['price']); ?></p>
+    <p class="price"><?php echo store_product_price_markup((float)$product['price']); ?></p>
     <p class="desc"><?php echo ($product['description']); ?></p>
     <?php if ($product_flash) { ?>
       <p class="product-flash <?php echo $product_flash['type'] === 'error' ? 'is-error' : 'is-success'; ?>" role="status">
@@ -388,6 +424,30 @@ include_once('includes/header.php');
   sizeOptions.forEach(function (option) {
     option.addEventListener('change', function () {
       quantityInput.max = option.getAttribute('data-stock');
+    });
+  });
+})();
+</script>
+<script>
+(function () {
+  var mainButton = document.querySelector('.product-main-image');
+  var mainImage = mainButton ? mainButton.querySelector('img') : null;
+  var thumbnails = document.querySelectorAll('[data-product-thumbnail]');
+  if (!mainButton || !mainImage) return;
+
+  thumbnails.forEach(function (thumbnail) {
+    thumbnail.addEventListener('click', function () {
+      var source = thumbnail.dataset.imageSrc;
+      var alt = thumbnail.dataset.imageAlt;
+      mainImage.src = source;
+      mainImage.alt = alt;
+      mainButton.dataset.imageSrc = source;
+      mainButton.dataset.imageAlt = alt;
+      thumbnails.forEach(function (item) {
+        var isActive = item === thumbnail;
+        item.classList.toggle('is-active', isActive);
+        item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
     });
   });
 })();

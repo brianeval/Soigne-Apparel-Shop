@@ -91,32 +91,40 @@ $review_text = is_string($submitted_review_text) ? trim($submitted_review_text) 
 $review_length = preg_match_all('/./us', $review_text, $review_characters);
 $normalized_review = strtolower(strtr($review_text, ['0' => 'o', '1' => 'i', '3' => 'e', '4' => 'a', '5' => 's', '7' => 't', '@' => 'a', '$' => 's']));
 $vulgar_pattern = '/(?:putang\s*ina|tangina|tanga|gago|gaga|puta|fuck(?:er|ing|ed|s)?|shit(?:ty|ting|s)?|bitch(?:es|y)?|ass(?:hole)?s?|arse(?:hole)?s?|bastard(?:s)?|cunt(?:s)?|dick(?:s)?|cock(?:s|head)?|piss(?:ed|ing)?|damn(?:ed|ing)?|dammit|crap(?:py)?|twat(?:s)?|wanker(?:s)?|whore(?:s)?|slut(?:s)?|prick(?:s)?|douche(?:bag)?s?|bullshit|motherfucker(?:s)?)/i';
+$tagalog_vulgar_pattern = '/(?<![a-z])(?:ulol|bobo|kupal|tarantado|bwisit|bwesit|leche|lintik|punyeta|punyemas|pakshet|pakshit|pakyu|taena|teena|putragis|ogag|hinayupak)(?![a-z])/i';
 $vulgar_matches = [];
 $contains_vulgar_language = $review_length === false
     ? false
     : preg_match_all($vulgar_pattern, $normalized_review, $vulgar_matches, PREG_OFFSET_CAPTURE);
+$tagalog_vulgar_matches = [];
+$contains_tagalog_vulgar_language = $review_length === false
+    ? false
+    : preg_match_all($tagalog_vulgar_pattern, $normalized_review, $tagalog_vulgar_matches, PREG_OFFSET_CAPTURE);
 
 if ($rating === false || $rating < 1 || $rating > 5 || $review_length === false || $review_length < 3 || $review_length > 1000) {
     $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Choose a rating and write a review between 3 and 1,000 characters.'];
     header('Location: ' . $redirect_url);
     exit;
 }
-if ($contains_vulgar_language === false) {
+if ($contains_vulgar_language === false || $contains_tagalog_vulgar_language === false) {
     error_log('Review vulgar-language pattern failed to compile.');
     $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'The review could not be checked. Please try again later.'];
     header('Location: ' . $redirect_url);
     exit;
 }
-if ($contains_vulgar_language > 0) {
-    foreach (array_reverse($vulgar_matches[0]) as $vulgar_match) {
+if ($contains_vulgar_language + $contains_tagalog_vulgar_language > 0) {
+    $all_vulgar_matches = array_merge($vulgar_matches[0], $tagalog_vulgar_matches[0]);
+    usort($all_vulgar_matches, function ($first, $second) {
+        return $first[1] <=> $second[1];
+    });
+    foreach (array_reverse($all_vulgar_matches) as $vulgar_match) {
         $matched_length = strlen($vulgar_match[0]);
-        $masked_length = $matched_length - 1;
-        if ($masked_length > 0) {
+        if ($matched_length > 0) {
             $review_text = substr_replace(
                 $review_text,
-                str_repeat('*', $masked_length),
-                $vulgar_match[1] + 1,
-                $masked_length
+                str_repeat('*', $matched_length),
+                $vulgar_match[1],
+                $matched_length
             );
         }
     }

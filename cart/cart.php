@@ -4,12 +4,18 @@ include_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/customer_auth.php';
 require_active_customer($conn, BASE_URL . 'cart/cart.php');
 $user_id = (int)$_SESSION['user_id'];
+$is_suspended = ($_SESSION['role'] ?? '') === 'banned';
 
 // --- Update / remove (then redirect so a refresh doesn't repeat it) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'checkout_selected') {
+        if ($is_suspended) {
+            $_SESSION['flash'] = ['type' => 'error', 'text' => 'Invalid request, account suspended'];
+            header('Location: ' . BASE_URL . 'cart/cart.php');
+            exit;
+        }
         $selected_ids = $_POST['selected_cart_ids'] ?? [];
         $valid_ids = [];
         if (is_array($selected_ids)) {
@@ -84,14 +90,19 @@ mysqli_stmt_bind_param($stmt, 'i', $user_id);
 mysqli_stmt_execute($stmt);
 $items = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 
+$vip_discount_rate = ($_SESSION['role'] ?? '') === 'vip' ? 0.10 : 0;
 $subtotal   = 0;
+$original_subtotal = 0;
 $item_count = 0;
 $has_issue  = false;
-foreach ($items as $it) {
-    $subtotal   += $it['price'] * $it['quantity'];
+foreach ($items as &$it) {
+    $it['discounted_price'] = round((float)$it['price'] * (1 - $vip_discount_rate), 2);
+    $original_subtotal += (float)$it['price'] * (int)$it['quantity'];
+    $subtotal += $it['discounted_price'] * (int)$it['quantity'];
     $item_count += $it['quantity'];
     if ($it['stock'] < $it['quantity']) { $has_issue = true; }
 }
+unset($it);
 
 $page_title = "Your cart | Soigné";
 $extra_css  = "cart.css";
@@ -152,7 +163,10 @@ include_once ('../includes/header.php');
               <p class="cart-variant">
                 Color: <?php echo htmlspecialchars($it['color']); ?> &middot; Size: <?php echo htmlspecialchars($it['size']); ?> &middot; Qty: <?php echo (int)$it['quantity']; ?>
               </p>
-              <p class="cart-unit"><?php echo peso($it['price']); ?></p>
+              <p class="cart-unit">
+                <?php if ($vip_discount_rate > 0) { ?><del><?php echo peso($it['price']); ?></del> <?php } ?>
+                <?php echo peso($it['discounted_price']); ?> each
+              </p>
 
               <?php if ($it['stock'] < 1) { ?>
                 <p class="cart-warn">This size is sold out. Please remove it.</p>
@@ -165,7 +179,7 @@ include_once ('../includes/header.php');
               </div>
             </div>
 
-            <p class="cart-line"><?php echo peso($it['price'] * $it['quantity']); ?></p>
+            <p class="cart-line"><?php echo peso($it['discounted_price'] * $it['quantity']); ?></p>
 
             <form method="post" action="<?php echo BASE_URL; ?>cart/cart.php" class="cart-remove">
               <input type="hidden" name="cart_id" value="<?php echo (int)$it['cart_id']; ?>">
@@ -179,13 +193,20 @@ include_once ('../includes/header.php');
       <aside class="cart-summary">
         <h2>Order summary</h2>
         <p class="sum-row"><span>Items</span><span><?php echo (int)$item_count; ?></span></p>
+        <?php if ($vip_discount_rate > 0) { ?>
+          <p class="sum-row"><span>VIP discount (10%)</span><span>-<?php echo peso($original_subtotal - $subtotal); ?></span></p>
+        <?php } ?>
         <p class="sum-row sum-total"><span>Subtotal</span><span><?php echo peso($subtotal); ?></span></p>
+        <?php if ($vip_discount_rate > 0) { ?><p class="sum-note">Soigné Premium discount applied.</p><?php } ?>
         <p class="sum-note">Shipping is calculated at checkout.</p>
 
         <?php if ($has_issue) { ?>
           <p class="cart-warn">Some items in your cart have stock issues. Select only available items to check out.</p>
         <?php } ?>
-        <button class="btn is-disabled" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions" id="cart-checkout-selected" disabled>Checkout</button>
+        <?php if ($is_suspended) { ?>
+          <p class="cart-warn" role="alert">Invalid request, account suspended</p>
+        <?php } ?>
+        <button class="btn is-disabled" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions" id="cart-checkout-selected" disabled <?php echo $is_suspended ? 'data-account-suspended="true"' : ''; ?>><?php echo $is_suspended ? 'Checkout unavailable' : 'Checkout'; ?></button>
         <a class="sum-continue" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
       </aside>
     </div>
@@ -211,8 +232,9 @@ include_once ('../includes/header.php');
     selectAll.checked = selectedCount === itemCheckboxes.length;
     selectAll.indeterminate = selectedCount > 0 && selectedCount < itemCheckboxes.length;
     removeSelected.disabled = selectedCount === 0;
-    checkoutSelected.disabled = selectedCount === 0;
-    checkoutSelected.classList.toggle('is-disabled', selectedCount === 0);
+    var isSuspended = checkoutSelected.dataset.accountSuspended === 'true';
+    checkoutSelected.disabled = selectedCount === 0 || isSuspended;
+    checkoutSelected.classList.toggle('is-disabled', selectedCount === 0 || isSuspended);
   }
 
   selectAll.addEventListener('change', function () {

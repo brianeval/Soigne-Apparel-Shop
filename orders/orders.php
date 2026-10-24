@@ -573,12 +573,18 @@ include_once __DIR__ . '/../includes/header.php';
   var submitButton = document.getElementById('rate-review-submit');
   var deleteButton = document.getElementById('rate-review-delete');
   var vulgarPattern = /(?:putang\s*ina|tangina|tanga|gago|gaga|puta|fuck(?:er|ing|ed|s)?|shit(?:ty|ting|s)?|bitch(?:es|y)?|ass(?:hole)?s?|arse(?:hole)?s?|bastard(?:s)?|cunt(?:s)?|dick(?:s)?|cock(?:s|head)?|piss(?:ed|ing)?|damn(?:ed|ing)?|dammit|crap(?:py)?|twat(?:s)?|wanker(?:s)?|whore(?:s)?|slut(?:s)?|prick(?:s)?|douche(?:bag)?s?|bullshit|motherfucker(?:s)?)/gi;
+  var tagalogVulgarPattern = /\b(?:ulol|bobo|kupal|tarantado|bwisit|bwesit|leche|lintik|punyeta|punyemas|pakshet|pakshit|pakyu|taena|teena|putragis|ogag|hinayupak)\b/gi;
   var confirmedVulgarReview = null;
 
   function containsVulgarLanguage(text) {
     vulgarPattern.lastIndex = 0;
-    var containsVulgar = vulgarPattern.test(text);
+    tagalogVulgarPattern.lastIndex = 0;
+    var normalizedText = text.toLowerCase().replace(/[013457@$]/g, function (character) {
+      return { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's' }[character];
+    });
+    var containsVulgar = vulgarPattern.test(normalizedText) || tagalogVulgarPattern.test(normalizedText);
     vulgarPattern.lastIndex = 0;
+    tagalogVulgarPattern.lastIndex = 0;
     return containsVulgar;
   }
 

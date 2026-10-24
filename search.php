@@ -10,7 +10,8 @@ if ($search_term !== '') {
     $like = '%' . $search_term . '%';
 
     // This query finds matching products by name or category.
-    $product_sql = "SELECT p.product_id, p.name, p.price, c.name AS category, pc.image,
+    $product_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
+                         pc.product_color_id AS first_color_id,
                          (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
                     FROM products p
                     LEFT JOIN categories c ON c.category_id = p.category_id

@@ -15,7 +15,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP VIEW  IF EXISTS all_costs, restock_totals, order_totals;
 DROP TABLE IF EXISTS product_reviews, restock_items, restocks, expenses,
                      order_items, orders, cart,
-                     product_variants, product_colors, products,
+                     product_variants, product_color_images, product_colors, products,
                      categories, suppliers, customers, users;
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -27,8 +27,9 @@ CREATE TABLE users (
   username   VARCHAR(50)  NOT NULL UNIQUE,
   email      VARCHAR(120) NOT NULL UNIQUE,
   password   VARCHAR(255) NOT NULL,              -- password_hash() output
-  role       ENUM('customer','admin') NOT NULL DEFAULT 'customer',
+  role       ENUM('customer','admin','vip','banned') NOT NULL DEFAULT 'customer',
   status     ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  vip_expires_at DATETIME NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -39,6 +40,22 @@ CREATE TABLE customers (
   phone         VARCHAR(30),
   address       VARCHAR(255),
   FOREIGN KEY (user_id) REFERENCES users(user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE premium_payments (
+  payment_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  amount DECIMAL(10,2) NOT NULL DEFAULT 1000.00,
+  receipt_filename VARCHAR(64) NOT NULL,
+  receipt_mime VARCHAR(30) NOT NULL,
+  status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at DATETIME NULL,
+  reviewed_by INT NULL,
+  INDEX idx_premium_payments_user_status (user_id, status),
+  INDEX idx_premium_payments_status_submitted (status, submitted_at),
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (reviewed_by) REFERENCES users(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -87,6 +104,19 @@ CREATE TABLE product_colors (
   FOREIGN KEY (product_id) REFERENCES products(product_id),
   UNIQUE KEY uniq_product_color (product_id, color)
 ) ENGINE=InnoDB;
+
+CREATE TABLE product_color_images (
+  image_id INT AUTO_INCREMENT PRIMARY KEY,
+  product_color_id INT NOT NULL,
+  image_path VARCHAR(255) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_product_color_image (product_color_id, image_path),
+  INDEX idx_product_color_images_order (product_color_id, sort_order, image_id),
+  CONSTRAINT fk_product_color_images_color
+    FOREIGN KEY (product_color_id) REFERENCES product_colors(product_color_id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE product_variants (
   variant_id       INT AUTO_INCREMENT PRIMARY KEY,
@@ -239,7 +269,7 @@ INSERT INTO products (supplier_id, name, category_id, department, price, descrip
 (@supplier_hm, 'Felted Button-Detail Jacket', (SELECT category_id FROM categories WHERE name = 'Outerwear'), 'women', 2880.00, 'Short jacket in soft, felted fabric. Band collar and an open front with decorative trim and spherical buttons.');
 
 
--- One image per color (put matching files in your images/ folder)
+-- Add each color's primary image (put matching files in your images/ folder).
 INSERT INTO product_colors (product_id, color, image)
 SELECT p.product_id, colors.color, colors.image
 FROM products p
@@ -249,6 +279,11 @@ JOIN (
 ) AS colors ON colors.product_name = p.name
 WHERE p.name = 'Felted Button-Detail Jacket'
  AND s.name = 'H&M';
+
+INSERT IGNORE INTO product_color_images (product_color_id, image_path)
+SELECT product_color_id, image
+FROM product_colors
+WHERE image IS NOT NULL AND image <> '';
 
 -- Variants: sizes S, M, L for every color, starting with 0 stock
 -- (stock is added by the sample restocks below)
