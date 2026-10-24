@@ -59,6 +59,9 @@ $admin_name = $_SESSION['username'] ?? 'Administrator';
         <a href="<?php echo BASE_URL; ?>admin/manage-orders/">
           <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"></path><path d="M4 6h.01M4 12h.01M4 18h.01"></path></svg><span class="nav-label-text">Manage Orders</span>
         </a>
+        <a href="<?php echo BASE_URL; ?>admin/manage-reviews/">
+          <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14.7 9l6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"></path></svg><span class="nav-label-text">Manage Reviews</span>
+        </a>
         <a href="<?php echo BASE_URL; ?>admin/manage-customers/">
           <svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 20v-1.5a5.5 5.5 0 0 1 11 0V20M16 5.5a3 3 0 0 1 0 5.8M17 14a4.5 4.5 0 0 1 3.5 4.4V20"></path></svg><span class="nav-label-text">Manage Customers</span>
         </a>

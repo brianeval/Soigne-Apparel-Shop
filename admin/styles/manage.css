@@ -108,6 +108,12 @@
 .manage-small-button:active { transform: translateY(1px); box-shadow: 0 1px 2px rgba(28,28,28,.1), inset 0 1px 2px rgba(0,0,0,.08); }
 .manage-small-button.is-danger { border-color: #ecd6d3; color: #a14b42; }
 .manage-small-button.is-danger:hover { border-color: #ecd6d3; background: #fff5f3; color: #a14b42; }
+.manage-small-button.is-active { border-color: var(--admin-accent); background: var(--admin-accent); color: #fff; }
+.review-admin-filters { display: flex; flex-wrap: wrap; gap: 7px; }
+.review-admin-status { display: inline-block; padding: 5px 9px; border-radius: 6px; font-size: 12px; }
+.review-admin-status.is-pending { background: #fff3db; color: #8a641b; }
+.review-admin-status.is-published { background: #e9f3eb; color: #547858; }
+.manage-panel .admin-table td .manage-secondary { white-space: normal; }
 .manage-filter { display: flex; align-items: center; gap: 8px; }
 .manage-filter input { width: min(270px, 45vw); }
 .manage-color-block { margin: 18px 20px; padding: 20px; border: 1px solid var(--admin-line); border-radius: 8px; background: #faf9f7; }

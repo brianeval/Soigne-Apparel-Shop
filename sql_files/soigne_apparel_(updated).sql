@@ -13,7 +13,7 @@ USE soigne_apparel;
 -- ---------------------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 0;
 DROP VIEW  IF EXISTS all_costs, restock_totals, order_totals;
-DROP TABLE IF EXISTS restock_items, restocks, expenses,
+DROP TABLE IF EXISTS product_reviews, restock_items, restocks, expenses,
                      order_items, orders, cart,
                      product_variants, product_colors, products,
                      categories, suppliers, customers, users;
@@ -130,6 +130,27 @@ CREATE TABLE order_items (
   FOREIGN KEY (variant_id) REFERENCES product_variants(variant_id),
   UNIQUE KEY uniq_order_item (order_id, variant_id)
 ) ENGINE=InnoDB;
+
+CREATE TABLE product_reviews (
+  review_id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  user_id INT NOT NULL,
+  rating TINYINT UNSIGNED NOT NULL,
+  review_text TEXT NOT NULL,
+  status ENUM('pending','published','deleted') NOT NULL DEFAULT 'published',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  published_at DATETIME NULL,
+  UNIQUE KEY uniq_product_review_user (product_id, user_id),
+  INDEX idx_product_reviews_display (product_id, status, created_at),
+  INDEX idx_product_reviews_moderation (status, created_at),
+  CONSTRAINT fk_product_reviews_product
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_product_reviews_user
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
 -- 6. Restocks (one batch = one delivery from one brand)

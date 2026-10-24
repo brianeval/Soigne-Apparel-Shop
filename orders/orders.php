@@ -209,15 +209,17 @@ foreach ($orders as &$order) {
     $item_stmt = mysqli_prepare($conn,
         "SELECT oi.order_item_id, oi.variant_id, oi.quantity, oi.price,
                 p.product_id, p.name AS product_name,
-                pc.image, v.size, pc.color
+                pc.image, v.size, pc.color,
+                r.review_id, r.rating AS review_rating, r.review_text, r.status AS review_status
          FROM order_items oi
          JOIN product_variants v ON v.variant_id = oi.variant_id
          JOIN product_colors pc ON pc.product_color_id = v.product_color_id
          JOIN products p ON p.product_id = pc.product_id
+         LEFT JOIN product_reviews r ON r.product_id = p.product_id AND r.user_id = ?
          WHERE oi.order_id = ?
          ORDER BY oi.order_item_id ASC"
     );
-    mysqli_stmt_bind_param($item_stmt, 'i', $order_id);
+    mysqli_stmt_bind_param($item_stmt, 'ii', $user_id, $order_id);
     mysqli_stmt_execute($item_stmt);
     $order['items'] = mysqli_fetch_all(mysqli_stmt_get_result($item_stmt), MYSQLI_ASSOC);
 
@@ -251,36 +253,63 @@ foreach ($orders as &$order) {
 }
 unset($order);
 
+$review_products = [];
+foreach ($orders as $order) {
+    if (!in_array(strtolower((string)$order['status']), ['paid', 'shipped', 'delivered'], true)) {
+        continue;
+    }
+
+    foreach ($order['items'] as $item) {
+        $product_id = (int)$item['product_id'];
+        if (!isset($review_products[$product_id])) {
+            $review_products[$product_id] = [
+                'order_id' => (int)$order['order_id'],
+                'order_item_id' => (int)$item['order_item_id'],
+                'product_id' => $product_id,
+                'product_name' => $item['product_name'],
+                'image' => $item['image'],
+                'quantity' => (int)$item['quantity'],
+                'review_id' => (int)($item['review_id'] ?? 0),
+                'review_rating' => (int)($item['review_rating'] ?? 0),
+                'review_text' => (string)($item['review_text'] ?? ''),
+                'review_status' => $item['review_status'] ?? '',
+            ];
+        }
+    }
+}
+
 $page_title = 'My Orders | Soigné';
 $extra_css = 'orders.css';
 include_once __DIR__ . '/../includes/header.php';
 ?>
 
 <main class="orders-page">
-  <div class="orders-header">
-    <h1>My Orders</h1>
-  </div>
-
   <?php if ($flash) { ?>
     <p class="orders-message is-<?php echo $flash['type'] === 'error' ? 'error' : 'success'; ?>" role="status">
       <?php echo htmlspecialchars($flash['text']); ?>
     </p>
   <?php } ?>
 
-  <?php if (!$orders) { ?>
-    <div class="orders-empty">
-      <p>You have not placed any orders yet.</p>
-      <a class="btn" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
-    </div>
-  <?php } else { ?>
-    <div class="orders-list">
-      <?php foreach ($orders as $order) { ?>
-        <?php
-          $status = strtolower((string)($order['status'] ?? 'pending'));
-          $status_label = ucfirst($status);
-          $created = date('M j, Y', strtotime($order['created_at']));
-        ?>
-        <article class="order-card">
+  <div class="orders-layout">
+    <section class="orders-main" aria-labelledby="orders-title">
+      <div class="orders-header">
+        <h1 id="orders-title">My Orders</h1>
+      </div>
+
+      <?php if (!$orders) { ?>
+        <div class="orders-empty">
+          <p>You have not placed any orders yet.</p>
+          <a class="btn" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
+        </div>
+      <?php } else { ?>
+        <div class="orders-list">
+          <?php foreach ($orders as $order) { ?>
+            <?php
+              $status = strtolower((string)($order['status'] ?? 'pending'));
+              $status_label = ucfirst($status);
+              $created = date('M j, Y', strtotime($order['created_at']));
+            ?>
+            <article class="order-card">
           <div class="order-header">
             <div>
               <p class="order-label">Order #<?php echo (int)$order['order_id']; ?></p>
@@ -382,10 +411,163 @@ include_once __DIR__ . '/../includes/header.php';
               </form>
             <?php } ?>
           </div>
-        </article>
+            </article>
+          <?php } ?>
+        </div>
       <?php } ?>
-    </div>
-  <?php } ?>
+    </section>
+
+    <aside class="review-products-panel" aria-labelledby="review-products-title">
+      <h2 id="review-products-title">Review Product</h2>
+      <?php if (!$review_products) { ?>
+        <p class="review-products-empty">No products to review right now.</p>
+      <?php } else { ?>
+        <div class="review-products-list">
+          <?php foreach ($review_products as $item) { ?>
+            <?php
+              $is_update = $item['review_status'] === 'pending';
+              $has_review = $item['review_id'] > 0;
+            ?>
+            <article class="review-product-card">
+              <div class="review-product-image">
+                <?php if (!empty($item['image'])) { ?>
+                  <img src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($item['image']); ?>"
+                       alt="<?php echo htmlspecialchars($item['product_name']); ?>" loading="lazy">
+                <?php } else { ?>
+                  <div class="order-item-placeholder">No image</div>
+                <?php } ?>
+              </div>
+              <div class="review-product-info">
+                <h3><?php echo htmlspecialchars($item['product_name']); ?></h3>
+                <?php if ($item['review_status'] === 'published') { ?>
+                  <p class="review-product-status">You rated this <?php echo $item['review_rating']; ?>/5</p>
+                <?php } elseif ($item['review_status'] === 'deleted') { ?>
+                  <p class="review-product-status">Review deleted. You can't rate this product again.</p>
+                <?php } elseif ($is_update) { ?>
+                  <p class="review-product-status">Review not published</p>
+                <?php } ?>
+              </div>
+              <?php if ($is_update) { ?>
+                <button class="rate-product-button review-product-rate-button" type="button"
+                        data-review-action="update"
+                        data-review-id="<?php echo $item['review_id']; ?>"
+                        data-rating="<?php echo $item['review_rating']; ?>"
+                        data-review-text="<?php echo htmlspecialchars($item['review_text'], ENT_QUOTES, 'UTF-8'); ?>"
+                        data-order-id="<?php echo $item['order_id']; ?>"
+                        data-order-item-id="<?php echo $item['order_item_id']; ?>"
+                        data-product-id="<?php echo $item['product_id']; ?>"
+                        data-product-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
+                        data-quantity="<?php echo $item['quantity']; ?>">Edit review</button>
+              <?php } elseif (!$has_review) { ?>
+                <button class="rate-product-button review-product-rate-button" type="button"
+                        data-review-action="create"
+                        data-order-id="<?php echo $item['order_id']; ?>"
+                        data-order-item-id="<?php echo $item['order_item_id']; ?>"
+                        data-product-id="<?php echo $item['product_id']; ?>"
+                        data-product-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
+                        data-quantity="<?php echo $item['quantity']; ?>">Rate</button>
+              <?php } ?>
+            </article>
+          <?php } ?>
+        </div>
+      <?php } ?>
+    </aside>
+  </div>
+
+  <dialog class="rate-review-dialog" id="rate-review-dialog" aria-labelledby="rate-review-title">
+    <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php" class="rate-review-form">
+      <button class="rate-review-close" type="button" aria-label="Close review panel">&times;</button>
+      <p class="rate-review-eyebrow">YOUR PURCHASE</p>
+      <h2 id="rate-review-title">Rate this product</h2>
+      <p class="rate-review-product" id="rate-review-product-name"></p>
+      <p class="rate-review-quantity" id="rate-review-quantity"></p>
+      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
+      <input type="hidden" name="order_id" id="rate-review-order-id">
+      <input type="hidden" name="order_item_id" id="rate-review-order-item-id">
+      <input type="hidden" name="product_id" id="rate-review-product-id">
+      <input type="hidden" name="review_id" id="rate-review-review-id">
+      <input type="hidden" name="action" id="rate-review-action">
+      <fieldset class="rate-review-stars">
+        <legend>Your rating</legend>
+        <?php for ($star = 1; $star <= 5; $star++) { ?>
+          <label>
+            <input type="radio" name="rating" value="<?php echo $star; ?>" required>
+            <span aria-hidden="true">&#9733;</span>
+            <span class="rate-review-sr-only"><?php echo $star; ?> stars</span>
+          </label>
+        <?php } ?>
+      </fieldset>
+      <label class="rate-review-comment-label" for="rate-review-comment">Your comment</label>
+      <textarea id="rate-review-comment" name="review_text" rows="5" maxlength="1000" placeholder="Share your experience with this product" required></textarea>
+      <p class="rate-review-hint">Please keep your review respectful and helpful.</p>
+      <div class="rate-review-actions">
+        <button class="btn rate-review-submit" type="submit" id="rate-review-submit">Submit review</button>
+        <button class="btn rate-review-delete" type="submit" id="rate-review-delete" formnovalidate hidden>Delete review</button>
+      </div>
+    </form>
+  </dialog>
 </main>
+
+<script>
+(function () {
+  var dialog = document.getElementById('rate-review-dialog');
+  var form = dialog.querySelector('form');
+  var ratingInputs = form.querySelectorAll('input[name="rating"]');
+  var comment = document.getElementById('rate-review-comment');
+  var actionInput = document.getElementById('rate-review-action');
+  var submitButton = document.getElementById('rate-review-submit');
+  var deleteButton = document.getElementById('rate-review-delete');
+  var vulgarPattern = /\b(?:fuck(?:er|ing|ed|s)?|shit(?:ty|ting|s)?|bitch(?:es|y)?|ass(?:hole)?s?|arse(?:hole)?s?|bastard(?:s)?|cunt(?:s)?|dick(?:s)?|cock(?:s|head)?|piss(?:ed|ing)?|damn(?:ed|ing)?|dammit|crap(?:py)?|twat(?:s)?|wanker(?:s)?|whore(?:s)?|slut(?:s)?|prick(?:s)?|douche(?:bag)?s?|bullshit|motherfucker(?:s)?)\b/i;
+
+  function paintRating(rating) {
+    ratingInputs.forEach(function (input) {
+      input.closest('label').classList.toggle('is-selected', Number(input.value) <= Number(rating));
+    });
+  }
+
+  ratingInputs.forEach(function (input) {
+    input.addEventListener('change', function () {
+      paintRating(input.value);
+    });
+  });
+
+  document.querySelectorAll('.rate-product-button').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var isUpdate = button.dataset.reviewAction === 'update';
+      document.getElementById('rate-review-product-name').textContent = button.dataset.productName;
+      document.getElementById('rate-review-quantity').textContent = 'Quantity bought: ' + button.dataset.quantity;
+      document.getElementById('rate-review-order-id').value = button.dataset.orderId;
+      document.getElementById('rate-review-order-item-id').value = button.dataset.orderItemId;
+      document.getElementById('rate-review-product-id').value = button.dataset.productId;
+      document.getElementById('rate-review-review-id').value = button.dataset.reviewId || '';
+      actionInput.value = button.dataset.reviewAction;
+      submitButton.textContent = isUpdate ? 'Save changes' : 'Submit review';
+      deleteButton.hidden = !isUpdate;
+      comment.value = button.dataset.reviewText || '';
+      ratingInputs.forEach(function (input) {
+        input.checked = input.value === (button.dataset.rating || '');
+      });
+      paintRating(button.dataset.rating || 0);
+      dialog.showModal();
+    });
+  });
+
+  dialog.querySelector('.rate-review-close').addEventListener('click', function () {
+    dialog.close();
+  });
+  dialog.addEventListener('click', function (event) {
+    if (event.target === dialog) dialog.close();
+  });
+  deleteButton.addEventListener('click', function () {
+    actionInput.value = 'delete';
+  });
+  form.addEventListener('submit', function (event) {
+    if (actionInput.value !== 'delete' && vulgarPattern.test(comment.value)) {
+      event.preventDefault();
+      window.alert('Please remove vulgar language from your review before submitting.');
+    }
+  });
+})();
+</script>
 
 <?php include_once __DIR__ . '/../includes/footer.php'; ?>

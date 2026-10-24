@@ -22,6 +22,17 @@ if (!$product) {
     exit;
 }
 
+$stmt = mysqli_prepare($conn,
+    "SELECT r.review_id, r.user_id, u.username, r.rating, r.review_text, r.status, r.created_at, r.updated_at
+     FROM product_reviews r
+     JOIN users u ON u.user_id = r.user_id
+     WHERE r.product_id = ? AND r.status = 'published'
+     ORDER BY r.created_at DESC, r.review_id DESC"
+);
+mysqli_stmt_bind_param($stmt, 'i', $id);
+mysqli_stmt_execute($stmt);
+$published_reviews = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+
 $product_size_guide = require __DIR__ . '/includes/product_size_guide.php';
 $size_guide_department = strtolower(trim($product['department'] ?? 'men'));
 if (!in_array($size_guide_department, ['men', 'women', 'kids'], true)) {
@@ -183,6 +194,36 @@ include_once('includes/header.php');
   </div>
 
 </div>
+
+<section class="reviews-section" id="reviews">
+  <div class="reviews-heading">
+    <div>
+      <p class="reviews-eyebrow">CUSTOMER FEEDBACK</p>
+      <h2>REVIEWS</h2>
+      <p><?php echo count($published_reviews); ?> published <?php echo count($published_reviews) === 1 ? 'review' : 'reviews'; ?></p>
+    </div>
+  </div>
+
+  <?php if ($published_reviews) { ?>
+    <div class="review-cards">
+      <?php foreach ($published_reviews as $review) { ?>
+        <article class="review-card">
+          <div class="review-card-top">
+            <img src="<?php echo htmlspecialchars(profile_image_url((int)$review['user_id']), ENT_QUOTES, 'UTF-8'); ?>" alt="" loading="lazy">
+            <span class="review-rating" aria-label="<?php echo (int)$review['rating']; ?> out of 5 stars">
+              <?php for ($star = 1; $star <= 5; $star++) { ?><?php echo $star <= (int)$review['rating'] ? '&#9733;' : '&#9734;'; ?><?php } ?>
+            </span>
+          </div>
+          <p class="review-copy"><?php echo nl2br(htmlspecialchars($review['review_text'], ENT_QUOTES, 'UTF-8')); ?></p>
+          <p class="review-author"><?php echo htmlspecialchars($review['username'], ENT_QUOTES, 'UTF-8'); ?></p>
+          <p class="review-date"><?php echo htmlspecialchars(date('M j, Y', strtotime($review['created_at'])), ENT_QUOTES, 'UTF-8'); ?></p>
+        </article>
+      <?php } ?>
+    </div>
+  <?php } else { ?>
+    <p class="reviews-empty">No reviews yet.</p>
+  <?php } ?>
+</section>
 
 <?php if (!isset($_SESSION['user_id'])) { ?>
   <dialog id="login-modal" class="modal">
