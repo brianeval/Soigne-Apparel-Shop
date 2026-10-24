@@ -10,7 +10,8 @@ WHERE name IN (
   'Premium Linen Long Sleeve Shirt',
   'Relaxed Ankle Chino Pants',
   'Lightweight Packable Jacket',
-  'Quick-Dry Sports Shorts'
+  'Quick-Dry Sports Shorts',
+  'Felted Button-Detail Jacket'
 );
 
 CREATE TEMPORARY TABLE tmp_sample_variants AS

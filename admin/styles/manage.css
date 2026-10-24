@@ -109,7 +109,6 @@
 .manage-small-button.is-danger { border-color: #ecd6d3; color: #a14b42; }
 .manage-small-button.is-danger:hover { border-color: #ecd6d3; background: #fff5f3; color: #a14b42; }
 .manage-small-button.is-active { border-color: var(--admin-accent); background: var(--admin-accent); color: #fff; }
-.review-admin-filters { display: flex; flex-wrap: wrap; gap: 7px; }
 .review-admin-status { display: inline-block; padding: 5px 9px; border-radius: 6px; font-size: 12px; }
 .review-admin-status.is-pending { background: #fff3db; color: #8a641b; }
 .review-admin-status.is-published { background: #e9f3eb; color: #547858; }

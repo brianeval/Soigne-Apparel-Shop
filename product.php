@@ -23,15 +23,33 @@ if (!$product) {
 }
 
 $stmt = mysqli_prepare($conn,
-    "SELECT r.review_id, r.user_id, u.username, r.rating, r.review_text, r.status, r.created_at, r.updated_at
+    "SELECT r.review_id, r.user_id, u.username, r.rating, r.review_text, r.status, r.created_at, r.updated_at,
+            pc.color AS purchased_color, v.size AS purchased_size
      FROM product_reviews r
      JOIN users u ON u.user_id = r.user_id
+     LEFT JOIN order_items oi ON oi.order_item_id = r.order_item_id
+     LEFT JOIN product_variants v ON v.variant_id = oi.variant_id
+     LEFT JOIN product_colors pc ON pc.product_color_id = v.product_color_id
      WHERE r.product_id = ? AND r.status = 'published'
      ORDER BY r.created_at DESC, r.review_id DESC"
 );
 mysqli_stmt_bind_param($stmt, 'i', $id);
 mysqli_stmt_execute($stmt);
 $published_reviews = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+$review_colors = [];
+$review_sizes = [];
+foreach ($published_reviews as $review) {
+    if ($review['purchased_color'] !== null && $review['purchased_color'] !== '') {
+        $review_colors[] = (string)$review['purchased_color'];
+    }
+    if ($review['purchased_size'] !== null && $review['purchased_size'] !== '') {
+        $review_sizes[] = (string)$review['purchased_size'];
+    }
+}
+$review_colors = array_values(array_unique($review_colors));
+$review_sizes = array_values(array_unique($review_sizes));
+sort($review_colors, SORT_NATURAL | SORT_FLAG_CASE);
+sort($review_sizes, SORT_NATURAL | SORT_FLAG_CASE);
 
 $product_size_guide = require __DIR__ . '/includes/product_size_guide.php';
 $size_guide_department = strtolower(trim($product['department'] ?? 'men'));
@@ -200,19 +218,70 @@ include_once('includes/header.php');
     <div>
       <p class="reviews-eyebrow">CUSTOMER FEEDBACK</p>
       <h2>REVIEWS</h2>
-      <p><?php echo count($published_reviews); ?> published <?php echo count($published_reviews) === 1 ? 'review' : 'reviews'; ?></p>
+      <p id="review-count"><?php echo count($published_reviews); ?> published <?php echo count($published_reviews) === 1 ? 'review' : 'reviews'; ?></p>
     </div>
+    <?php if ($published_reviews) { ?>
+      <div class="review-filters" aria-label="Filter reviews">
+        <label>
+          <span>Order by</span>
+          <select id="review-order-filter">
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="highest-rated">Highest rated</option>
+            <option value="lowest-rated">Lowest rated</option>
+          </select>
+        </label>
+        <label>
+          <span>Stars</span>
+          <select id="review-rating-filter">
+            <option value="">All ratings</option>
+            <?php for ($rating_filter = 5; $rating_filter >= 1; $rating_filter--) { ?>
+              <option value="<?php echo $rating_filter; ?>" aria-label="<?php echo $rating_filter; ?> <?php echo $rating_filter === 1 ? 'star' : 'stars'; ?>"><?php for ($star = 1; $star <= 5; $star++) { ?><?php echo $star <= $rating_filter ? '&#9733;' : '&#9734;'; ?><?php } ?></option>
+            <?php } ?>
+          </select>
+        </label>
+        <?php if ($review_colors) { ?>
+          <label>
+            <span>Color</span>
+            <select id="review-color-filter">
+              <option value="">All colors</option>
+              <?php foreach ($review_colors as $color) { ?>
+                <option value="<?php echo htmlspecialchars($color, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($color, ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php } ?>
+            </select>
+          </label>
+        <?php } ?>
+        <?php if ($review_sizes) { ?>
+          <label>
+            <span>Size</span>
+            <select id="review-size-filter">
+              <option value="">All sizes</option>
+              <?php foreach ($review_sizes as $size) { ?>
+                <option value="<?php echo htmlspecialchars($size, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($size, ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php } ?>
+            </select>
+          </label>
+        <?php } ?>
+      </div>
+    <?php } ?>
   </div>
 
   <?php if ($published_reviews) { ?>
     <div class="review-cards">
       <?php foreach ($published_reviews as $review) { ?>
-        <article class="review-card">
+        <article class="review-card"
+                 data-review-color="<?php echo htmlspecialchars((string)($review['purchased_color'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                 data-review-size="<?php echo htmlspecialchars((string)($review['purchased_size'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                 data-review-rating="<?php echo (int)$review['rating']; ?>"
+                 data-review-date="<?php echo (int)strtotime($review['created_at']); ?>">
           <div class="review-card-top">
             <img src="<?php echo htmlspecialchars(profile_image_url((int)$review['user_id']), ENT_QUOTES, 'UTF-8'); ?>" alt="" loading="lazy">
             <span class="review-rating" aria-label="<?php echo (int)$review['rating']; ?> out of 5 stars">
               <?php for ($star = 1; $star <= 5; $star++) { ?><?php echo $star <= (int)$review['rating'] ? '&#9733;' : '&#9734;'; ?><?php } ?>
             </span>
+            <?php if ($review['purchased_color'] !== null && $review['purchased_size'] !== null) { ?>
+              <span class="review-variant"><?php echo htmlspecialchars($review['purchased_color'], ENT_QUOTES, 'UTF-8'); ?> | <?php echo htmlspecialchars($review['purchased_size'], ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php } ?>
           </div>
           <p class="review-copy"><?php echo nl2br(htmlspecialchars($review['review_text'], ENT_QUOTES, 'UTF-8')); ?></p>
           <p class="review-author"><?php echo htmlspecialchars($review['username'], ENT_QUOTES, 'UTF-8'); ?></p>
@@ -220,6 +289,7 @@ include_once('includes/header.php');
         </article>
       <?php } ?>
     </div>
+    <p class="reviews-empty" id="reviews-filter-empty" hidden>No reviews match those filters.</p>
   <?php } else { ?>
     <p class="reviews-empty">No reviews yet.</p>
   <?php } ?>
@@ -254,6 +324,63 @@ include_once('includes/header.php');
 <?php } ?>
 <script>
 (function () {
+  var reviewCards = Array.prototype.slice.call(document.querySelectorAll('.review-card'));
+  var colorFilter = document.getElementById('review-color-filter');
+  var sizeFilter = document.getElementById('review-size-filter');
+  var ratingFilter = document.getElementById('review-rating-filter');
+  var orderFilter = document.getElementById('review-order-filter');
+  var reviewCardContainer = document.querySelector('.review-cards');
+  var reviewCount = document.getElementById('review-count');
+  var noMatchingReviews = document.getElementById('reviews-filter-empty');
+
+  if (reviewCards.length && reviewCount && noMatchingReviews) {
+    function filterReviews() {
+      var selectedColor = colorFilter ? colorFilter.value : '';
+      var selectedSize = sizeFilter ? sizeFilter.value : '';
+      var selectedRating = ratingFilter ? ratingFilter.value : '';
+      var orderBy = orderFilter ? orderFilter.value : 'newest';
+      var visibleCount = 0;
+      var matchingCards = [];
+
+      reviewCards.forEach(function (card) {
+        var matches = (!selectedColor || card.dataset.reviewColor === selectedColor)
+          && (!selectedSize || card.dataset.reviewSize === selectedSize)
+          && (!selectedRating || card.dataset.reviewRating === selectedRating);
+        card.hidden = !matches;
+        if (matches) {
+          visibleCount++;
+          matchingCards.push(card);
+        }
+      });
+
+      matchingCards.sort(function (first, second) {
+        if (orderBy === 'oldest') {
+          return Number(first.dataset.reviewDate) - Number(second.dataset.reviewDate);
+        }
+        if (orderBy === 'highest-rated') {
+          return Number(second.dataset.reviewRating) - Number(first.dataset.reviewRating)
+            || Number(second.dataset.reviewDate) - Number(first.dataset.reviewDate);
+        }
+        if (orderBy === 'lowest-rated') {
+          return Number(first.dataset.reviewRating) - Number(second.dataset.reviewRating)
+            || Number(second.dataset.reviewDate) - Number(first.dataset.reviewDate);
+        }
+        return Number(second.dataset.reviewDate) - Number(first.dataset.reviewDate);
+      });
+      matchingCards.forEach(function (card) {
+        reviewCardContainer.appendChild(card);
+      });
+
+      reviewCount.textContent = visibleCount + ' published ' + (visibleCount === 1 ? 'review' : 'reviews');
+      noMatchingReviews.hidden = visibleCount > 0;
+    }
+
+    if (colorFilter) colorFilter.addEventListener('change', filterReviews);
+    if (sizeFilter) sizeFilter.addEventListener('change', filterReviews);
+    if (ratingFilter) ratingFilter.addEventListener('change', filterReviews);
+    if (orderFilter) orderFilter.addEventListener('change', filterReviews);
+  }
+
   var quantityInput = document.getElementById('product-quantity');
   var sizeOptions = document.querySelectorAll('.size-options input[name="variant_id"]');
   if (!quantityInput) return;

@@ -253,30 +253,38 @@ foreach ($orders as &$order) {
 }
 unset($order);
 
-$review_products = [];
-foreach ($orders as $order) {
-    if (!in_array(strtolower((string)$order['status']), ['paid', 'shipped', 'delivered'], true)) {
-        continue;
-    }
-
-    foreach ($order['items'] as $item) {
-        $product_id = (int)$item['product_id'];
-        if (!isset($review_products[$product_id])) {
-            $review_products[$product_id] = [
-                'order_id' => (int)$order['order_id'],
-                'order_item_id' => (int)$item['order_item_id'],
-                'product_id' => $product_id,
-                'product_name' => $item['product_name'],
-                'image' => $item['image'],
-                'quantity' => (int)$item['quantity'],
-                'review_id' => (int)($item['review_id'] ?? 0),
-                'review_rating' => (int)($item['review_rating'] ?? 0),
-                'review_text' => (string)($item['review_text'] ?? ''),
-                'review_status' => $item['review_status'] ?? '',
-            ];
-        }
-    }
-}
+$order_tabs = [
+    [
+        'id' => 'to-pack',
+        'label' => 'To Pack',
+        'statuses' => ['pending'],
+        'empty_message' => 'No pending orders right now.',
+    ],
+    [
+        'id' => 'shipped',
+        'label' => 'Shipped',
+        'statuses' => ['shipped'],
+        'empty_message' => 'No shipped orders right now.',
+    ],
+    [
+        'id' => 'received',
+        'label' => 'Received',
+        'statuses' => ['delivered', 'received'],
+        'empty_message' => 'No received orders right now.',
+    ],
+    [
+        'id' => 'review-me',
+        'label' => 'Review Me',
+        'statuses' => ['paid'],
+        'empty_message' => 'No orders waiting for review right now.',
+    ],
+    [
+        'id' => 'cancellations',
+        'label' => 'Cancellations',
+        'statuses' => ['cancelled'],
+        'empty_message' => 'No cancelled orders.',
+    ],
+];
 
 $page_title = 'My Orders | Soigné';
 $extra_css = 'orders.css';
@@ -296,14 +304,39 @@ include_once __DIR__ . '/../includes/header.php';
         <h1 id="orders-title">My Orders</h1>
       </div>
 
-      <?php if (!$orders) { ?>
-        <div class="orders-empty">
-          <p>You have not placed any orders yet.</p>
-          <a class="btn" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
-        </div>
-      <?php } else { ?>
+      <div class="orders-tabs" role="tablist" aria-label="Order status">
+        <?php foreach ($order_tabs as $tab_index => $tab) { ?>
+          <button class="orders-tab" type="button" role="tab"
+                  id="orders-tab-<?php echo htmlspecialchars($tab['id']); ?>"
+                  aria-controls="orders-panel-<?php echo htmlspecialchars($tab['id']); ?>"
+                  aria-selected="<?php echo $tab_index === 0 ? 'true' : 'false'; ?>"
+                  tabindex="<?php echo $tab_index === 0 ? '0' : '-1'; ?>">
+            <?php echo htmlspecialchars($tab['label']); ?>
+          </button>
+        <?php } ?>
+      </div>
+
+      <?php foreach ($order_tabs as $tab_index => $tab) { ?>
+        <?php
+          $tab_orders = array_filter($orders, function ($order) use ($tab) {
+              return in_array(strtolower((string)($order['status'] ?? '')), $tab['statuses'], true);
+          });
+        ?>
+        <section class="orders-tab-panel" role="tabpanel"
+                 id="orders-panel-<?php echo htmlspecialchars($tab['id']); ?>"
+                 aria-labelledby="orders-tab-<?php echo htmlspecialchars($tab['id']); ?>"
+                 tabindex="0"
+                 <?php echo $tab_index === 0 ? '' : 'hidden'; ?>>
+          <?php if (!$tab_orders) { ?>
+            <div class="orders-empty">
+              <p><?php echo htmlspecialchars(!$orders ? 'You have not placed any orders yet.' : $tab['empty_message']); ?></p>
+              <?php if (!$orders) { ?>
+                <a class="btn" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
+              <?php } ?>
+            </div>
+          <?php } else { ?>
         <div class="orders-list">
-          <?php foreach ($orders as $order) { ?>
+          <?php foreach ($tab_orders as $order) { ?>
             <?php
               $status = strtolower((string)($order['status'] ?? 'pending'));
               $status_label = ucfirst($status);
@@ -381,6 +414,28 @@ include_once __DIR__ . '/../includes/header.php';
                           <p>Qty: <?php echo (int)$item['quantity']; ?> · <?php echo htmlspecialchars(peso((float)$item['price'])); ?> each</p>
                         <?php } ?>
                       </div>
+                      <?php if ($status === 'paid') { ?>
+                        <?php if (in_array(($item['review_status'] ?? ''), ['pending', 'published'], true)) { ?>
+                          <button class="rate-product-button" type="button"
+                                  data-review-action="update"
+                                  data-review-id="<?php echo (int)$item['review_id']; ?>"
+                                  data-rating="<?php echo (int)$item['review_rating']; ?>"
+                                  data-review-text="<?php echo htmlspecialchars((string)$item['review_text'], ENT_QUOTES, 'UTF-8'); ?>"
+                                  data-order-id="<?php echo (int)$order['order_id']; ?>"
+                                  data-order-item-id="<?php echo (int)$item['order_item_id']; ?>"
+                                  data-product-id="<?php echo (int)$item['product_id']; ?>"
+                                  data-product-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                  data-quantity="<?php echo (int)$item['quantity']; ?>">Edit review</button>
+                        <?php } else { ?>
+                          <button class="rate-product-button" type="button"
+                                  data-review-action="create"
+                                  data-order-id="<?php echo (int)$order['order_id']; ?>"
+                                  data-order-item-id="<?php echo (int)$item['order_item_id']; ?>"
+                                  data-product-id="<?php echo (int)$item['product_id']; ?>"
+                                  data-product-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
+                                  data-quantity="<?php echo (int)$item['quantity']; ?>">Rate</button>
+                        <?php } ?>
+                      <?php } ?>
                     </div>
                   <?php } ?>
                 </div>
@@ -414,64 +469,10 @@ include_once __DIR__ . '/../includes/header.php';
             </article>
           <?php } ?>
         </div>
+          <?php } ?>
+        </section>
       <?php } ?>
     </section>
-
-    <aside class="review-products-panel" aria-labelledby="review-products-title">
-      <h2 id="review-products-title">Review Product</h2>
-      <?php if (!$review_products) { ?>
-        <p class="review-products-empty">No products to review right now.</p>
-      <?php } else { ?>
-        <div class="review-products-list">
-          <?php foreach ($review_products as $item) { ?>
-            <?php
-              $is_update = $item['review_status'] === 'pending';
-              $has_review = $item['review_id'] > 0;
-            ?>
-            <article class="review-product-card">
-              <div class="review-product-image">
-                <?php if (!empty($item['image'])) { ?>
-                  <img src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($item['image']); ?>"
-                       alt="<?php echo htmlspecialchars($item['product_name']); ?>" loading="lazy">
-                <?php } else { ?>
-                  <div class="order-item-placeholder">No image</div>
-                <?php } ?>
-              </div>
-              <div class="review-product-info">
-                <h3><?php echo htmlspecialchars($item['product_name']); ?></h3>
-                <?php if ($item['review_status'] === 'published') { ?>
-                  <p class="review-product-status">You rated this <?php echo $item['review_rating']; ?>/5</p>
-                <?php } elseif ($item['review_status'] === 'deleted') { ?>
-                  <p class="review-product-status">Review deleted. You can't rate this product again.</p>
-                <?php } elseif ($is_update) { ?>
-                  <p class="review-product-status">Review not published</p>
-                <?php } ?>
-              </div>
-              <?php if ($is_update) { ?>
-                <button class="rate-product-button review-product-rate-button" type="button"
-                        data-review-action="update"
-                        data-review-id="<?php echo $item['review_id']; ?>"
-                        data-rating="<?php echo $item['review_rating']; ?>"
-                        data-review-text="<?php echo htmlspecialchars($item['review_text'], ENT_QUOTES, 'UTF-8'); ?>"
-                        data-order-id="<?php echo $item['order_id']; ?>"
-                        data-order-item-id="<?php echo $item['order_item_id']; ?>"
-                        data-product-id="<?php echo $item['product_id']; ?>"
-                        data-product-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
-                        data-quantity="<?php echo $item['quantity']; ?>">Edit review</button>
-              <?php } elseif (!$has_review) { ?>
-                <button class="rate-product-button review-product-rate-button" type="button"
-                        data-review-action="create"
-                        data-order-id="<?php echo $item['order_id']; ?>"
-                        data-order-item-id="<?php echo $item['order_item_id']; ?>"
-                        data-product-id="<?php echo $item['product_id']; ?>"
-                        data-product-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
-                        data-quantity="<?php echo $item['quantity']; ?>">Rate</button>
-              <?php } ?>
-            </article>
-          <?php } ?>
-        </div>
-      <?php } ?>
-    </aside>
   </div>
 
   <dialog class="rate-review-dialog" id="rate-review-dialog" aria-labelledby="rate-review-title">
@@ -499,6 +500,7 @@ include_once __DIR__ . '/../includes/header.php';
       </fieldset>
       <label class="rate-review-comment-label" for="rate-review-comment">Your comment</label>
       <textarea id="rate-review-comment" name="review_text" rows="5" maxlength="1000" placeholder="Share your experience with this product" required></textarea>
+      <p class="rate-review-warning" id="rate-review-warning" role="alert" hidden>Your review contains inappropriate word/s, would you still want to publish?</p>
       <p class="rate-review-hint">Please keep your review respectful and helpful.</p>
       <div class="rate-review-actions">
         <button class="btn rate-review-submit" type="submit" id="rate-review-submit">Submit review</button>
@@ -510,14 +512,57 @@ include_once __DIR__ . '/../includes/header.php';
 
 <script>
 (function () {
+  var orderTabs = Array.prototype.slice.call(document.querySelectorAll('.orders-tab'));
+
+  function activateOrderTab(tab, shouldFocus) {
+    orderTabs.forEach(function (currentTab) {
+      var isSelected = currentTab === tab;
+      currentTab.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      currentTab.tabIndex = isSelected ? 0 : -1;
+      document.getElementById(currentTab.getAttribute('aria-controls')).hidden = !isSelected;
+    });
+    if (shouldFocus) tab.focus();
+  }
+
+  orderTabs.forEach(function (tab, index) {
+    tab.addEventListener('click', function () {
+      activateOrderTab(tab, false);
+    });
+    tab.addEventListener('keydown', function (event) {
+      var nextIndex = index;
+      if (event.key === 'ArrowRight') {
+        nextIndex = (index + 1) % orderTabs.length;
+      } else if (event.key === 'ArrowLeft') {
+        nextIndex = (index - 1 + orderTabs.length) % orderTabs.length;
+      } else if (event.key === 'Home') {
+        nextIndex = 0;
+      } else if (event.key === 'End') {
+        nextIndex = orderTabs.length - 1;
+      } else {
+        return;
+      }
+      event.preventDefault();
+      activateOrderTab(orderTabs[nextIndex], true);
+    });
+  });
+
   var dialog = document.getElementById('rate-review-dialog');
   var form = dialog.querySelector('form');
   var ratingInputs = form.querySelectorAll('input[name="rating"]');
   var comment = document.getElementById('rate-review-comment');
+  var vulgarWarning = document.getElementById('rate-review-warning');
   var actionInput = document.getElementById('rate-review-action');
   var submitButton = document.getElementById('rate-review-submit');
   var deleteButton = document.getElementById('rate-review-delete');
-  var vulgarPattern = /\b(?:fuck(?:er|ing|ed|s)?|shit(?:ty|ting|s)?|bitch(?:es|y)?|ass(?:hole)?s?|arse(?:hole)?s?|bastard(?:s)?|cunt(?:s)?|dick(?:s)?|cock(?:s|head)?|piss(?:ed|ing)?|damn(?:ed|ing)?|dammit|crap(?:py)?|twat(?:s)?|wanker(?:s)?|whore(?:s)?|slut(?:s)?|prick(?:s)?|douche(?:bag)?s?|bullshit|motherfucker(?:s)?)\b/i;
+  var vulgarPattern = /(?:putang\s*ina|tangina|tanga|gago|gaga|puta|fuck(?:er|ing|ed|s)?|shit(?:ty|ting|s)?|bitch(?:es|y)?|ass(?:hole)?s?|arse(?:hole)?s?|bastard(?:s)?|cunt(?:s)?|dick(?:s)?|cock(?:s|head)?|piss(?:ed|ing)?|damn(?:ed|ing)?|dammit|crap(?:py)?|twat(?:s)?|wanker(?:s)?|whore(?:s)?|slut(?:s)?|prick(?:s)?|douche(?:bag)?s?|bullshit|motherfucker(?:s)?)/gi;
+  var confirmedVulgarReview = null;
+
+  function containsVulgarLanguage(text) {
+    vulgarPattern.lastIndex = 0;
+    var containsVulgar = vulgarPattern.test(text);
+    vulgarPattern.lastIndex = 0;
+    return containsVulgar;
+  }
 
   function paintRating(rating) {
     ratingInputs.forEach(function (input) {
@@ -544,6 +589,8 @@ include_once __DIR__ . '/../includes/header.php';
       submitButton.textContent = isUpdate ? 'Save changes' : 'Submit review';
       deleteButton.hidden = !isUpdate;
       comment.value = button.dataset.reviewText || '';
+      confirmedVulgarReview = null;
+      vulgarWarning.hidden = true;
       ratingInputs.forEach(function (input) {
         input.checked = input.value === (button.dataset.rating || '');
       });
@@ -560,11 +607,19 @@ include_once __DIR__ . '/../includes/header.php';
   });
   deleteButton.addEventListener('click', function () {
     actionInput.value = 'delete';
+    vulgarWarning.hidden = true;
+  });
+  comment.addEventListener('input', function () {
+    confirmedVulgarReview = null;
+    vulgarWarning.hidden = true;
   });
   form.addEventListener('submit', function (event) {
-    if (actionInput.value !== 'delete' && vulgarPattern.test(comment.value)) {
+    if (actionInput.value === 'delete') return;
+
+    if (containsVulgarLanguage(comment.value) && confirmedVulgarReview !== comment.value) {
       event.preventDefault();
-      window.alert('Please remove vulgar language from your review before submitting.');
+      confirmedVulgarReview = comment.value;
+      vulgarWarning.hidden = false;
     }
   });
 })();
