@@ -72,7 +72,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .admin-app.is-sidebar-collapsed .admin-nav a, .admin-app.is-sidebar-collapsed .admin-sidebar-bottom a { justify-content: center; gap: 0; padding-right: 0; padding-left: 0; }
 .admin-app.is-sidebar-collapsed .admin-nav .nav-label-text, .admin-app.is-sidebar-collapsed .admin-sidebar-bottom .nav-label-text { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .admin-app.is-sidebar-collapsed .admin-nav .nav-icon, .admin-app.is-sidebar-collapsed .admin-sidebar-bottom .nav-icon { width: 24px; }
-.admin-main { min-height: 100vh; margin-left: 256px; transition: margin-left .2s ease; }
+.admin-main { min-height: 100vh; display: flex; flex-direction: column; margin-left: 256px; transition: margin-left .2s ease; }
 .admin-topbar { position: sticky; top: 0; z-index: 4; min-height: 72px; display: flex; align-items: center; gap: 24px; padding: 0 38px; border-bottom: 1px solid var(--admin-line); background: rgba(255,255,255,.96); backdrop-filter: blur(12px); }
 .admin-topbar-start { display: flex; align-items: center; gap: 16px; flex: 0 0 auto; }
 .admin-sidebar-toggle { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid var(--admin-line); border-radius: 8px; background: #fff; color: var(--admin-ink); cursor: pointer; }
@@ -81,12 +81,12 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .admin-breadcrumb { color: #878c84; font-size: 13px; }
 .admin-breadcrumb span { padding: 0 8px; color: #c1c5bf; }
-.admin-user { display: flex; align-items: center; gap: 10px; }
+.admin-user { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .admin-user strong, .admin-user small { display: block; }
 .admin-user strong { font-size: 13px; }
 .admin-user small { margin-top: 2px; color: var(--admin-muted); font-size: 12px; }
 .admin-avatar { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #f3f1ee; color: var(--admin-accent); font-size: 12px; font-weight: 700; }
-.admin-content { width: min(1440px, 100%); margin: 0 auto; padding: 34px 38px 22px; }
+.admin-content { width: min(1440px, 100%); flex: 1 0 auto; display: flex; flex-direction: column; margin: 0 auto; padding: 34px 38px 22px; }
 .admin-page-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 25px; }
 .admin-page-heading .admin-eyebrow { margin-bottom: 7px; }
 .admin-page-heading h1 { margin: 0; font-family: var(--admin-font); font-size: 29px; font-weight: 600; letter-spacing: -.4px; }
@@ -148,7 +148,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .admin-empty > svg { width: 23px; height: 23px; margin-bottom: 4px; fill: none; stroke: #8e958b; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
 .admin-empty strong { color: #555c53; font-size: 14px; }
 .admin-empty p { margin: 0; font-size: 13px; }
-.admin-footer { padding: 20px 0 0; color: #858b83; font-size: 12px; text-align: center; }
+.admin-footer { margin-top: auto; padding: 20px 0 0; color: #858b83; font-size: 12px; text-align: center; }
 .admin-footer span { padding: 0 5px; }
 
 @media (max-width: 1050px) {
