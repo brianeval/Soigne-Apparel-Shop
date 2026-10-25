@@ -1,9 +1,10 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/product_images.php';
+require_once __DIR__ . '/../../includes/product_validation.php';
 
-$product_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
-if ($product_id === false || $product_id < 1) {
+$product_id = product_positive_integer($_GET['id'] ?? null);
+if ($product_id === null) {
     http_response_code(404);
     exit('Product not found.');
 }
@@ -29,10 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $action = $_POST['action'] ?? '';
         if ($action === 'add_images') {
-            $color_id = filter_var($_POST['product_color_id'] ?? null, FILTER_VALIDATE_INT);
+            $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
             $uploads = product_file_uploads(is_array($_FILES['images'] ?? null) ? $_FILES['images'] : []);
             $saved_images = [];
-            if ($color_id === false || $color_id < 1) {
+            if ($color_id === null) {
                 $errors[] = 'Choose a valid color.';
             } elseif (!$uploads || count($uploads) > 10) {
                 $errors[] = 'Choose between 1 and 10 images to upload.';
@@ -115,20 +116,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($action === 'update_product') {
-            $supplier_id = filter_var($_POST['supplier_id'] ?? null, FILTER_VALIDATE_INT);
+            $supplier_id = product_positive_integer($_POST['supplier_id'] ?? null);
             $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
-            $category_id_input = $_POST['category_id'] ?? '';
-            $category_id = $category_id_input === '' ? null : filter_var($category_id_input, FILTER_VALIDATE_INT);
-            $department = $_POST['department'] ?? '';
-            $price = filter_var($_POST['price'] ?? null, FILTER_VALIDATE_FLOAT);
+            $category_id_value = $_POST['category_id'] ?? '';
+            $category_id_input = is_string($category_id_value) ? $category_id_value : '';
+            $category_id = $category_id_input === '' ? null : product_positive_integer($category_id_input);
+            $department = is_string($_POST['department'] ?? null) ? $_POST['department'] : '';
+            $price = product_price_value($_POST['price'] ?? null);
             $description = trim(is_string($_POST['description'] ?? null) ? $_POST['description'] : '');
 
-            if ($supplier_id === false || $supplier_id < 1) $errors[] = 'Choose a valid brand.';
+            if ($supplier_id === null) $errors[] = 'Choose a valid brand.';
             if ($name === '' || mb_strlen($name) > 150) $errors[] = 'Enter a product name up to 150 characters.';
-            if ($category_id_input !== '' && ($category_id === false || $category_id < 1)) $errors[] = 'Choose a valid category.';
+            if ($category_id_value !== '' && !is_string($category_id_value)) $errors[] = 'Choose a valid category.';
+            if ($category_id_input !== '' && $category_id === null) $errors[] = 'Choose a valid category.';
             if (!in_array($department, ['men', 'women', 'kids'], true)) $errors[] = 'Choose a valid department.';
-            if ($price === false || $price < 0 || $price > 99999999.99) $errors[] = 'Enter a valid price.';
+            if ($price === null) $errors[] = 'Enter a valid non-negative price with no more than two decimal places.';
 
+            if (!$errors) {
+                $supplier_stmt = mysqli_prepare($conn, "SELECT supplier_id FROM suppliers WHERE supplier_id = ?");
+                mysqli_stmt_bind_param($supplier_stmt, 'i', $supplier_id);
+                mysqli_stmt_execute($supplier_stmt);
+                if (!mysqli_fetch_assoc(mysqli_stmt_get_result($supplier_stmt))) {
+                    $errors[] = 'Choose a valid brand.';
+                }
+            }
             if (!$errors) {
                 if ($category_id !== null) {
                     $category_stmt = mysqli_prepare($conn, "SELECT category_id FROM categories WHERE category_id = ?");
@@ -167,10 +178,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($action === 'update_color') {
-            $color_id = filter_var($_POST['product_color_id'] ?? null, FILTER_VALIDATE_INT);
+            $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
             $color = trim(is_string($_POST['color'] ?? null) ? $_POST['color'] : '');
             $image = trim(is_string($_POST['image'] ?? null) ? $_POST['image'] : '');
-            if ($color_id === false || $color_id < 1 || $color === '' || mb_strlen($color) > 80 || mb_strlen($image) > 255) {
+            if ($color_id === null || $color === '' || mb_strlen($color) > 80 || mb_strlen($image) > 255) {
                 $errors[] = 'Enter a valid color name and image path.';
             } else {
                 $stmt = mysqli_prepare($conn, "UPDATE product_colors SET color = ?, image = ? WHERE product_color_id = ? AND product_id = ?");
@@ -185,8 +196,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($action === 'delete_color') {
-            $color_id = filter_var($_POST['product_color_id'] ?? null, FILTER_VALIDATE_INT);
-            if ($color_id === false || $color_id < 1) {
+            $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
+            if ($color_id === null) {
                 $errors[] = 'Choose a valid color.';
             } else {
                 $usage_stmt = mysqli_prepare($conn,
@@ -223,10 +234,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($action === 'add_variant') {
-            $color_id = filter_var($_POST['product_color_id'] ?? null, FILTER_VALIDATE_INT);
+            $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
             $size = trim(is_string($_POST['size'] ?? null) ? $_POST['size'] : '');
-            $stock = filter_var($_POST['stock'] ?? null, FILTER_VALIDATE_INT);
-            if ($color_id === false || $color_id < 1 || $size === '' || mb_strlen($size) > 20 || $stock === false || $stock < 0) {
+            $stock = product_nonnegative_integer($_POST['stock'] ?? null);
+            if ($color_id === null || $size === '' || mb_strlen($size) > 20 || $stock === null) {
                 $errors[] = 'Enter a valid color, size, and non-negative stock amount.';
             } else {
                 $stmt = mysqli_prepare($conn, "INSERT INTO product_variants (product_color_id, size, stock) SELECT product_color_id, ?, ? FROM product_colors WHERE product_color_id = ? AND product_id = ?");
@@ -245,10 +256,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($action === 'update_variant') {
-            $variant_id = filter_var($_POST['variant_id'] ?? null, FILTER_VALIDATE_INT);
+            $variant_id = product_positive_integer($_POST['variant_id'] ?? null);
             $size = trim(is_string($_POST['size'] ?? null) ? $_POST['size'] : '');
-            $stock = filter_var($_POST['stock'] ?? null, FILTER_VALIDATE_INT);
-            if ($variant_id === false || $variant_id < 1 || $size === '' || mb_strlen($size) > 20 || $stock === false || $stock < 0) {
+            $stock = product_nonnegative_integer($_POST['stock'] ?? null);
+            if ($variant_id === null || $size === '' || mb_strlen($size) > 20 || $stock === null) {
                 $errors[] = 'Enter a valid size and non-negative stock amount.';
             } else {
                 $usage_stmt = mysqli_prepare($conn,
@@ -281,8 +292,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         } elseif ($action === 'delete_variant') {
-            $variant_id = filter_var($_POST['variant_id'] ?? null, FILTER_VALIDATE_INT);
-            if ($variant_id === false || $variant_id < 1) {
+            $variant_id = product_positive_integer($_POST['variant_id'] ?? null);
+            if ($variant_id === null) {
                 $errors[] = 'Choose a valid size variant.';
             } else {
                 $usage_stmt = mysqli_prepare($conn,
@@ -353,15 +364,15 @@ include __DIR__ . '/../includes/header.php';
 
 <section class="manage-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT DETAILS</p><h2><?php echo admin_escape($product['name']); ?></h2></div></div>
-  <form method="post" class="manage-form manage-product-create">
+  <form method="post" class="manage-form manage-product-create" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="update_product">
-    <label>Product name<input name="name" maxlength="150" required value="<?php echo admin_escape($_POST['name'] ?? $product['name']); ?>"></label>
-    <label>Brand<select name="supplier_id" required><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo (int)$supplier['supplier_id'] === (int)$product['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
-    <label>Category<select name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { $selected_category_id = $_POST['category_id'] ?? $product['category_id']; ?><option value="<?php echo (int)$category_option['category_id']; ?>" <?php echo (string)$selected_category_id === (string)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
+    <label>Product name<input name="name" value="<?php echo admin_escape(is_string($_POST['name'] ?? null) ? $_POST['name'] : $product['name']); ?>"></label>
+    <label>Brand<select name="supplier_id"><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo (int)$supplier['supplier_id'] === (int)$product['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
+    <label>Category<select name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { $selected_category_id = is_string($_POST['category_id'] ?? null) ? $_POST['category_id'] : (string)$product['category_id']; ?><option value="<?php echo (int)$category_option['category_id']; ?>" <?php echo $selected_category_id === (string)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
     <label>Department<select name="department"><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $key => $label) { ?><option value="<?php echo $key; ?>" <?php echo $product['department'] === $key ? 'selected' : ''; ?>><?php echo $label; ?></option><?php } ?></select></label>
-    <label>Price (₱)<input type="number" name="price" min="0" max="99999999.99" step="0.01" required value="<?php echo admin_escape($_POST['price'] ?? $product['price']); ?>"></label>
-    <label class="manage-form-wide">Description<textarea name="description" rows="3"><?php echo admin_escape($_POST['description'] ?? $product['description']); ?></textarea></label>
+    <label>Price (₱)<input type="text" inputmode="decimal" name="price" value="<?php echo admin_escape(is_string($_POST['price'] ?? null) ? $_POST['price'] : $product['price']); ?>"></label>
+    <label class="manage-form-wide">Description<textarea name="description" rows="3"><?php echo admin_escape(is_string($_POST['description'] ?? null) ? $_POST['description'] : $product['description']); ?></textarea></label>
     <div class="manage-form-wide"><button class="admin-button" type="submit">Save product details</button></div>
   </form>
 </section>
@@ -371,11 +382,11 @@ include __DIR__ . '/../includes/header.php';
   <div class="manage-color-gallery-action">
     <button class="admin-button admin-button-light" type="button" data-open-dialog="product-images-dialog">View All Images</button>
   </div>
-  <form method="post" class="manage-form manage-add-color">
+  <form method="post" class="manage-form manage-add-color" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="add_color">
-    <label>New color<input name="color" maxlength="80" required placeholder="e.g. Navy"></label>
-    <label>Image filename<input name="image" maxlength="255" placeholder="e.g. shirt-navy.jpg"></label>
+    <label>New color<input name="color" placeholder="e.g. Navy"></label>
+    <label>Image filename<input name="image" placeholder="e.g. shirt-navy.jpg"></label>
     <div><button class="admin-button" type="submit">Add color</button></div>
   </form>
   <?php if (!$colors) { ?><p class="manage-empty">No colors added for this product yet.</p><?php } ?>
@@ -385,28 +396,28 @@ include __DIR__ . '/../includes/header.php';
     $visible_variants = array_slice($color['variants'], $variant_pagination['offset'], $variant_pagination['page_size']);
   ?>
     <div class="manage-color-block">
-      <form method="post" class="manage-form manage-color-edit">
+      <form method="post" class="manage-form manage-color-edit" novalidate>
         <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="update_color">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
-        <label>Color<input name="color" maxlength="80" required value="<?php echo admin_escape($color['color']); ?>"></label>
-        <label>Image filename<input name="image" maxlength="255" value="<?php echo admin_escape($color['image']); ?>"></label>
+        <label>Color<input name="color" value="<?php echo admin_escape($color['color']); ?>"></label>
+        <label>Image filename<input name="image" value="<?php echo admin_escape($color['image']); ?>"></label>
         <div class="manage-row-actions"><button class="manage-small-button" type="submit">Save color</button></div>
       </form>
-      <form method="post" enctype="multipart/form-data" class="manage-form manage-color-images">
+      <form method="post" enctype="multipart/form-data" class="manage-form manage-color-images" novalidate>
         <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="add_images">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
-        <label>Add images for <?php echo admin_escape($color['color']); ?><input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple data-color-gallery-upload required><small class="manage-secondary" data-upload-count>Choose up to 10 JPEG, PNG, or WebP files · 5 MB each. Select again to add more.</small></label>
+        <label>Add images for <?php echo admin_escape($color['color']); ?><input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple data-color-gallery-upload><small class="manage-secondary" data-upload-count>Choose up to 10 JPEG, PNG, or WebP files · 5 MB each. Select again to add more.</small></label>
         <button class="manage-small-button" type="submit">Upload images</button>
       </form>
       <div class="manage-variant-heading"><strong>Sizes and stock (<?php echo count($color['variants']); ?>)</strong>
-        <form method="post" class="manage-inline-form">
+        <form method="post" class="manage-inline-form" novalidate>
           <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
           <input type="hidden" name="action" value="add_variant">
           <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
-          <input name="size" maxlength="20" required placeholder="Size" aria-label="New size">
-          <input type="number" name="stock" min="0" required value="0" aria-label="Starting stock">
+          <input name="size" placeholder="Size" aria-label="New size">
+          <input type="text" inputmode="numeric" name="stock" value="0" aria-label="Starting stock">
           <button class="manage-small-button" type="submit">Add size</button>
         </form>
       </div>
@@ -416,15 +427,15 @@ include __DIR__ . '/../includes/header.php';
           <tbody><?php foreach ($visible_variants as $variant) { $variant_form_id = 'update-variant-' . $variant['variant_id']; ?>
             <tr>
               <td>
-                <form id="<?php echo $variant_form_id; ?>" method="post"></form>
+                <form id="<?php echo $variant_form_id; ?>" method="post" novalidate></form>
                 <input form="<?php echo $variant_form_id; ?>" type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                 <input form="<?php echo $variant_form_id; ?>" type="hidden" name="action" value="update_variant">
                 <input form="<?php echo $variant_form_id; ?>" type="hidden" name="variant_id" value="<?php echo $variant['variant_id']; ?>">
-                <input form="<?php echo $variant_form_id; ?>" name="size" maxlength="20" required value="<?php echo admin_escape($variant['size']); ?>" aria-label="Size">
+                <input form="<?php echo $variant_form_id; ?>" name="size" value="<?php echo admin_escape($variant['size']); ?>" aria-label="Size">
               </td>
-              <td><input form="<?php echo $variant_form_id; ?>" type="number" name="stock" min="0" required value="<?php echo $variant['stock']; ?>" aria-label="Stock"></td>
+              <td><input form="<?php echo $variant_form_id; ?>" type="text" inputmode="numeric" name="stock" value="<?php echo $variant['stock']; ?>" aria-label="Stock"></td>
               <td><button form="<?php echo $variant_form_id; ?>" class="manage-small-button" type="submit">Save</button>
-                <form method="post" class="manage-inline-form" onsubmit="return confirm('Delete this size variant? Variants with cart, order, or restock history cannot be deleted.');">
+                <form method="post" class="manage-inline-form" novalidate onsubmit="return confirm('Delete this size variant? Variants with cart, order, or restock history cannot be deleted.');">
                   <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                   <input type="hidden" name="action" value="delete_variant">
                   <input type="hidden" name="variant_id" value="<?php echo $variant['variant_id']; ?>">
@@ -436,7 +447,7 @@ include __DIR__ . '/../includes/header.php';
         </table></div>
         <?php admin_render_pagination($variant_pagination['page'], $variant_pagination['total_pages'], $variant_page_key); ?>
       <?php } else { ?><p class="manage-empty">No sizes added for this color.</p><?php } ?>
-      <form method="post" class="manage-delete-color" onsubmit="return confirm('Delete this color and its unused sizes?');">
+      <form method="post" class="manage-delete-color" novalidate onsubmit="return confirm('Delete this color and its unused sizes?');">
         <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="delete_color">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">

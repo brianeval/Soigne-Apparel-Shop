@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
 require_once __DIR__ . '/../../includes/product_images.php';
+require_once __DIR__ . '/../../includes/product_validation.php';
 
 $errors = [];
 $product_size_guide = require __DIR__ . '/../../includes/product_size_guide.php';
@@ -120,25 +121,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif (($_POST['action'] ?? '') === 'create') {
-        $supplier_id = filter_var($_POST['supplier_id'] ?? null, FILTER_VALIDATE_INT);
+        $supplier_id = product_positive_integer($_POST['supplier_id'] ?? null);
         $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
-        $category_id_input = $_POST['category_id'] ?? '';
-        $category_id = $category_id_input === '' ? null : filter_var($category_id_input, FILTER_VALIDATE_INT);
+        $category_id_value = $_POST['category_id'] ?? '';
+        $category_id_input = is_string($category_id_value) ? $category_id_value : '';
+        $category_id = $category_id_input === '' ? null : product_positive_integer($category_id_input);
         $category_name = null;
-        $department = $_POST['department'] ?? '';
-        $price = filter_var($_POST['price'] ?? null, FILTER_VALIDATE_FLOAT);
+        $department = is_string($_POST['department'] ?? null) ? $_POST['department'] : '';
+        $price = product_price_value($_POST['price'] ?? null);
         $description = trim(is_string($_POST['description'] ?? null) ? $_POST['description'] : '');
         $posted_colors = $_POST['colors'] ?? [];
         $colors_to_create = [];
         $saved_images = [];
 
-        if ($supplier_id === false || $supplier_id < 1) {
+        if ($supplier_id === null) {
             $errors[] = 'Choose a valid brand.';
         }
         if ($name === '' || mb_strlen($name) > 150) {
             $errors[] = 'Enter a product name up to 150 characters.';
         }
-        if ($category_id_input !== '' && ($category_id === false || $category_id < 1)) {
+        if ($category_id_value !== '' && !is_string($category_id_value)) {
+            $errors[] = 'Choose a valid category.';
+        }
+        if ($category_id_input !== '' && $category_id === null) {
             $errors[] = 'Choose a valid category.';
         } elseif ($category_id !== null) {
             $category_name = $category_names[$category_id] ?? null;
@@ -149,8 +154,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!in_array($department, ['men', 'women', 'kids'], true)) {
             $errors[] = 'Choose a valid department.';
         }
-        if ($price === false || $price < 0 || $price > 99999999.99) {
-            $errors[] = 'Enter a valid product price.';
+        if ($price === null) {
+            $errors[] = 'Enter a valid non-negative product price with no more than two decimal places.';
+        }
+        if (!$errors) {
+            $supplier_stmt = mysqli_prepare($conn, "SELECT supplier_id FROM suppliers WHERE supplier_id = ?");
+            mysqli_stmt_bind_param($supplier_stmt, 'i', $supplier_id);
+            mysqli_stmt_execute($supplier_stmt);
+            if (!mysqli_fetch_assoc(mysqli_stmt_get_result($supplier_stmt))) {
+                $errors[] = 'Choose a valid brand.';
+            }
         }
         $allowed_sizes = in_array($department, ['men', 'women', 'kids'], true)
             ? product_size_options($product_size_guide, $department, $category_name)
@@ -203,10 +216,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                     $valid_sizes[] = $size;
                     $raw_stock = $posted_stocks[$size] ?? null;
-                    $stock_input = is_string($raw_stock) || is_int($raw_stock)
-                        ? filter_var($raw_stock, FILTER_VALIDATE_INT)
-                        : false;
-                    if ($stock_input === false || $stock_input < 0 || $stock_input > 1000) {
+                    $stock_input = product_nonnegative_integer($raw_stock);
+                    if ($stock_input === null || $stock_input > 1000) {
                         $errors[] = 'Enter a valid stock amount between 0 and 1,000 for each selected size.';
                         $invalid_size = true;
                         break;
@@ -308,8 +319,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif (($_POST['action'] ?? '') === 'delete') {
-        $product_id = filter_var($_POST['product_id'] ?? null, FILTER_VALIDATE_INT);
-        if ($product_id === false || $product_id < 1) {
+        $product_id = product_positive_integer($_POST['product_id'] ?? null);
+        if ($product_id === null) {
             $errors[] = 'Choose a valid product.';
         } else {
             $usage_stmt = mysqli_prepare($conn,
@@ -409,10 +420,10 @@ include __DIR__ . '/../includes/header.php';
     <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-category-title">Add Category</h2></div>
     <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
   </div>
-  <form method="post" class="manage-form catalog-simple-form">
+  <form method="post" class="manage-form catalog-simple-form" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="add_category">
-    <label>Category name<input name="category_name" maxlength="50" required value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_category' ? ($_POST['category_name'] ?? '') : ''); ?>"></label>
+    <label>Category name<input name="category_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_category' && is_string($_POST['category_name'] ?? null) ? $_POST['category_name'] : ''); ?>"></label>
     <div class="manage-form-buttons">
       <button class="admin-button" type="submit">Add Category</button>
       <button class="manage-small-button" type="button" data-close-dialog>Cancel</button>
@@ -425,10 +436,10 @@ include __DIR__ . '/../includes/header.php';
     <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-brand-title">Add Brand</h2></div>
     <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
   </div>
-  <form method="post" enctype="multipart/form-data" class="manage-form catalog-simple-form">
+  <form method="post" enctype="multipart/form-data" class="manage-form catalog-simple-form" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="add_brand">
-    <label>Brand name<input name="brand_name" maxlength="120" required value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_brand' ? ($_POST['brand_name'] ?? '') : ''); ?>"></label>
+    <label>Brand name<input name="brand_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_brand' && is_string($_POST['brand_name'] ?? null) ? $_POST['brand_name'] : ''); ?>"></label>
     <label>Brand logo (optional)<input type="file" name="brand_logo" accept="image/jpeg,image/png,image/webp"><small class="manage-secondary">JPEG, PNG, or WebP · 5 MB max</small></label>
     <div class="manage-form-buttons">
       <button class="admin-button" type="submit">Add Brand</button>
@@ -461,23 +472,23 @@ include __DIR__ . '/../includes/header.php';
   }
   $all_size_options = array_values(array_unique($all_size_options));
   $selected_department = is_string($_POST['department'] ?? null) ? $_POST['department'] : 'men';
-  $selected_category_id = filter_var($_POST['category_id'] ?? null, FILTER_VALIDATE_INT);
-  $selected_category_name = $selected_category_id === false ? null : ($category_names[$selected_category_id] ?? null);
+  $selected_category_id = product_positive_integer($_POST['category_id'] ?? null);
+  $selected_category_name = $selected_category_id === null ? null : ($category_names[$selected_category_id] ?? null);
   $selected_size_options = product_size_options($product_size_guide, $selected_department, $selected_category_name);
   ?>
-  <form method="post" enctype="multipart/form-data" class="manage-form manage-product-create create-product-form">
+  <form method="post" enctype="multipart/form-data" class="manage-form manage-product-create create-product-form" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="create">
 
     <section class="manage-panel product-create-panel">
       <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2>Product details</h2></div></div>
       <div class="manage-product-fields">
-        <label class="product-field-wide">Product name<input name="name" maxlength="150" required value="<?php echo admin_escape($_POST['name'] ?? ''); ?>"></label>
-        <label>Price (₱)<input type="number" name="price" min="0" max="99999999.99" step="0.01" required value="<?php echo admin_escape($_POST['price'] ?? ''); ?>"></label>
-        <label>Department<select id="product-department" name="department" required><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $department_value => $department_label) { ?><option value="<?php echo $department_value; ?>" <?php echo $selected_department === $department_value ? 'selected' : ''; ?>><?php echo $department_label; ?></option><?php } ?></select></label>
-        <label>Brand<select name="supplier_id" required><option value="">Choose a brand</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo (string)($_POST['supplier_id'] ?? '') === (string)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
-        <label>Category<select id="product-category" name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { $category_group = $product_size_guide['category_groups'][strtolower(trim($category_option['name']))] ?? ''; ?><option value="<?php echo (int)$category_option['category_id']; ?>" data-size-group="<?php echo admin_escape($category_group); ?>" <?php echo (string)($_POST['category_id'] ?? '') === (string)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
-        <label class="product-field-wide">Description<textarea name="description" rows="4"><?php echo admin_escape($_POST['description'] ?? ''); ?></textarea></label>
+        <label class="product-field-wide">Product name<input name="name" value="<?php echo admin_escape(is_string($_POST['name'] ?? null) ? $_POST['name'] : ''); ?>"></label>
+        <label>Price (₱)<input type="text" inputmode="decimal" name="price" value="<?php echo admin_escape(is_string($_POST['price'] ?? null) ? $_POST['price'] : ''); ?>"></label>
+        <label>Department<select id="product-department" name="department"><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $department_value => $department_label) { ?><option value="<?php echo $department_value; ?>" <?php echo $selected_department === $department_value ? 'selected' : ''; ?>><?php echo $department_label; ?></option><?php } ?></select></label>
+        <label>Brand<select name="supplier_id"><option value="">Choose a brand</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo product_positive_integer($_POST['supplier_id'] ?? null) === (int)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
+        <label>Category<select id="product-category" name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { $category_group = $product_size_guide['category_groups'][strtolower(trim($category_option['name']))] ?? ''; ?><option value="<?php echo (int)$category_option['category_id']; ?>" data-size-group="<?php echo admin_escape($category_group); ?>" <?php echo $selected_category_id === (int)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
+        <label class="product-field-wide">Description<textarea name="description" rows="4"><?php echo admin_escape(is_string($_POST['description'] ?? null) ? $_POST['description'] : ''); ?></textarea></label>
       </div>
     </section>
 
@@ -489,7 +500,7 @@ include __DIR__ . '/../includes/header.php';
         <?php $color_row_number = 0; foreach ($form_colors as $posted_color) { $posted_color = is_array($posted_color) ? $posted_color : []; $color_index = $color_row_number++; $color_name_value = is_string($posted_color['name'] ?? null) ? $posted_color['name'] : ''; $selected_sizes = is_array($posted_color['sizes'] ?? null) ? $posted_color['sizes'] : []; $selected_stocks = is_array($posted_color['stocks'] ?? null) ? $posted_color['stocks'] : []; ?>
           <div class="product-color-row" data-color-row data-color-index="<?php echo $color_index; ?>">
             <div class="product-color-row-heading"><strong>Color option</strong><button class="manage-small-button is-danger product-color-remove" type="button" aria-label="Remove color">Remove</button></div>
-            <label>Color name<input data-color-name name="colors[<?php echo $color_index; ?>][name]" maxlength="80" required placeholder="e.g. Navy" value="<?php echo admin_escape($color_name_value); ?>"></label>
+            <label>Color name<input data-color-name name="colors[<?php echo $color_index; ?>][name]" placeholder="e.g. Navy" value="<?php echo admin_escape($color_name_value); ?>"></label>
             <div class="product-color-controls">
               <div class="product-size-stock">
                 <details class="product-size-picker">
@@ -599,11 +610,8 @@ include __DIR__ . '/../includes/header.php';
           var sizeName = document.createElement('span');
           sizeName.textContent = checkbox.value;
           var stockInput = document.createElement('input');
-          stockInput.type = 'number';
-          stockInput.min = '0';
-          stockInput.max = '1000';
-          stockInput.step = '1';
-          stockInput.required = true;
+          stockInput.type = 'text';
+          stockInput.inputMode = 'numeric';
           stockInput.value = checkbox.dataset.stock || '0';
           stockInput.name = 'colors[' + row.dataset.colorIndex + '][stocks][' + checkbox.value + ']';
           stockInput.setAttribute('aria-label', 'Stock for size ' + checkbox.value);
@@ -778,7 +786,7 @@ include __DIR__ . '/../includes/header.php';
           <td><div class="manage-row-actions">
             <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-products/edit.php?id=<?php echo (int)$product['product_id']; ?>">Edit</a>
             <?php if ((int)$product['order_count'] === 0) { ?>
-              <form method="post" onsubmit="return confirm('Delete this product? Products included in orders cannot be deleted.');">
+              <form method="post" novalidate onsubmit="return confirm('Delete this product? Products included in orders cannot be deleted.');">
                 <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="product_id" value="<?php echo (int)$product['product_id']; ?>">

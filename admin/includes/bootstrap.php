@@ -4,9 +4,12 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/admin_redirect.php';
 
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    header('Location: ' . BASE_URL . 'admin/login.php');
+    $return_path = safe_admin_return_path($_SERVER['REQUEST_URI'] ?? '');
+    $_SESSION['admin_login_notice'] = 'Please sign in with an active administrator account to access that page.';
+    header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
     exit;
 }
 
@@ -18,7 +21,9 @@ $admin_account = mysqli_fetch_assoc(mysqli_stmt_get_result($admin_status_stmt));
 
 if (!$admin_account || $admin_account['status'] !== 'active') {
     unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
-    header('Location: ' . BASE_URL . 'admin/login.php');
+    $return_path = safe_admin_return_path($_SERVER['REQUEST_URI'] ?? '');
+    $_SESSION['admin_login_notice'] = 'Your administrator account is inactive. Contact another administrator for assistance.';
+    header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
     exit;
 }
 

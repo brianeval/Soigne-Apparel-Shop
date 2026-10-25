@@ -25,11 +25,29 @@ function load_admin_order(mysqli $conn, int $order_id): ?array
     return $order ?: null;
 }
 
-function admin_send_order_update_notification(array $order, string $action): bool
+function admin_send_order_update_notification(mysqli $conn, array $order, string $action): bool
 {
     try {
+        if ($action === 'mark_paid') {
+            $items_stmt = mysqli_prepare($conn,
+                "SELECT p.name AS product_name, pc.color, v.size, oi.quantity, oi.price
+                 FROM order_items oi
+                 JOIN product_variants v ON v.variant_id = oi.variant_id
+                 JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+                 JOIN products p ON p.product_id = pc.product_id
+                 WHERE oi.order_id = ?
+                 ORDER BY oi.order_item_id"
+            );
+            $order_id = (int)$order['order_id'];
+            mysqli_stmt_bind_param($items_stmt, 'i', $order_id);
+            mysqli_stmt_execute($items_stmt);
+            $order['items'] = mysqli_fetch_all(mysqli_stmt_get_result($items_stmt), MYSQLI_ASSOC);
+        }
         send_order_update_email($order, $action);
         return true;
+    } catch (mysqli_sql_exception $exception) {
+        error_log('Could not load order receipt items for order #' . (int)$order['order_id'] . ': ' . $exception->getMessage());
+        return false;
     } catch (RuntimeException $exception) {
         $details = $exception->getMessage();
         if ($exception->getPrevious()) {
@@ -169,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($action === 'mark_paid') {
                     $notification_order['payment_status'] = 'paid';
                 }
-                $email_sent = admin_send_order_update_notification($notification_order, $action);
+                $email_sent = admin_send_order_update_notification($conn, $notification_order, $action);
                 $success_messages = [
                     'mark_shipped' => 'Order marked as shipped.',
                     'mark_delivered' => 'Order marked as delivered.',

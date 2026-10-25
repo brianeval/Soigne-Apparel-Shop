@@ -971,9 +971,7 @@ echo json_encode($kids_top_guide, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | 
   renderTopRange('long', selectedTopRanges.long);
   renderWomenRange(Object.keys(womenTopGuideData)[0]);
   renderWomenBottomRange(document.querySelector('[data-women-bottom-range]').getAttribute('data-women-bottom-range'));
-  Object.keys(kidsAgeGuides).forEach(function (ageKey) {
-    renderKidsAgeGuide(ageKey);
-  });
+  renderKidsRange(Object.keys(kidsTopGuideData.size_ranges)[0]);
 })();
 </script>
 

@@ -12,7 +12,7 @@ USE soigne_apparel;
 -- 1. Clean slate
 -- ---------------------------------------------------------------------
 SET FOREIGN_KEY_CHECKS = 0;
-DROP VIEW  IF EXISTS all_costs, restock_totals, order_totals;
+DROP VIEW  IF EXISTS all_costs, restock_totals, order_transaction_details, order_totals;
 DROP TABLE IF EXISTS product_reviews, restock_items, restocks, expenses,
                      order_items, orders, cart,
                      product_variants, product_color_images, product_colors, products,
@@ -230,6 +230,34 @@ CREATE VIEW order_totals AS
 SELECT order_id, SUM(quantity * price) AS total
 FROM order_items
 GROUP BY order_id;
+
+CREATE VIEW order_transaction_details AS
+SELECT
+  o.order_id AS transaction_id,
+  o.order_id,
+  o.user_id,
+  o.fulfillment_status,
+  o.payment_status,
+  o.shipping_address,
+  o.created_at AS transaction_date,
+  oi.order_item_id,
+  p.product_id,
+  p.name AS product_name,
+  p.department,
+  pc.product_color_id,
+  pc.color,
+  v.variant_id,
+  v.size,
+  oi.quantity,
+  oi.price AS unit_price,
+  oi.quantity * oi.price AS line_subtotal,
+  ot.total AS order_total
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.order_id
+JOIN product_variants v ON v.variant_id = oi.variant_id
+JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+JOIN products p ON p.product_id = pc.product_id
+JOIN order_totals ot ON ot.order_id = o.order_id;
 
 CREATE VIEW restock_totals AS
 SELECT restock_id, SUM(quantity * unit_cost) AS total

@@ -1,4 +1,4 @@
-# Mailtrap setup for order confirmation emails
+# Mailtrap setup for order emails
 
 Follow these steps on each computer that runs the shop locally. Each person can use their own Mailtrap account and sandbox credentials. The credentials are configured on that computer; they are not stored in the project.
 
@@ -45,9 +45,10 @@ Keep the username and password private. Do not send them to anyone, add them to 
 2. Sign in with a test customer account that has an email address on its profile.
 3. Add an in-stock product to the cart and complete checkout.
 4. The order should be placed even if email sending is unavailable. If sending fails, checkout will display a message that the confirmation email could not be sent.
+5. To test a paid-order receipt, complete a COD order, mark it shipped and delivered in the admin order manager, then mark the delivered order as paid.
 
 ## 6. Check your Mailtrap inbox
 
-Open the same sandbox inbox from step 1. The confirmation should appear there with the order number, products, quantities, prices, total, shipping name and address, and payment method.
+Open the same sandbox inbox from step 1. Order confirmations and status updates should appear there. The message sent when an order is marked paid includes a PDF receipt attachment with the order number, customer, product and variant details, quantities, line subtotals, subtotal, and grand total.
 
 With **Email Testing / Sandbox**, messages are captured in the Mailtrap inbox; they are not delivered to the customer's real email address. To deliver real emails, configure Mailtrap's **Email Sending** SMTP service instead, using its host, port, and credentials.

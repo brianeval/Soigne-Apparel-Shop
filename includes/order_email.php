@@ -4,7 +4,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-function send_order_email_message(string $email, string $customer_name, string $subject, string $html, string $text): void
+function send_order_email_message(string $email, string $customer_name, string $subject, string $html, string $text, array $attachments = []): void
 {
     $username = getenv('MAILTRAP_USERNAME');
     $password = getenv('MAILTRAP_PASSWORD');
@@ -36,6 +36,14 @@ function send_order_email_message(string $email, string $customer_name, string $
         $mailer->isHTML(true);
         $mailer->Body = $html;
         $mailer->AltBody = $text;
+        foreach ($attachments as $attachment) {
+            $mailer->addStringAttachment(
+                $attachment['content'],
+                $attachment['name'],
+                PHPMailer::ENCODING_BASE64,
+                $attachment['mime']
+            );
+        }
         $mailer->send();
     } catch (MailerException $exception) {
         $server_reply = trim($mailer->getSMTPInstance()->getLastReply());
@@ -45,6 +53,115 @@ function send_order_email_message(string $email, string $customer_name, string $
         }
         throw new RuntimeException($error_message, 0, $exception);
     }
+}
+
+function build_order_receipt_pdf(array $order): string
+{
+    if (empty($order['items']) || !is_array($order['items'])) {
+        throw new RuntimeException('Order receipt has no items.');
+    }
+
+    $to_pdf_text = static function (string $text): string {
+        if (!function_exists('iconv')) {
+            throw new RuntimeException('The iconv extension is required to generate order receipts.');
+        }
+        $converted = iconv('UTF-8', 'Windows-1252//TRANSLIT', $text);
+        if ($converted === false) {
+            throw new RuntimeException('Order receipt text could not be converted for PDF output.');
+        }
+        return str_replace(["\\", "(", ")", "\r", "\n"], ["\\\\", "\\(", "\\)", ' ', ' '], $converted);
+    };
+    $money = static function (float $amount): string {
+        return 'PHP ' . number_format($amount, 2);
+    };
+
+    $order_id = (int)($order['order_id'] ?? 0);
+    $items = $order['items'];
+    $lines = [
+        'SOIGNE APPAREL SHOP',
+        'ORDER RECEIPT',
+        '',
+        'Order number: #' . $order_id,
+        'Date: ' . (string)($order['created_at'] ?? ''),
+        'Customer: ' . (string)($order['customer_name'] ?? ''),
+        'Email: ' . (string)($order['email'] ?? ''),
+        'Shipping address: ' . (string)($order['shipping_address'] ?? ''),
+        'Payment status: Paid',
+        '',
+        'ORDER ITEMS',
+        str_repeat('-', 76),
+    ];
+    $subtotal = 0.0;
+    foreach ($items as $item) {
+        $quantity = (int)($item['quantity'] ?? 0);
+        $unit_price = (float)($item['price'] ?? 0);
+        if ($quantity < 1 || $unit_price < 0) {
+            throw new RuntimeException('Order receipt contains invalid item details.');
+        }
+        $line_total = $unit_price * $quantity;
+        $subtotal += $line_total;
+        $description = trim(
+            (string)($item['product_name'] ?? $item['name'] ?? '')
+            . ' | ' . (string)($item['color'] ?? '')
+            . ' | Size ' . (string)($item['size'] ?? '')
+        );
+        foreach (explode("\n", wordwrap($description, 76, "\n", true)) as $description_line) {
+            $lines[] = $description_line;
+        }
+        $lines[] = 'Qty: ' . $quantity . ' | Unit price: ' . $money($unit_price)
+            . ' | Line subtotal: ' . $money($line_total);
+        $lines[] = '';
+    }
+    $lines[] = str_repeat('-', 76);
+    $lines[] = 'Subtotal: ' . $money($subtotal);
+    $lines[] = 'Grand total: ' . $money($subtotal);
+
+    $wrapped_lines = [];
+    foreach ($lines as $line) {
+        foreach (explode("\n", wordwrap($line, 86, "\n", true)) as $wrapped_line) {
+            $wrapped_lines[] = $wrapped_line;
+        }
+    }
+    $page_lines = array_chunk($wrapped_lines, 48);
+    $objects = [];
+    $page_references = [];
+    $objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+    $objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+
+    foreach ($page_lines as $page_index => $current_lines) {
+        $page_object_id = 4 + ($page_index * 2);
+        $content_object_id = $page_object_id + 1;
+        $page_references[] = $page_object_id . ' 0 R';
+        $content = '';
+        foreach ($current_lines as $line_index => $line) {
+            $y = 748 - ($line_index * 15);
+            $font_size = $page_index === 0 && $line_index < 2 ? 16 : 10;
+            $content .= 'BT /F1 ' . $font_size . ' Tf 48 ' . $y . ' Td (' . $to_pdf_text($line) . ") Tj ET\n";
+        }
+        $objects[$page_object_id] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] '
+            . '/Resources << /Font << /F1 3 0 R >> >> /Contents ' . $content_object_id . ' 0 R >>';
+        $objects[$content_object_id] = '<< /Length ' . strlen($content) . " >>\nstream\n" . $content . "endstream";
+    }
+
+    $objects[2] = '<< /Type /Pages /Kids [' . implode(' ', $page_references) . '] /Count ' . count($page_references) . ' >>';
+    ksort($objects);
+    $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+    $offsets = [0];
+    foreach ($objects as $object_id => $object_body) {
+        $offsets[$object_id] = strlen($pdf);
+        $pdf .= $object_id . " 0 obj\n" . $object_body . "\nendobj\n";
+    }
+
+    $xref_offset = strlen($pdf);
+    $object_count = max(array_keys($objects)) + 1;
+    $pdf .= "xref\n0 " . $object_count . "\n0000000000 65535 f \n";
+    for ($object_id = 1; $object_id < $object_count; $object_id++) {
+        $pdf .= sprintf("%010d 00000 n \n", $offsets[$object_id] ?? 0);
+    }
+    $pdf .= "trailer\n<< /Size " . $object_count . " /Root 1 0 R >>\nstartxref\n"
+        . $xref_offset . "\n%%EOF";
+
+    return $pdf;
 }
 
 function send_order_confirmation_email(array $order): void
@@ -136,7 +253,7 @@ function send_order_update_email(array $order, string $update_type): void
         'mark_paid' => [
             'subject' => 'Payment received for your Soigné order',
             'title' => 'Payment confirmed',
-            'message' => 'We have confirmed that payment for your delivered order has been received. Thank you for shopping with Soigné.',
+            'message' => 'We have confirmed that payment for your delivered order has been received. Your PDF receipt is attached. Thank you for shopping with Soigné.',
         ],
         'cancel' => [
             'subject' => 'Your Soigné order was cancelled',
@@ -152,6 +269,17 @@ function send_order_update_email(array $order, string $update_type): void
 
     if (!isset($updates[$update_type])) {
         throw new InvalidArgumentException('Unsupported order update email type.');
+    }
+    $attachments = [];
+    if ($update_type === 'mark_paid') {
+        if (($order['payment_status'] ?? '') !== 'paid') {
+            throw new InvalidArgumentException('A receipt can only be attached to a paid order email.');
+        }
+        $attachments[] = [
+            'content' => build_order_receipt_pdf($order),
+            'name' => 'soigne-order-receipt-' . (int)$order['order_id'] . '.pdf',
+            'mime' => 'application/pdf',
+        ];
     }
 
     $escape = static function ($value): string {
@@ -198,6 +326,7 @@ function send_order_update_email(array $order, string $update_type): void
         $order['customer_name'],
         $update['subject'] . ' (#' . $order_number . ')',
         $html,
-        $text
+        $text,
+        $attachments
     );
 }

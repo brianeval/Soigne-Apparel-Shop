@@ -36,8 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $login_value = is_string($submitted_login) ? trim($submitted_login) : '';
     $password = is_string($submitted_password) ? $submitted_password : '';
 
-    if ($login_value === '' || $password === '') {
+    if ($login_value === '' && $password === '') {
         $error = 'Please enter your username or email and your password.';
+    } elseif ($login_value === '') {
+        $error = 'Please enter your username or email.';
+    } elseif ($password === '') {
+        $error = 'Please enter your password.';
     } else {
         // Only active customer and VIP accounts can authenticate through the storefront login.
         $login_column = filter_var($login_value, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
@@ -98,14 +102,14 @@ include_once('../includes/header.php');
       <p class="login-error" role="alert"><?php echo htmlspecialchars($error); ?></p>
     <?php } ?>
 
-    <form method="post" action="login.php">
+    <form method="post" action="login.php" novalidate>
       <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect); ?>">
 
       <label for="login">Username or email</label>
-      <input type="text" id="login" name="login" value="<?php echo htmlspecialchars($login_value); ?>" autocomplete="username" required autofocus>
+      <input type="text" id="login" name="login" value="<?php echo htmlspecialchars($login_value); ?>" autocomplete="username" autofocus>
 
       <label for="password">Password</label>
-      <input type="password" id="password" name="password" required>
+      <input type="password" id="password" name="password">
 
       <button class="btn" type="submit">Sign in</button>
     </form>
