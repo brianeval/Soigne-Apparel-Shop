@@ -5,7 +5,7 @@ $stats_result = mysqli_query($conn,
     "SELECT
         (SELECT COUNT(*) FROM products) AS product_count,
         (SELECT COUNT(*) FROM orders) AS order_count,
-        (SELECT COUNT(*) FROM users WHERE role IN ('customer', 'vip', 'banned')) AS customer_count,
+        (SELECT COUNT(*) FROM users WHERE role IN ('customer', 'vip')) AS customer_count,
         (SELECT COUNT(*) FROM orders WHERE fulfillment_status = 'pending' AND payment_status = 'unpaid') AS pending_count,
         (SELECT COALESCE(SUM(oi.quantity * oi.price), 0)
          FROM order_items oi

@@ -22,7 +22,7 @@ if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
         exit;
     }
 }
-if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip', 'banned'], true)) {
+if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
     header('Location: ' . $redirect);
     exit;
 }
@@ -39,12 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($login_value === '' || $password === '') {
         $error = 'Please enter your username or email and your password.';
     } else {
-        // Active customer, VIP, and suspended accounts can authenticate through the storefront login.
+        // Only active customer and VIP accounts can authenticate through the storefront login.
         $login_column = filter_var($login_value, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
         $q = "SELECT user_id, username, password, role, vip_expires_at,
                      (vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP) AS vip_expired
               FROM users
-              WHERE $login_column = ? AND role IN ('customer', 'vip', 'banned') AND status = 'active'
+              WHERE $login_column = ? AND role IN ('customer', 'vip') AND status = 'active'
               LIMIT 1";
         $stmt = mysqli_prepare($conn, $q);
         mysqli_stmt_bind_param($stmt, 's', $login_value);
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 unset($_SESSION['vip_expires_at']);
             }
-            header('Location: ' . ($user['role'] === 'banned' && $redirect === 'index.php' ? BASE_URL . 'index.php' : $redirect));
+            header('Location: ' . $redirect);
             exit;
         }
 

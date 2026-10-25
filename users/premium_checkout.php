@@ -5,10 +5,6 @@ require_once __DIR__ . '/../includes/customer_auth.php';
 
 $role = sync_customer_session($conn);
 if (!in_array($role, ['customer', 'vip'], true)) {
-    if ($role === 'banned') {
-        http_response_code(403);
-        exit('Suspended accounts cannot purchase Soigné Premium.');
-    }
     header('Location: ' . BASE_URL . 'users/login.php?redirect=' . urlencode(BASE_URL . 'users/premium_checkout.php'));
     exit;
 }

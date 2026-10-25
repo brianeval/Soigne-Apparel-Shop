@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$errors) {
             mysqli_begin_transaction($conn);
             try {
-                $customer_stmt = mysqli_prepare($conn, "SELECT user_id FROM users WHERE user_id = ? AND role IN ('customer', 'vip', 'banned') AND status = 'active' FOR UPDATE");
+                $customer_stmt = mysqli_prepare($conn, "SELECT user_id FROM users WHERE user_id = ? AND role IN ('customer', 'vip') AND status = 'active' FOR UPDATE");
                 mysqli_stmt_bind_param($customer_stmt, 'i', $user_id);
                 mysqli_stmt_execute($customer_stmt);
                 if (!mysqli_fetch_assoc(mysqli_stmt_get_result($customer_stmt))) {

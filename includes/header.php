@@ -8,12 +8,12 @@ $customer_role = sync_customer_session($conn);
 // Count the signed-in user's cart items.
 // This query totals the quantity of all items in the current user's cart for the cart badge.
 $cart_count = 0;
-if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip', 'banned'], true)) {
+if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
     $stmt = mysqli_prepare($conn,
         "SELECT COALESCE(SUM(c.quantity), 0) AS item_count
          FROM cart c
          JOIN users u ON u.user_id = c.user_id
-         WHERE c.user_id = ? AND u.role IN ('customer', 'vip', 'banned') AND u.status = 'active'"
+         WHERE c.user_id = ? AND u.role IN ('customer', 'vip') AND u.status = 'active'"
     );
     $user_id = (int)$_SESSION['user_id'];
     mysqli_stmt_bind_param($stmt, 'i', $user_id);

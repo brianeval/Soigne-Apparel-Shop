@@ -4,18 +4,12 @@ include_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/customer_auth.php';
 require_active_customer($conn, BASE_URL . 'cart/cart.php');
 $user_id = (int)$_SESSION['user_id'];
-$is_suspended = ($_SESSION['role'] ?? '') === 'banned';
 
 // --- Update / remove (then redirect so a refresh doesn't repeat it) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'checkout_selected') {
-        if ($is_suspended) {
-            $_SESSION['flash'] = ['type' => 'error', 'text' => 'Invalid request, account suspended'];
-            header('Location: ' . BASE_URL . 'cart/cart.php');
-            exit;
-        }
         $selected_ids = $_POST['selected_cart_ids'] ?? [];
         $valid_ids = [];
         if (is_array($selected_ids)) {
@@ -203,10 +197,7 @@ include_once ('../includes/header.php');
         <?php if ($has_issue) { ?>
           <p class="cart-warn">Some items in your cart have stock issues. Select only available items to check out.</p>
         <?php } ?>
-        <?php if ($is_suspended) { ?>
-          <p class="cart-warn" role="alert">Invalid request, account suspended</p>
-        <?php } ?>
-        <button class="btn is-disabled" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions" id="cart-checkout-selected" disabled <?php echo $is_suspended ? 'data-account-suspended="true"' : ''; ?>><?php echo $is_suspended ? 'Checkout unavailable' : 'Checkout'; ?></button>
+        <button class="btn is-disabled" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions" id="cart-checkout-selected" disabled>Checkout</button>
         <a class="sum-continue" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
       </aside>
     </div>
@@ -232,9 +223,8 @@ include_once ('../includes/header.php');
     selectAll.checked = selectedCount === itemCheckboxes.length;
     selectAll.indeterminate = selectedCount > 0 && selectedCount < itemCheckboxes.length;
     removeSelected.disabled = selectedCount === 0;
-    var isSuspended = checkoutSelected.dataset.accountSuspended === 'true';
-    checkoutSelected.disabled = selectedCount === 0 || isSuspended;
-    checkoutSelected.classList.toggle('is-disabled', selectedCount === 0 || isSuspended);
+    checkoutSelected.disabled = selectedCount === 0;
+    checkoutSelected.classList.toggle('is-disabled', selectedCount === 0);
   }
 
   selectAll.addEventListener('change', function () {

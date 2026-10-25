@@ -5,12 +5,6 @@ require_once __DIR__ . '/../includes/customer_auth.php';
 
 require_active_customer($conn, BASE_URL . 'orders/checkout.php');
 
-if (($_SESSION['role'] ?? '') === 'banned') {
-    $_SESSION['flash'] = ['type' => 'error', 'text' => 'Invalid request, account suspended'];
-    header('Location: ' . BASE_URL . 'cart/cart.php');
-    exit;
-}
-
 $user_id = (int)$_SESSION['user_id'];
 $errors = [];
 $success_order_id = $_SESSION['checkout_success'] ?? null;

@@ -27,7 +27,7 @@ CREATE TABLE users (
   username   VARCHAR(50)  NOT NULL UNIQUE,
   email      VARCHAR(120) NOT NULL UNIQUE,
   password   VARCHAR(255) NOT NULL,              -- password_hash() output
-  role       ENUM('customer','admin','vip','banned') NOT NULL DEFAULT 'customer',
+  role       ENUM('customer','admin','vip') NOT NULL DEFAULT 'customer',
   status     ENUM('active','inactive') NOT NULL DEFAULT 'active',
   vip_expires_at DATETIME NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP

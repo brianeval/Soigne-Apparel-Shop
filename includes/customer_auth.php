@@ -23,11 +23,6 @@ function sync_customer_session(mysqli $conn): string
         unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role'], $_SESSION['vip_expires_at']);
         return 'inactive';
     }
-    if ($account['role'] === 'banned') {
-        $_SESSION['role'] = 'banned';
-        unset($_SESSION['vip_expires_at']);
-        return 'banned';
-    }
     if ($account['role'] === 'vip' && (int)$account['vip_expired'] === 1) {
         $expire_stmt = mysqli_prepare($conn,
             "UPDATE users SET role = 'customer', vip_expires_at = NULL
@@ -68,7 +63,7 @@ function store_product_price_markup(float $price): string
 function require_active_customer(mysqli $conn, string $redirect_path): void
 {
     $role = sync_customer_session($conn);
-    if (!in_array($role, ['customer', 'vip', 'banned'], true)) {
+    if (!in_array($role, ['customer', 'vip'], true)) {
         header('Location: ' . BASE_URL . 'users/login.php?redirect=' . urlencode($redirect_path));
         exit;
     }

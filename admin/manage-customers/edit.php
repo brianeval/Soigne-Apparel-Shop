@@ -11,7 +11,7 @@ $stmt = mysqli_prepare($conn,
     "SELECT u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone, c.address
      FROM users u
      LEFT JOIN customers c ON c.user_id = u.user_id
-     WHERE u.user_id = ? AND u.role IN ('customer', 'vip', 'banned')"
+     WHERE u.user_id = ? AND u.role IN ('customer', 'vip')"
 );
 mysqli_stmt_bind_param($stmt, 'i', $user_id);
 mysqli_stmt_execute($stmt);
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 120) $errors[] = 'Enter a valid email address.';
         if (mb_strlen($phone) > 30 || mb_strlen($address) > 255) $errors[] = 'Phone or address is longer than the allowed limit.';
         if ($password !== '' && (strlen($password) < 8 || strlen($password) > 72)) $errors[] = 'A new password must be 8–72 characters.';
-        if (!in_array($role, ['customer', 'vip', 'banned'], true)) $errors[] = 'Choose a valid customer role.';
+        if (!in_array($role, ['customer', 'vip'], true)) $errors[] = 'Choose a valid customer role.';
 
         if (!$errors) {
             mysqli_begin_transaction($conn);
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                            ELSE NULL
                          END,
                          role = ?
-                     WHERE user_id = ? AND role IN ('customer', 'vip', 'banned')"
+                     WHERE user_id = ? AND role IN ('customer', 'vip')"
                 );
                 mysqli_stmt_bind_param($user_stmt, 'sssissi', $username, $email, $role, $renew_vip, $role, $role, $user_id);
                 mysqli_stmt_execute($user_stmt);
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_execute($customer_stmt);
                 if ($password !== '') {
                     $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                    $password_stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE user_id = ? AND role IN ('customer', 'vip', 'banned')");
+                    $password_stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE user_id = ? AND role IN ('customer', 'vip')");
                     mysqli_stmt_bind_param($password_stmt, 'si', $password_hash, $user_id);
                     mysqli_stmt_execute($password_stmt);
                 }
@@ -79,8 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = 'Customer updated. VIP remains active until ' . date('M j, Y', strtotime($customer['vip_expires_at'])) . '.';
                 } elseif ($role === 'vip') {
                     $message = 'Customer updated. Soigné Premium VIP is active for one month.';
-                } elseif ($role === 'banned') {
-                    $message = 'Customer updated. This account is suspended and cannot place orders.';
                 } else {
                     $message = 'Customer details updated.';
                 }
@@ -114,12 +112,12 @@ include __DIR__ . '/../includes/header.php';
       <select name="role" required>
         <?php
         $selected_role = $_POST['role'] ?? $customer['role'];
-        foreach (['customer' => 'Customer', 'vip' => 'VIP', 'banned' => 'Suspended'] as $role_value => $role_label) {
+        foreach (['customer' => 'Customer', 'vip' => 'VIP'] as $role_value => $role_label) {
         ?>
           <option value="<?php echo admin_escape($role_value); ?>" <?php echo $selected_role === $role_value ? 'selected' : ''; ?>><?php echo admin_escape($role_label); ?></option>
         <?php } ?>
       </select>
-      <small class="manage-secondary">VIP includes 10% off products for one month after activation. Suspended customers can browse and add to cart, but cannot place orders.</small>
+      <small class="manage-secondary">VIP includes 10% off products for one month after activation. Deactivate an account from the customer list to prevent sign-in.</small>
       <?php if ($customer['role'] === 'vip' && $customer['vip_expires_at']) { ?><small class="manage-secondary">VIP active until <?php echo admin_escape(date('M j, Y', strtotime($customer['vip_expires_at']))); ?>.</small><?php } ?>
     </label>
     <?php if ($customer['role'] === 'vip') { ?>

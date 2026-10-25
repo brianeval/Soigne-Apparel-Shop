@@ -215,7 +215,8 @@ foreach ($orders as &$order) {
          JOIN product_variants v ON v.variant_id = oi.variant_id
          JOIN product_colors pc ON pc.product_color_id = v.product_color_id
          JOIN products p ON p.product_id = pc.product_id
-         LEFT JOIN product_reviews r ON r.product_id = p.product_id AND r.user_id = ?
+         LEFT JOIN product_reviews r ON r.product_id = p.product_id
+                                   AND r.user_id = ?
          WHERE oi.order_id = ?
          ORDER BY oi.order_item_id ASC"
     );

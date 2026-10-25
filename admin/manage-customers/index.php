@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user_id === false || $user_id < 1 || !in_array($new_status, ['active', 'inactive'], true)) {
             $errors[] = 'Choose a valid customer account status.';
         } else {
-            $stmt = mysqli_prepare($conn, "UPDATE users SET status = ? WHERE user_id = ? AND role IN ('customer', 'vip', 'banned')");
+            $stmt = mysqli_prepare($conn, "UPDATE users SET status = ? WHERE user_id = ? AND role IN ('customer', 'vip')");
             mysqli_stmt_bind_param($stmt, 'si', $new_status, $user_id);
             mysqli_stmt_execute($stmt);
             if (mysqli_stmt_affected_rows($stmt) !== 1) {
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $customer_stmt = mysqli_prepare($conn, "DELETE FROM customers WHERE user_id = ?");
                     mysqli_stmt_bind_param($customer_stmt, 'i', $user_id);
                     mysqli_stmt_execute($customer_stmt);
-                    $user_stmt = mysqli_prepare($conn, "DELETE FROM users WHERE user_id = ? AND role IN ('customer', 'vip', 'banned')");
+                    $user_stmt = mysqli_prepare($conn, "DELETE FROM users WHERE user_id = ? AND role IN ('customer', 'vip')");
                     mysqli_stmt_bind_param($user_stmt, 'i', $user_id);
                     mysqli_stmt_execute($user_stmt);
                     if (mysqli_stmt_affected_rows($user_stmt) !== 1) {
@@ -103,7 +103,7 @@ $expire_vip_stmt = mysqli_prepare($conn,
      WHERE role = 'vip' AND vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP"
 );
 mysqli_stmt_execute($expire_vip_stmt);
-$customer_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role IN ('customer', 'vip', 'banned')"))['total'];
+$customer_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role IN ('customer', 'vip')"))['total'];
 $customer_pagination = admin_pagination_page($customer_total);
 $customer_limit = $customer_pagination['page_size'];
 $customer_offset = $customer_pagination['offset'];
@@ -113,7 +113,7 @@ $result = mysqli_query($conn,
      FROM users u
      LEFT JOIN customers c ON c.user_id = u.user_id
      LEFT JOIN orders o ON o.user_id = u.user_id
-     WHERE u.role IN ('customer', 'vip', 'banned')
+     WHERE u.role IN ('customer', 'vip')
      GROUP BY u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone
      ORDER BY u.user_id DESC
      LIMIT $customer_limit OFFSET $customer_offset"
@@ -157,7 +157,7 @@ include __DIR__ . '/../includes/header.php';
           <td><?php echo admin_escape($customer['username']); ?></td>
           <td><?php echo admin_escape($customer['email']); ?></td>
           <td><?php echo (int)$customer['order_count']; ?></td>
-          <td><?php echo admin_escape(['customer' => 'Customer', 'vip' => 'VIP', 'banned' => 'Suspended'][$customer['role']] ?? ucfirst($customer['role'])); ?>
+          <td><?php echo admin_escape(['customer' => 'Customer', 'vip' => 'VIP'][$customer['role']] ?? ucfirst($customer['role'])); ?>
             <?php if ($customer['role'] === 'vip' && $customer['vip_expires_at']) { ?><small class="manage-secondary">Until <?php echo admin_escape(date('M j, Y', strtotime($customer['vip_expires_at']))); ?></small><?php } ?>
           </td>
           <td><span class="manage-status-<?php echo admin_escape($customer['status']); ?>"><?php echo ucfirst(admin_escape($customer['status'])); ?></span></td>
