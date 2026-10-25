@@ -82,8 +82,8 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 }
 .premium-member-notice {
   padding: 10px 20px;
-  background: #f3f1ee;
-  color: #276738;
+  background: #000;
+  color: #fff;
   font-size: 14px;
   text-align: center;
 }
