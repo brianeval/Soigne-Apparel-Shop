@@ -14,6 +14,14 @@
   $products = mysqli_fetch_all(mysqli_query($conn, $q), MYSQLI_ASSOC);
   $product_image_map = product_color_image_paths($conn, array_map('intval', array_column($products, 'first_color_id')));
 ?>
+<script>
+(function () {
+  if ('IntersectionObserver' in window &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('has-scroll-reveal');
+  }
+})();
+</script>
   <main>
     <section class="hero" aria-label="Featured collections">
       <div class="hero-slide is-active" data-hero-slide aria-hidden="false">
@@ -94,6 +102,23 @@
   </main>
 
 <script>
+(function () {
+  var sections = document.querySelectorAll('main > .section');
+  if (!sections.length || !document.documentElement.classList.contains('has-scroll-reveal')) return;
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    });
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.01 });
+
+  sections.forEach(function (section) {
+    observer.observe(section);
+  });
+})();
+
 (function () {
   var hero = document.querySelector('.hero');
   if (!hero) return;

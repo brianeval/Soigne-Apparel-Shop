@@ -327,3 +327,30 @@
     font-size: 25px;
   }
 }
+
+.profile-page { padding: clamp(34px, 5vw, 68px) clamp(18px, 5vw, 76px) 82px; background: #f4f1eb; }
+.profile-card { max-width: 1280px; }
+.profile-heading h1 {
+  font-family: var(--serif);
+  font-size: clamp(36px, 4.5vw, 52px);
+  font-weight: 400;
+  letter-spacing: -.045em;
+}
+.profile-heading p, .profile-password-fields > p { color: var(--muted); }
+.profile-panel { border-color: var(--line); background: var(--paper); }
+.profile-panel h2 { font-family: var(--serif); font-size: 25px; font-weight: 400; }
+.profile-edit, .profile-cancel {
+  border-color: #d6d1c8;
+  background: #fffefa;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+.profile-edit:hover, .profile-cancel:hover { border-color: var(--ink); background: var(--ink); color: #fffefa; }
+.profile-photo-preview { border-color: var(--line); background: #f1eee8; }
+.profile-file-picker { border-color: #d6d1c8; background: #f8f6f1; }
+.profile-file-button { border-color: var(--ink); font-size: 11px; letter-spacing: .04em; }
+.profile-file-button:hover { background: var(--ink); }
+.profile-field label { font-size: 11px; letter-spacing: .04em; }
+.profile-field input, .profile-field textarea { border-color: #d6d1c8; background: #fffefa; font-size: 13px; }
+.profile-field input[readonly], .profile-field textarea[readonly] { background: #f5f2ec; }
+.profile-field input:focus, .profile-field textarea:focus { outline-color: #887d68; }
+.profile-actions .btn, .profile-picture-panel .btn { font-size: 11px; }

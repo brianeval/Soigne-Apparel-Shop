@@ -113,3 +113,32 @@
   font-weight: 600;
   text-decoration: underline;
 }
+
+.login-page {
+  min-height: 68vh;
+  padding: clamp(42px, 7vw, 84px) 20px;
+  background: #f4f1eb;
+}
+.login-card {
+  max-width: 460px;
+  padding: clamp(28px, 5vw, 48px);
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+.login-card h1 {
+  font-family: var(--serif);
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: -.04em;
+}
+.login-sub { color: var(--muted); line-height: 1.65; }
+.login-card label { font-size: 11px; letter-spacing: .04em; }
+.login-card input[type="text"], .login-card input[type="email"], .login-card input[type="tel"], .login-card input[type="password"], .login-card textarea {
+  border-color: #d6d1c8;
+  background: #fffefa;
+  font-size: 13px;
+}
+.login-card input:focus, .login-card textarea:focus { outline-color: #887d68; }
+.login-alt { color: var(--muted); }
+.login-alt a { text-underline-offset: 4px; }
+.register-avatar-preview { border-color: var(--line); }

@@ -144,3 +144,71 @@
 }
 
 .brand-card:hover .dept-name { text-decoration: underline; }
+
+/* Coordinated editorial catalog styling */
+.dept-page {
+  max-width: 1540px;
+  padding: clamp(36px, 6vw, 76px) clamp(20px, 5vw, 76px) 88px;
+}
+
+.dept-head, .brand-head {
+  align-items: end;
+  gap: 14px;
+  margin-bottom: 34px;
+}
+
+.dept-head h1, .brand-head h1 {
+  font-family: var(--serif);
+  font-size: clamp(38px, 5vw, 60px);
+  font-weight: 400;
+  letter-spacing: -.05em;
+}
+
+.dept-count { padding-bottom: 8px; color: var(--muted); font-size: 12px; }
+
+.dept-grid, .brand-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(28px, 4vw, 48px) clamp(12px, 2vw, 26px);
+}
+
+.dept-img {
+  margin-bottom: 14px;
+  background: #f1eee8;
+}
+.dept-img img { transition: transform 650ms cubic-bezier(.2, .65, .3, 1); }
+.dept-card:hover .dept-img img { transform: scale(1.04); }
+.dept-name {
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.dept-card:hover .dept-name { color: var(--accent); text-decoration: none; }
+.dept-meta { color: var(--muted); font-size: 11px; }
+.dept-price { margin-top: 6px; font-size: 13px; font-weight: 600; }
+
+.brand-back { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.brand-back a { text-underline-offset: 4px; }
+.brand-head-logo { height: 44px; }
+.brand-logo-box {
+  aspect-ratio: 1 / 1;
+  background: #f3f0e9;
+  transition: background-color 220ms ease;
+}
+.brand-logo-box img { transition: transform 350ms ease; }
+.brand-card:hover .brand-logo-box { background: #ece7dd; }
+.brand-card:hover .brand-logo-box img { transform: scale(1.04); }
+.brand-card:hover .dept-name { text-decoration: none; }
+
+@media (max-width: 900px) {
+  .dept-grid, .brand-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .dept-page { padding: 34px 18px 58px; }
+  .dept-head, .brand-head { margin-bottom: 24px; }
+  .dept-head h1, .brand-head h1 { font-size: 40px; }
+  .dept-grid, .brand-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 12px; }
+  .dept-img { margin-bottom: 10px; }
+  .dept-name, .dept-price { font-size: 12px; }
+}

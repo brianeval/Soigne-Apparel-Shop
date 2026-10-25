@@ -210,3 +210,56 @@
   .cart-select-all { font-size: 13px; }
   .cart-remove-all { padding: 6px 9px; }
 }
+
+.cart-page {
+  max-width: 1540px;
+  padding: clamp(34px, 5vw, 68px) clamp(18px, 5vw, 76px) 88px;
+}
+.cart-page h1 {
+  font-family: var(--serif);
+  font-size: clamp(38px, 5vw, 56px);
+  font-weight: 400;
+  letter-spacing: -.045em;
+}
+.cart-page-heading { grid-template-columns: minmax(0, 1fr) 300px; gap: 32px; margin-bottom: 26px; }
+.cart-layout { grid-template-columns: minmax(0, 1fr) 330px; gap: clamp(30px, 5vw, 76px); }
+.cart-row { padding-top: 22px; padding-bottom: 22px; border-color: var(--line); }
+.cart-row.is-selected { outline-color: #8c826e; background: #f7f4ee; }
+.cart-img { background: #f1eee8; }
+.cart-img img { transition: transform 500ms ease; }
+.cart-row:hover .cart-img img { transform: scale(1.035); }
+.cart-name { font-size: 14px; font-weight: 500; }
+.cart-name:hover { color: var(--accent); text-decoration: none; }
+.cart-variant, .cart-unit { color: var(--muted); font-size: 12px; }
+.cart-qty { font-size: 12px; }
+.cart-qty input { border-color: #d6d1c8; }
+.link-btn { color: var(--muted); font-size: 11px; }
+.link-btn:hover { color: var(--ink); }
+.cart-line { font-size: 13px; }
+.cart-summary {
+  border: 1px solid var(--line);
+  background: #f4f1eb;
+  padding: 26px;
+}
+.cart-summary h2 { font-family: var(--serif); font-size: 25px; font-weight: 400; }
+.sum-row { font-size: 13px; }
+.sum-total { border-top-color: #d4cec3; font-size: 15px; }
+.sum-note { color: var(--muted); }
+.sum-continue { font-size: 11px; text-underline-offset: 4px; }
+.cart-remove-button { transition: color 180ms ease; }
+.cart-remove-button:hover { color: #8f5547; }
+
+@media (max-width: 800px) {
+  .cart-page { padding: 34px 18px 58px; }
+  .cart-page-heading { grid-template-columns: 1fr; gap: 15px; }
+  .cart-layout { grid-template-columns: 1fr; gap: 24px; }
+  .cart-summary { position: static; }
+}
+
+@media (max-width: 480px) {
+  .cart-page h1 { font-size: 38px; }
+  .cart-row { grid-template-columns: 18px 82px minmax(0, 1fr); gap: 10px; padding-right: 24px; }
+  .cart-img { grid-row: span 2; }
+  .cart-line { grid-column: 3; text-align: left; }
+  .cart-remove { top: 14px; }
+}

@@ -342,3 +342,33 @@
     transition: none;
   }
 }
+
+.size-guide-page { width: min(100% - 48px, 1080px); padding: clamp(38px, 6vw, 72px) 0 84px; }
+.size-guide-heading h1 {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5.5vw, 62px);
+  font-weight: 400;
+  letter-spacing: -.05em;
+}
+.size-guide-heading > p:last-child { color: var(--muted); line-height: 1.7; }
+.size-guide-eyebrow { letter-spacing: .14em; text-transform: uppercase; }
+.department-guide-tabs, .top-fit-tabs { border-color: var(--line); }
+.department-guide-tab, .top-fit-tab { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.department-guide-tab.is-selected, .top-fit-tab.is-selected { border-bottom-color: var(--ink); }
+.size-guide-card { border-color: var(--line); background: var(--paper); }
+.guide-type-tabs { border-color: var(--line); }
+.guide-type-tab { font-size: 12px; }
+.guide-type-tab.is-active { border-bottom-color: var(--ink); }
+.bottom-guide { padding: clamp(22px, 4vw, 38px); }
+.bottom-guide h2 { font-family: var(--serif); font-size: 30px; font-weight: 400; }
+.size-range-option { border-color: #d6d1c8; background: var(--paper); font-size: 13px; }
+.size-range-option:hover { background: #f1eee8; }
+.size-range-option.is-selected { border-color: var(--ink); background: var(--ink); }
+.measurement-section { border-color: var(--line); }
+.measurement-table th, .measurement-table td { border-color: var(--line); font-size: 13px; }
+.measurement-table thead th { font-size: 11px; }
+
+@media (max-width: 600px) {
+  .size-guide-page { width: min(100% - 36px, 1080px); padding: 34px 0 56px; }
+  .size-guide-heading h1 { font-size: 40px; }
+}
