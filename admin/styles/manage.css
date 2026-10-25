@@ -108,6 +108,7 @@
 .manage-secondary { display: block; margin-top: 3px; color: #7f867d; font-size: 12px; font-weight: 400; }
 .manage-row-actions { display: flex; align-items: center; gap: 7px; }
 .manage-row-actions form, .manage-inline-form { display: inline-flex; align-items: center; gap: 7px; }
+.manage-order-status-actions + .manage-form { margin-top: 18px; }
 .manage-small-button { min-height: 36px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid #d8d6d2; border-radius: 10px; background: #fff; color: #1c1c1c; box-shadow: 0 2px 4px rgba(28,28,28,.09), inset 0 1px 0 rgba(255,255,255,.9); font: 600 12px var(--admin-font); cursor: pointer; transition: box-shadow .15s ease, transform .15s ease, background .15s ease, border-color .15s ease, color .15s ease; }
 .manage-small-button:hover { border-color: var(--admin-accent); background: #fff; color: var(--admin-accent); box-shadow: 0 3px 6px rgba(28,28,28,.12), inset 0 1px 0 rgba(255,255,255,.9); }
 .manage-small-button:active { transform: translateY(1px); box-shadow: 0 1px 2px rgba(28,28,28,.1), inset 0 1px 2px rgba(0,0,0,.08); }

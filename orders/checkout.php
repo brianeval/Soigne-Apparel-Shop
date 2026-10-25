@@ -2,13 +2,16 @@
 session_start();
 include_once('../includes/config.php');
 require_once __DIR__ . '/../includes/customer_auth.php';
+require_once __DIR__ . '/../includes/order_email.php';
 
 require_active_customer($conn, BASE_URL . 'orders/checkout.php');
 
 $user_id = (int)$_SESSION['user_id'];
 $errors = [];
 $success_order_id = $_SESSION['checkout_success'] ?? null;
+$checkout_email_sent = $_SESSION['checkout_email_sent'] ?? null;
 unset($_SESSION['checkout_success']);
+unset($_SESSION['checkout_email_sent']);
 $checkout_cart_ids = $_SESSION['checkout_cart_ids'] ?? [];
 if (!is_array($checkout_cart_ids)) {
     $checkout_cart_ids = [];
@@ -91,6 +94,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     mysqli_rollback($conn);
                     $errors[] = 'One or more items are no longer available in the requested quantity. Please review your cart.';
                 } else {
+                    $payment_method = 'Cash on delivery (COD)';
+                    $recipient_stmt = mysqli_prepare($conn, "SELECT email FROM users WHERE user_id = ?");
+                    mysqli_stmt_bind_param($recipient_stmt, 'i', $user_id);
+                    mysqli_stmt_execute($recipient_stmt);
+                    $recipient = mysqli_fetch_assoc(mysqli_stmt_get_result($recipient_stmt));
+                    if (!$recipient || !filter_var($recipient['email'], FILTER_VALIDATE_EMAIL)) {
+                        throw new mysqli_sql_exception('The customer email address is unavailable.');
+                    }
+
                     // This query creates the main order record for the user and shipping address.
                     $stmt = mysqli_prepare($conn, "INSERT INTO orders (user_id, shipping_address) VALUES (?, ?)");
                     mysqli_stmt_bind_param($stmt, 'is', $user_id, $address);
@@ -104,10 +116,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stock_stmt = mysqli_prepare($conn, "UPDATE product_variants
                                                          SET stock = stock - ?
                                                          WHERE variant_id = ? AND stock >= ?");
+                    $email_items = [];
+                    $order_total = 0;
                     foreach ($items as $item) {
                         $variant_id = (int)$item['variant_id'];
                         $quantity = (int)$item['quantity'];
                         $price = round((float)$item['price'] * (($_SESSION['role'] ?? '') === 'vip' ? 0.90 : 1), 2);
+                        $email_items[] = [
+                            'name' => $item['name'],
+                            'color' => $item['color'],
+                            'size' => $item['size'],
+                            'quantity' => $quantity,
+                            'price' => $price,
+                        ];
+                        $order_total += $price * $quantity;
 
                         mysqli_stmt_bind_param($item_stmt, 'iiid', $order_id, $variant_id, $quantity, $price);
                         mysqli_stmt_execute($item_stmt);
@@ -128,7 +150,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     mysqli_commit($conn);
+                    $email_sent = false;
+                    try {
+                        send_order_confirmation_email([
+                            'email' => $recipient['email'],
+                            'customer_name' => $customer_name,
+                            'shipping_address' => $address,
+                            'payment_method' => $payment_method,
+                            'order_id' => $order_id,
+                            'items' => $email_items,
+                            'total' => round($order_total, 2),
+                        ]);
+                        $email_sent = true;
+                    } catch (RuntimeException $e) {
+                        $mail_error = $e->getMessage();
+                        if ($e->getPrevious()) {
+                            $mail_error .= ' Details: ' . $e->getPrevious()->getMessage();
+                        }
+                        error_log('Order confirmation email failed for order #' . $order_id . ': ' . $mail_error);
+                    }
                     $_SESSION['checkout_success'] = $order_id;
+                    $_SESSION['checkout_email_sent'] = $email_sent;
                     unset($_SESSION['checkout_cart_ids']);
                     unset($_SESSION['checkout_csrf']);
                     header('Location: ' . BASE_URL . 'orders/checkout.php');
@@ -192,6 +234,11 @@ include_once('../includes/header.php');
     <div class="checkout-notice is-success" role="status">
       <h2>Order placed successfully</h2>
       <p>Your order #<?php echo (int)$success_order_id; ?> is confirmed. Payment is due by cash on delivery.</p>
+      <?php if ($checkout_email_sent) { ?>
+        <p>A confirmation email with your order details has been sent to your account email address.</p>
+      <?php } else { ?>
+        <p>Your order is confirmed, but we could not send the confirmation email. Please contact us if you need a copy of your order details.</p>
+      <?php } ?>
     </div>
   <?php } ?>
 

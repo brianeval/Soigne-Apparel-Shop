@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../../includes/order_email.php';
 
 $order_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if ($order_id === false || $order_id < 1) {
@@ -10,13 +11,33 @@ if ($order_id === false || $order_id < 1) {
 function load_admin_order(mysqli $conn, int $order_id): ?array
 {
     $stmt = mysqli_prepare($conn,
-        "SELECT o.order_id, o.user_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at, u.username
-         FROM orders o JOIN users u ON u.user_id = o.user_id WHERE o.order_id = ?"
+        "SELECT o.order_id, o.user_id, o.fulfillment_status, o.payment_status, o.shipping_address,
+                o.created_at, u.username, u.email,
+                COALESCE(NULLIF(c.customer_name, ''), u.username) AS customer_name
+         FROM orders o
+         JOIN users u ON u.user_id = o.user_id
+         LEFT JOIN customers c ON c.user_id = u.user_id
+         WHERE o.order_id = ?"
     );
     mysqli_stmt_bind_param($stmt, 'i', $order_id);
     mysqli_stmt_execute($stmt);
     $order = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
     return $order ?: null;
+}
+
+function admin_send_order_update_notification(array $order, string $action): bool
+{
+    try {
+        send_order_update_email($order, $action);
+        return true;
+    } catch (RuntimeException $exception) {
+        $details = $exception->getMessage();
+        if ($exception->getPrevious()) {
+            $details .= ' Details: ' . $exception->getPrevious()->getMessage();
+        }
+        error_log('Order update email failed for order #' . (int)$order['order_id'] . ': ' . $details);
+        return false;
+    }
 }
 
 $order = load_admin_order($conn, $order_id);
@@ -48,12 +69,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!$current_order || $current_order['fulfillment_status'] !== 'pending') {
                         $errors[] = 'Only pending orders can have their shipping address changed.';
                     } else {
-                        admin_set_flash('success', 'Shipping address updated.');
+                        admin_set_flash('success', 'Shipping address is unchanged.');
                         header('Location: ' . BASE_URL . 'admin/manage-orders/edit.php?id=' . $order_id);
                         exit;
                     }
                 } else {
-                    admin_set_flash('success', 'Shipping address updated.');
+                    $notification_order = $order;
+                    $notification_order['shipping_address'] = $shipping_address;
+                    $email_sent = admin_send_order_update_notification($notification_order, 'update_address');
+                    admin_set_flash(
+                        'success',
+                        $email_sent
+                            ? 'Shipping address updated. A confirmation email was sent to the customer.'
+                            : 'Shipping address updated, but the customer email could not be sent.'
+                    );
                     header('Location: ' . BASE_URL . 'admin/manage-orders/edit.php?id=' . $order_id);
                     exit;
                 }
@@ -133,6 +162,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 mysqli_commit($conn);
+                $notification_order = $order;
+                if ($target_fulfillment !== null) {
+                    $notification_order['fulfillment_status'] = $target_fulfillment;
+                }
+                if ($action === 'mark_paid') {
+                    $notification_order['payment_status'] = 'paid';
+                }
+                $email_sent = admin_send_order_update_notification($notification_order, $action);
                 $success_messages = [
                     'mark_shipped' => 'Order marked as shipped.',
                     'mark_delivered' => 'Order marked as delivered.',
@@ -140,7 +177,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'mark_paid' => 'Payment marked as paid.',
                     'cancel' => 'Order cancelled. Reserved stock has been restored.',
                 ];
-                admin_set_flash('success', $success_messages[$action]);
+                admin_set_flash(
+                    'success',
+                    $success_messages[$action] . ($email_sent
+                        ? ' A confirmation email was sent to the customer.'
+                        : ' The customer email could not be sent.')
+                );
                 header('Location: ' . BASE_URL . 'admin/manage-orders/edit.php?id=' . $order_id);
                 exit;
             } catch (RuntimeException $exception) {
