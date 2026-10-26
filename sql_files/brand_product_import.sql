@@ -39,8 +39,7 @@ WHERE s.name = 'H&M'
 UPDATE product_colors AS pc
 JOIN products AS p ON p.product_id = pc.product_id
 JOIN suppliers AS s ON s.supplier_id = p.supplier_id
-SET pc.color = 'Black',
-    pc.image = 'Nike_T-Shirt_NS_BLK.jpg'
+SET pc.color = 'Black'
 WHERE s.name = 'Nike'
   AND p.name = 'Nike Sportswear Women''s T-Shirt'
   AND p.department = 'women'
@@ -267,20 +266,31 @@ WHERE NOT EXISTS (
     AND existing.department = source.department
 );
 
-INSERT INTO product_colors (product_id, color, image)
-SELECT DISTINCT p.product_id, source.color, images.image
+INSERT IGNORE INTO product_colors (product_id, color)
+SELECT DISTINCT p.product_id, source.color
 FROM tmp_brand_products AS source
 JOIN suppliers ON suppliers.name = source.brand
 JOIN products AS p
   ON p.supplier_id = suppliers.supplier_id
  AND p.name = source.name
  AND p.department = source.department
-LEFT JOIN tmp_brand_images AS images
-  ON images.brand = source.brand
- AND images.name = source.name
- AND images.color = source.color
-WHERE TRUE
-ON DUPLICATE KEY UPDATE image = COALESCE(VALUES(image), product_colors.image);
+WHERE TRUE;
+
+INSERT IGNORE INTO product_color_images (product_color_id, image_path)
+SELECT DISTINCT pc.product_color_id, images.image
+FROM tmp_brand_images AS images
+JOIN tmp_brand_products AS source
+  ON source.brand = images.brand
+ AND source.name = images.name
+ AND source.color = images.color
+JOIN suppliers ON suppliers.name = source.brand
+JOIN products AS p
+  ON p.supplier_id = suppliers.supplier_id
+ AND p.name = source.name
+ AND p.department = source.department
+JOIN product_colors AS pc
+  ON pc.product_id = p.product_id
+ AND pc.color = source.color;
 
 CREATE TEMPORARY TABLE tmp_brand_sizes (
   brand VARCHAR(120) NOT NULL,
@@ -650,8 +660,8 @@ SELECT missing.brand, missing.name, missing.color, options.size, missing.departm
 FROM tmp_missing_size_groups AS missing
 JOIN tmp_missing_size_options AS options ON options.size_group = missing.size_group;
 
-INSERT IGNORE INTO product_variants (product_color_id, size, stock)
-SELECT pc.product_color_id, sizes.size, 5
+INSERT INTO product_variants (product_color_id, size, stock)
+SELECT DISTINCT pc.product_color_id, sizes.size, 5
 FROM tmp_brand_sizes AS sizes
 JOIN tmp_brand_products AS size_color
   ON size_color.brand = sizes.brand
@@ -670,7 +680,13 @@ JOIN tmp_brand_products AS product_color
  AND product_color.department = sizes.department
 JOIN product_colors AS pc
   ON pc.product_id = p.product_id
- AND pc.color = product_color.color;
+ AND pc.color = product_color.color
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM product_variants AS existing
+  WHERE existing.product_color_id = pc.product_color_id
+    AND existing.size = sizes.size
+);
 
 UPDATE product_variants AS v
 JOIN product_colors AS pc ON pc.product_color_id = v.product_color_id

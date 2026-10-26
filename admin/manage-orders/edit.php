@@ -30,13 +30,10 @@ function admin_send_order_update_notification(mysqli $conn, array $order, string
     try {
         if ($action === 'mark_paid') {
             $items_stmt = mysqli_prepare($conn,
-                "SELECT p.name AS product_name, pc.color, v.size, oi.quantity, oi.price
-                 FROM order_items oi
-                 JOIN product_variants v ON v.variant_id = oi.variant_id
-                 JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                 JOIN products p ON p.product_id = pc.product_id
-                 WHERE oi.order_id = ?
-                 ORDER BY oi.order_item_id"
+                "SELECT product_name, color, size, quantity, unit_price AS price
+                 FROM order_transaction_details
+                 WHERE order_id = ?
+                 ORDER BY order_item_id"
             );
             $order_id = (int)$order['order_id'];
             mysqli_stmt_bind_param($items_stmt, 'i', $order_id);
@@ -215,13 +212,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $items_stmt = mysqli_prepare($conn,
-    "SELECT oi.quantity, oi.price, p.name AS product_name, pc.color, v.size
-     FROM order_items oi
-     JOIN product_variants v ON v.variant_id = oi.variant_id
-     JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-     JOIN products p ON p.product_id = pc.product_id
-     WHERE oi.order_id = ?
-     ORDER BY oi.order_item_id"
+    "SELECT quantity, unit_price AS price, product_name, color, size
+     FROM order_transaction_details
+     WHERE order_id = ?
+     ORDER BY order_item_id"
 );
 mysqli_stmt_bind_param($items_stmt, 'i', $order_id);
 mysqli_stmt_execute($items_stmt);

@@ -100,7 +100,6 @@ CREATE TABLE product_colors (
   product_color_id INT AUTO_INCREMENT PRIMARY KEY,
   product_id       INT         NOT NULL,
   color            VARCHAR(80) NOT NULL,
-  image            VARCHAR(255),
   FOREIGN KEY (product_id) REFERENCES products(product_id),
   UNIQUE KEY uniq_product_color (product_id, color)
 ) ENGINE=InnoDB;
@@ -226,11 +225,6 @@ CREATE TABLE expenses (
 -- ---------------------------------------------------------------------
 -- 8. Views (calculated, never stored)
 -- ---------------------------------------------------------------------
-CREATE VIEW order_totals AS
-SELECT order_id, SUM(quantity * price) AS total
-FROM order_items
-GROUP BY order_id;
-
 CREATE VIEW order_transaction_details AS
 SELECT
   o.order_id AS transaction_id,
@@ -257,7 +251,11 @@ JOIN order_items oi ON oi.order_id = o.order_id
 JOIN product_variants v ON v.variant_id = oi.variant_id
 JOIN product_colors pc ON pc.product_color_id = v.product_color_id
 JOIN products p ON p.product_id = pc.product_id
-JOIN order_totals ot ON ot.order_id = o.order_id;
+JOIN (
+  SELECT order_id, SUM(quantity * price) AS total
+  FROM order_items
+  GROUP BY order_id
+) ot ON ot.order_id = o.order_id;
 
 CREATE VIEW restock_totals AS
 SELECT restock_id, SUM(quantity * unit_cost) AS total
@@ -297,21 +295,25 @@ INSERT INTO products (supplier_id, name, category_id, department, price, descrip
 (@supplier_hm, 'Felted Button-Detail Jacket', (SELECT category_id FROM categories WHERE name = 'Outerwear'), 'women', 2880.00, 'Short jacket in soft, felted fabric. Band collar and an open front with decorative trim and spherical buttons.');
 
 
--- Add each color's primary image (put matching files in your images/ folder).
-INSERT INTO product_colors (product_id, color, image)
-SELECT p.product_id, colors.color, colors.image
+-- Add each color and its primary image (put matching files in your images/ folder).
+INSERT INTO product_colors (product_id, color)
+SELECT p.product_id, colors.color
 FROM products p
 JOIN suppliers s ON s.supplier_id = p.supplier_id
 JOIN (
- SELECT 'Felted Button-Detail Jacket' AS product_name, 'Dark Khaki Green' AS color, 'h&m_jacket_khaki.png' AS image
+ SELECT 'Felted Button-Detail Jacket' AS product_name, 'Dark Khaki Green' AS color
 ) AS colors ON colors.product_name = p.name
 WHERE p.name = 'Felted Button-Detail Jacket'
  AND s.name = 'H&M';
 
 INSERT IGNORE INTO product_color_images (product_color_id, image_path)
-SELECT product_color_id, image
-FROM product_colors
-WHERE image IS NOT NULL AND image <> '';
+SELECT pc.product_color_id, 'h&m_jacket_khaki.png'
+FROM product_colors AS pc
+JOIN products AS p ON p.product_id = pc.product_id
+JOIN suppliers AS s ON s.supplier_id = p.supplier_id
+WHERE s.name = 'H&M'
+  AND p.name = 'Felted Button-Detail Jacket'
+  AND pc.color = 'Dark Khaki Green';
 
 -- Variants: sizes S, M, L for every color, starting with 0 stock
 -- (stock is added by the sample restocks below)

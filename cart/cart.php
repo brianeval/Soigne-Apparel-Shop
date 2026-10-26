@@ -71,7 +71,12 @@ unset($_SESSION['flash']);
 // This query gets every cart item for the current user, along with the product details and stock.
 $q = "SELECT c.cart_id, c.quantity,
              v.size, v.stock,
-             pc.color, pc.image,
+             pc.color,
+             (SELECT pci.image_path
+              FROM product_color_images AS pci
+              WHERE pci.product_color_id = pc.product_color_id
+              ORDER BY pci.sort_order, pci.image_id
+              LIMIT 1) AS image,
              p.product_id, p.name, p.price
       FROM cart c
       JOIN product_variants v ON v.variant_id = c.variant_id

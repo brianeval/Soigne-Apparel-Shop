@@ -40,11 +40,29 @@
         </div>
         <div class="hero-img" role="img" aria-label="Nike apparel collection"></div>
       </div>
+      <div class="hero-slide hero-slide-hm" data-hero-slide aria-hidden="true">
+        <div class="hero-text">
+          <h1>Everyday style, made effortless.</h1>
+          <p>Explore modern essentials and easy-to-wear looks from H&amp;M.</p>
+          <a href="<?php echo BASE_URL; ?>brands.php?brand=H%26M" class="btn">Shop H&amp;M products</a>
+        </div>
+        <div class="hero-img" role="img" aria-label="H&amp;M apparel collection"></div>
+      </div>
+      <div class="hero-slide hero-slide-penshoppe" data-hero-slide aria-hidden="true">
+        <div class="hero-text">
+          <h1>Make room for more style.</h1>
+          <p>Find fresh everyday favorites and express your style with PENSHOPPE.</p>
+          <a href="<?php echo BASE_URL; ?>brands.php?brand=PENSHOPPE" class="btn">Shop PENSHOPPE products</a>
+        </div>
+        <div class="hero-img" role="img" aria-label="PENSHOPPE apparel collection"></div>
+      </div>
       <div class="hero-controls" role="group" aria-label="Featured slide controls">
         <button class="hero-arrow" type="button" data-hero-prev aria-label="Previous slide">&lsaquo;</button>
         <div class="hero-dots">
-          <button class="hero-dot is-active" type="button" data-hero-dot="0" aria-label="Show slide 1 of 2" aria-pressed="true"></button>
-          <button class="hero-dot" type="button" data-hero-dot="1" aria-label="Show slide 2 of 2" aria-pressed="false"></button>
+          <button class="hero-dot is-active" type="button" data-hero-dot="0" aria-label="Show slide 1 of 4" aria-pressed="true"></button>
+          <button class="hero-dot" type="button" data-hero-dot="1" aria-label="Show slide 2 of 4" aria-pressed="false"></button>
+          <button class="hero-dot" type="button" data-hero-dot="2" aria-label="Show slide 3 of 4" aria-pressed="false"></button>
+          <button class="hero-dot" type="button" data-hero-dot="3" aria-label="Show slide 4 of 4" aria-pressed="false"></button>
         </div>
         <button class="hero-arrow" type="button" data-hero-next aria-label="Next slide">&rsaquo;</button>
       </div>

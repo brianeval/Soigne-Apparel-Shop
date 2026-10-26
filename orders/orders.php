@@ -187,13 +187,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash = $_SESSION['orders_flash'] ?? null;
 unset($_SESSION['orders_flash']);
 
-// This query loads all of the current user's orders and totals for the order list page.
+// Keep orders with no line items visible while using the transaction view for totals.
 $stmt = mysqli_prepare($conn,
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at,
-            COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total,
-            COALESCE(SUM(oi.quantity), 0) AS item_count
+            COALESCE(SUM(details.line_subtotal), 0) AS order_total,
+            COALESCE(SUM(details.quantity), 0) AS item_count
      FROM orders o
-     LEFT JOIN order_items oi ON oi.order_id = o.order_id
+     LEFT JOIN order_transaction_details details ON details.order_id = o.order_id
      WHERE o.user_id = ?
      GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at
      ORDER BY o.order_id DESC"
@@ -205,22 +205,25 @@ $orders = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
 foreach ($orders as &$order) {
     $order_id = (int)$order['order_id'];
 
-    // This query loads the items within one order so each product can be shown in the details section.
+    // The transaction view supplies purchased item details; color images and reviews remain separate.
     $item_stmt = mysqli_prepare($conn,
-        "SELECT oi.order_item_id, oi.variant_id, oi.quantity, oi.price,
-                p.product_id, p.name AS product_name,
-                pc.image, v.size, pc.color,
+        "SELECT details.order_item_id, details.variant_id, details.quantity,
+                details.unit_price AS price, details.product_id, details.product_name,
+                (SELECT pci.image_path
+                 FROM product_color_images AS pci
+                 WHERE pci.product_color_id = details.product_color_id
+                 ORDER BY pci.sort_order, pci.image_id
+                 LIMIT 1) AS image,
+                details.size, details.color,
                 r.review_id, r.rating AS review_rating, r.review_text, r.status AS review_status
-         FROM order_items oi
-         JOIN product_variants v ON v.variant_id = oi.variant_id
-         JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-         JOIN products p ON p.product_id = pc.product_id
-         LEFT JOIN product_reviews r ON r.product_id = p.product_id
+         FROM order_transaction_details AS details
+         LEFT JOIN product_reviews r ON r.product_id = details.product_id
                                    AND r.user_id = ?
-         WHERE oi.order_id = ?
-         ORDER BY oi.order_item_id ASC"
+         WHERE details.order_id = ?
+           AND details.user_id = ?
+         ORDER BY details.order_item_id ASC"
     );
-    mysqli_stmt_bind_param($item_stmt, 'ii', $user_id, $order_id);
+    mysqli_stmt_bind_param($item_stmt, 'iii', $user_id, $order_id, $user_id);
     mysqli_stmt_execute($item_stmt);
     $order['items'] = mysqli_fetch_all(mysqli_stmt_get_result($item_stmt), MYSQLI_ASSOC);
 

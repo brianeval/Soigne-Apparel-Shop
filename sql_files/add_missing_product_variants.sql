@@ -45,13 +45,19 @@ INSERT INTO missing_product_sizes (size_group, size) VALUES
 ('nike_alpha_6', 'XS'), ('nike_alpha_6', 'S'), ('nike_alpha_6', 'M'),
 ('nike_alpha_6', 'L'), ('nike_alpha_6', 'XL'), ('nike_alpha_6', '2XL');
 
-INSERT IGNORE INTO product_variants (product_color_id, size, stock)
-SELECT pc.product_color_id, options.size, 5
+INSERT INTO product_variants (product_color_id, size, stock)
+SELECT DISTINCT pc.product_color_id, options.size, 5
 FROM missing_product_size_groups AS missing
 JOIN missing_product_sizes AS options ON options.size_group = missing.size_group
 JOIN suppliers AS s ON s.name = missing.supplier
 JOIN products AS p ON p.supplier_id = s.supplier_id AND p.name = missing.product
-JOIN product_colors AS pc ON pc.product_id = p.product_id AND pc.color = missing.color;
+JOIN product_colors AS pc ON pc.product_id = p.product_id AND pc.color = missing.color
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM product_variants AS existing
+  WHERE existing.product_color_id = pc.product_color_id
+    AND existing.size = options.size
+);
 
 DROP TEMPORARY TABLE missing_product_sizes;
 DROP TEMPORARY TABLE missing_product_size_groups;

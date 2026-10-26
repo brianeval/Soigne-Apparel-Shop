@@ -142,6 +142,8 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .hero-text p { color: var(--muted); max-width: 40ch; margin-bottom: 28px; font-size: 17px; }
 .hero-img { min-height: 0; background: #cfd6cc url('../images/montage/hero-fashion.jpg') center / cover no-repeat; }
 .hero-slide-nike .hero-img { background-image: url('../images/montage/nikenike.jpg'); }
+.hero-slide-hm .hero-img { background-image: url('../images/montage/h&m_slide.jpg'); }
+.hero-slide-penshoppe .hero-img { background-image: url('../images/montage/penshoppe_slide.jpg'); }
 .hero-controls {
   position: absolute;
   z-index: 2;

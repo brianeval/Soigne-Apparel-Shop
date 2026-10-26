@@ -186,11 +186,11 @@ $history_limit = $history_pagination['page_size'];
 $history_offset = $history_pagination['offset'];
 $ongoing_orders_result = mysqli_query($conn,
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username,
-            COALESCE(SUM(oi.quantity), 0) AS item_count,
-            COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total
+            COALESCE(SUM(details.quantity), 0) AS item_count,
+            COALESCE(SUM(details.line_subtotal), 0) AS order_total
      FROM orders o
      JOIN users u ON u.user_id = o.user_id
-     LEFT JOIN order_items oi ON oi.order_id = o.order_id
+     LEFT JOIN order_transaction_details AS details ON details.order_id = o.order_id
      WHERE o.payment_status = 'unpaid' AND o.fulfillment_status IN ('pending', 'shipped')
      GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username
      ORDER BY o.created_at DESC, o.order_id DESC
@@ -199,11 +199,11 @@ $ongoing_orders_result = mysqli_query($conn,
 $ongoing_orders = mysqli_fetch_all($ongoing_orders_result, MYSQLI_ASSOC);
 $history_orders_result = mysqli_query($conn,
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username,
-            COALESCE(SUM(oi.quantity), 0) AS item_count,
-            COALESCE(SUM(oi.quantity * oi.price), 0) AS order_total
+            COALESCE(SUM(details.quantity), 0) AS item_count,
+            COALESCE(SUM(details.line_subtotal), 0) AS order_total
      FROM orders o
      JOIN users u ON u.user_id = o.user_id
-     LEFT JOIN order_items oi ON oi.order_id = o.order_id
+     LEFT JOIN order_transaction_details AS details ON details.order_id = o.order_id
      WHERE o.payment_status = 'paid' OR o.fulfillment_status IN ('delivered', 'cancelled', 'failed_delivery')
      GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username
      ORDER BY o.created_at DESC, o.order_id DESC

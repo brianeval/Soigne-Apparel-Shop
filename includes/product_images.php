@@ -65,25 +65,10 @@ function product_color_image_paths(mysqli $conn, array $product_color_ids): arra
     $result = mysqli_stmt_get_result($stmt);
 
     $images = [];
-    $legacy_stmt = mysqli_prepare($conn,
-        "SELECT product_color_id, image
-         FROM product_colors
-         WHERE product_color_id IN ($placeholders)
-           AND image IS NOT NULL AND image <> ''"
-    );
-    mysqli_stmt_bind_param($legacy_stmt, $types, ...$color_ids);
-    mysqli_stmt_execute($legacy_stmt);
-    $legacy_result = mysqli_stmt_get_result($legacy_stmt);
-    while ($row = mysqli_fetch_assoc($legacy_result)) {
-        $images[(int)$row['product_color_id']][] = (string)$row['image'];
-    }
-
     while ($row = mysqli_fetch_assoc($result)) {
         $color_id = (int)$row['product_color_id'];
         $image_path = (string)$row['image_path'];
-        if (!in_array($image_path, $images[$color_id] ?? [], true)) {
-            $images[$color_id][] = $image_path;
-        }
+        $images[$color_id][] = $image_path;
     }
 
     return $images;

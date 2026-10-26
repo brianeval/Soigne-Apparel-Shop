@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Choose between 1 and 10 images to upload.';
             } else {
                 $color_stmt = mysqli_prepare($conn,
-                    "SELECT image FROM product_colors WHERE product_color_id = ? AND product_id = ?"
+                    "SELECT product_color_id FROM product_colors WHERE product_color_id = ? AND product_id = ?"
                 );
                 mysqli_stmt_bind_param($color_stmt, 'ii', $color_id, $product_id);
                 mysqli_stmt_execute($color_stmt);
@@ -78,13 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             mysqli_stmt_execute($image_stmt);
                             $next_order++;
                         }
-                        $legacy_image = $saved_images[0];
-                        $legacy_stmt = mysqli_prepare($conn,
-                            "UPDATE product_colors SET image = ?
-                             WHERE product_color_id = ? AND product_id = ? AND (image IS NULL OR image = '')"
-                        );
-                        mysqli_stmt_bind_param($legacy_stmt, 'sii', $legacy_image, $color_id, $product_id);
-                        mysqli_stmt_execute($legacy_stmt);
                         mysqli_commit($conn);
                         $transaction_started = false;
                         admin_set_flash('success', count($saved_images) . ' image' . (count($saved_images) === 1 ? '' : 's') . ' added.');
@@ -166,14 +159,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($color === '' || mb_strlen($color) > 80) $errors[] = 'Enter a color name up to 80 characters.';
             if (mb_strlen($image) > 255) $errors[] = 'Image path must be 255 characters or fewer.';
             if (!$errors) {
-                $stmt = mysqli_prepare($conn, "INSERT INTO product_colors (product_id, color, image) VALUES (?, ?, ?)");
-                mysqli_stmt_bind_param($stmt, 'iss', $product_id, $color, $image);
                 try {
+                    mysqli_begin_transaction($conn);
+                    $stmt = mysqli_prepare($conn, "INSERT INTO product_colors (product_id, color) VALUES (?, ?)");
+                    mysqli_stmt_bind_param($stmt, 'is', $product_id, $color);
                     mysqli_stmt_execute($stmt);
+                    $color_id = mysqli_insert_id($conn);
+                    if ($image !== '') {
+                        $image_stmt = mysqli_prepare($conn,
+                            "INSERT INTO product_color_images (product_color_id, image_path, sort_order)
+                             VALUES (?, ?, 0)"
+                        );
+                        mysqli_stmt_bind_param($image_stmt, 'is', $color_id, $image);
+                        mysqli_stmt_execute($image_stmt);
+                    }
+                    mysqli_commit($conn);
                     admin_set_flash('success', 'Color added.');
                     header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id);
                     exit;
                 } catch (mysqli_sql_exception $exception) {
+                    mysqli_rollback($conn);
                     $errors[] = $exception->getCode() === 1062 ? 'This product already has that color.' : 'Could not add the color.';
                 }
             }
@@ -184,14 +189,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($color_id === null || $color === '' || mb_strlen($color) > 80 || mb_strlen($image) > 255) {
                 $errors[] = 'Enter a valid color name and image path.';
             } else {
-                $stmt = mysqli_prepare($conn, "UPDATE product_colors SET color = ?, image = ? WHERE product_color_id = ? AND product_id = ?");
-                mysqli_stmt_bind_param($stmt, 'ssii', $color, $image, $color_id, $product_id);
                 try {
+                    mysqli_begin_transaction($conn);
+                    $stmt = mysqli_prepare($conn,
+                        "UPDATE product_colors
+                         SET color = ?
+                         WHERE product_color_id = ? AND product_id = ?"
+                    );
+                    mysqli_stmt_bind_param($stmt, 'sii', $color, $color_id, $product_id);
                     mysqli_stmt_execute($stmt);
+                    $image_stmt = mysqli_prepare($conn,
+                        "SELECT image_id
+                         FROM product_color_images
+                         WHERE product_color_id = ?
+                         ORDER BY sort_order, image_id
+                         LIMIT 1
+                         FOR UPDATE"
+                    );
+                    mysqli_stmt_bind_param($image_stmt, 'i', $color_id);
+                    mysqli_stmt_execute($image_stmt);
+                    $primary_image = mysqli_fetch_assoc(mysqli_stmt_get_result($image_stmt));
+                    if ($primary_image && $image !== '') {
+                        $primary_image_id = (int)$primary_image['image_id'];
+                        $save_image_stmt = mysqli_prepare($conn,
+                            "UPDATE product_color_images
+                             SET image_path = ?
+                             WHERE image_id = ? AND product_color_id = ?"
+                        );
+                        mysqli_stmt_bind_param($save_image_stmt, 'sii', $image, $primary_image_id, $color_id);
+                        mysqli_stmt_execute($save_image_stmt);
+                    } elseif ($primary_image) {
+                        $primary_image_id = (int)$primary_image['image_id'];
+                        $delete_image_stmt = mysqli_prepare($conn,
+                            "DELETE FROM product_color_images
+                             WHERE image_id = ? AND product_color_id = ?"
+                        );
+                        mysqli_stmt_bind_param($delete_image_stmt, 'ii', $primary_image_id, $color_id);
+                        mysqli_stmt_execute($delete_image_stmt);
+                    } elseif ($image !== '') {
+                        $insert_image_stmt = mysqli_prepare($conn,
+                            "INSERT INTO product_color_images (product_color_id, image_path, sort_order)
+                             VALUES (?, ?, 0)"
+                        );
+                        mysqli_stmt_bind_param($insert_image_stmt, 'is', $color_id, $image);
+                        mysqli_stmt_execute($insert_image_stmt);
+                    }
+                    mysqli_commit($conn);
                     admin_set_flash('success', 'Color updated.');
                     header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id);
                     exit;
                 } catch (mysqli_sql_exception $exception) {
+                    mysqli_rollback($conn);
                     $errors[] = $exception->getCode() === 1062 ? 'This product already has that color.' : 'Could not update the color.';
                 }
             }
@@ -330,7 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
 $categories = mysqli_fetch_all(mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name"), MYSQLI_ASSOC);
 $colors_stmt = mysqli_prepare($conn,
-    "SELECT pc.product_color_id, pc.color, pc.image, v.variant_id, v.size, v.stock
+    "SELECT pc.product_color_id, pc.color, v.variant_id, v.size, v.stock
      FROM product_colors pc
      LEFT JOIN product_variants v ON v.product_color_id = pc.product_color_id
      WHERE pc.product_id = ?
@@ -343,13 +391,17 @@ $colors = [];
 foreach ($color_rows as $row) {
     $color_id = (int)$row['product_color_id'];
     if (!isset($colors[$color_id])) {
-        $colors[$color_id] = ['product_color_id' => $color_id, 'color' => $row['color'], 'image' => $row['image'], 'variants' => []];
+        $colors[$color_id] = ['product_color_id' => $color_id, 'color' => $row['color'], 'image' => '', 'variants' => []];
     }
     if ($row['variant_id'] !== null) {
         $colors[$color_id]['variants'][] = ['variant_id' => (int)$row['variant_id'], 'size' => $row['size'], 'stock' => (int)$row['stock']];
     }
 }
 $color_images = product_color_image_paths($conn, array_keys($colors));
+foreach ($colors as $color_id => &$color) {
+    $color['image'] = $color_images[$color_id][0] ?? '';
+}
+unset($color);
 $flash = admin_take_flash();
 $admin_page_title = 'Edit Product';
 $admin_active_page = 'products';

@@ -65,7 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // This query locks the selected cart items and their product details so checkout can safely confirm stock and create the order.
             $stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.variant_id, c.quantity,
-                                                   v.stock, v.size, pc.color, pc.image,
+                                                   v.stock, v.size, pc.color,
+                                                   (SELECT pci.image_path
+                                                    FROM product_color_images AS pci
+                                                    WHERE pci.product_color_id = pc.product_color_id
+                                                    ORDER BY pci.sort_order, pci.image_id
+                                                    LIMIT 1) AS image,
                                                    p.product_id, p.name, p.price
                                             FROM cart c
                                             JOIN product_variants v ON v.variant_id = c.variant_id
@@ -199,7 +204,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // This query loads the cart items again for the checkout summary so the user can review what they are ordering.
 $stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.quantity, v.variant_id, v.size, v.stock,
-                                      pc.color, pc.image, p.product_id, p.name, p.price
+                                      pc.color,
+                                      (SELECT pci.image_path
+                                       FROM product_color_images AS pci
+                                       WHERE pci.product_color_id = pc.product_color_id
+                                       ORDER BY pci.sort_order, pci.image_id
+                                       LIMIT 1) AS image,
+                                      p.product_id, p.name, p.price
                                FROM cart c
                                JOIN product_variants v ON v.variant_id = c.variant_id
                                JOIN product_colors pc ON pc.product_color_id = v.product_color_id

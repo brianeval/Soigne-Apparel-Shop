@@ -281,12 +281,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_execute($stmt);
                 $new_product_id = mysqli_insert_id($conn);
 
-                $color_stmt = mysqli_prepare($conn, "INSERT INTO product_colors (product_id, color, image) VALUES (?, ?, ?)");
+                $color_stmt = mysqli_prepare($conn, "INSERT INTO product_colors (product_id, color) VALUES (?, ?)");
                 $image_stmt = mysqli_prepare($conn, "INSERT INTO product_color_images (product_color_id, image_path, sort_order) VALUES (?, ?, ?)");
                 $variant_stmt = mysqli_prepare($conn, "INSERT INTO product_variants (product_color_id, size, stock) VALUES (?, ?, ?)");
                 foreach ($colors_to_create as $color) {
-                    $image_path = $color['images'][0] ?? null;
-                    mysqli_stmt_bind_param($color_stmt, 'iss', $new_product_id, $color['name'], $image_path);
+                    mysqli_stmt_bind_param($color_stmt, 'is', $new_product_id, $color['name']);
                     mysqli_stmt_execute($color_stmt);
                     $new_color_id = mysqli_insert_id($conn);
 
