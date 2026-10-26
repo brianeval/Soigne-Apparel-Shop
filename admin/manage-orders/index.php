@@ -261,6 +261,9 @@ include __DIR__ . '/../includes/header.php';
       <td><span class="status-pill status-<?php echo admin_escape($order['fulfillment_status']); ?>"><?php echo admin_escape(ucwords(str_replace('_', ' ', $order['fulfillment_status']))); ?></span> <span class="status-pill status-<?php echo admin_escape($order['payment_status']); ?>"><?php echo admin_escape(ucfirst($order['payment_status'])); ?></span></td>
       <td><div class="manage-row-actions">
         <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/edit.php?id=<?php echo (int)$order['order_id']; ?>">View</a>
+        <?php if ($order['fulfillment_status'] === 'delivered' && $order['payment_status'] === 'paid') { ?>
+          <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/receipt.php?id=<?php echo (int)$order['order_id']; ?>" target="_blank" rel="noopener">View receipt</a>
+        <?php } ?>
         <?php if (in_array($order['fulfillment_status'], ['cancelled', 'failed_delivery'], true)) { ?>
           <form method="post" onsubmit="return confirm('Permanently delete this <?php echo $order['fulfillment_status'] === 'failed_delivery' ? 'failed-delivery' : 'cancelled'; ?> order #<?php echo (int)$order['order_id']; ?>?');">
             <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">

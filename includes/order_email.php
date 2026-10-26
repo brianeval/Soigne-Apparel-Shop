@@ -1,6 +1,8 @@
 <?php
 use PHPMailer\PHPMailer\Exception as MailerException;
 use PHPMailer\PHPMailer\PHPMailer;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -60,108 +62,91 @@ function build_order_receipt_pdf(array $order): string
     if (empty($order['items']) || !is_array($order['items'])) {
         throw new RuntimeException('Order receipt has no items.');
     }
+    if (($order['fulfillment_status'] ?? null) !== 'delivered'
+        || ($order['payment_status'] ?? null) !== 'paid') {
+        throw new InvalidArgumentException('A receipt can only be generated for a delivered, paid order.');
+    }
 
-    $to_pdf_text = static function (string $text): string {
-        if (!function_exists('iconv')) {
-            throw new RuntimeException('The iconv extension is required to generate order receipts.');
-        }
-        $converted = iconv('UTF-8', 'Windows-1252//TRANSLIT', $text);
-        if ($converted === false) {
-            throw new RuntimeException('Order receipt text could not be converted for PDF output.');
-        }
-        return str_replace(["\\", "(", ")", "\r", "\n"], ["\\\\", "\\(", "\\)", ' ', ' '], $converted);
+    $escape = static function ($value): string {
+        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     };
     $money = static function (float $amount): string {
-        return 'PHP ' . number_format($amount, 2);
+        return '&#8369;' . number_format($amount, 2);
     };
 
-    $order_id = (int)($order['order_id'] ?? 0);
-    $items = $order['items'];
-    $lines = [
-        'SOIGNE APPAREL SHOP',
-        'ORDER RECEIPT',
-        '',
-        'Order number: #' . $order_id,
-        'Date: ' . (string)($order['created_at'] ?? ''),
-        'Customer: ' . (string)($order['customer_name'] ?? ''),
-        'Email: ' . (string)($order['email'] ?? ''),
-        'Shipping address: ' . (string)($order['shipping_address'] ?? ''),
-        'Payment status: Paid',
-        '',
-        'ORDER ITEMS',
-        str_repeat('-', 76),
-    ];
+    $rows = '';
     $subtotal = 0.0;
-    foreach ($items as $item) {
+    foreach ($order['items'] as $item) {
         $quantity = (int)($item['quantity'] ?? 0);
-        $unit_price = (float)($item['price'] ?? 0);
+        $unit_price = (float)($item['price'] ?? $item['unit_price'] ?? 0);
         if ($quantity < 1 || $unit_price < 0) {
             throw new RuntimeException('Order receipt contains invalid item details.');
         }
-        $line_total = $unit_price * $quantity;
+
+        $line_total = $quantity * $unit_price;
         $subtotal += $line_total;
         $description = trim(
             (string)($item['product_name'] ?? $item['name'] ?? '')
             . ' | ' . (string)($item['color'] ?? '')
             . ' | Size ' . (string)($item['size'] ?? '')
         );
-        foreach (explode("\n", wordwrap($description, 76, "\n", true)) as $description_line) {
-            $lines[] = $description_line;
-        }
-        $lines[] = 'Qty: ' . $quantity . ' | Unit price: ' . $money($unit_price)
-            . ' | Line subtotal: ' . $money($line_total);
-        $lines[] = '';
-    }
-    $lines[] = str_repeat('-', 76);
-    $lines[] = 'Subtotal: ' . $money($subtotal);
-    $lines[] = 'Grand total: ' . $money($subtotal);
-
-    $wrapped_lines = [];
-    foreach ($lines as $line) {
-        foreach (explode("\n", wordwrap($line, 86, "\n", true)) as $wrapped_line) {
-            $wrapped_lines[] = $wrapped_line;
-        }
-    }
-    $page_lines = array_chunk($wrapped_lines, 48);
-    $objects = [];
-    $page_references = [];
-    $objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
-    $objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
-
-    foreach ($page_lines as $page_index => $current_lines) {
-        $page_object_id = 4 + ($page_index * 2);
-        $content_object_id = $page_object_id + 1;
-        $page_references[] = $page_object_id . ' 0 R';
-        $content = '';
-        foreach ($current_lines as $line_index => $line) {
-            $y = 748 - ($line_index * 15);
-            $font_size = $page_index === 0 && $line_index < 2 ? 16 : 10;
-            $content .= 'BT /F1 ' . $font_size . ' Tf 48 ' . $y . ' Td (' . $to_pdf_text($line) . ") Tj ET\n";
-        }
-        $objects[$page_object_id] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] '
-            . '/Resources << /Font << /F1 3 0 R >> >> /Contents ' . $content_object_id . ' 0 R >>';
-        $objects[$content_object_id] = '<< /Length ' . strlen($content) . " >>\nstream\n" . $content . "endstream";
+        $rows .= '<tr><td>' . $escape($description) . '</td>'
+            . '<td class="number">' . $quantity . '</td>'
+            . '<td class="number">' . $money($unit_price) . '</td>'
+            . '<td class="number">' . $money($line_total) . '</td></tr>';
     }
 
-    $objects[2] = '<< /Type /Pages /Kids [' . implode(' ', $page_references) . '] /Count ' . count($page_references) . ' >>';
-    ksort($objects);
-    $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
-    $offsets = [0];
-    foreach ($objects as $object_id => $object_body) {
-        $offsets[$object_id] = strlen($pdf);
-        $pdf .= $object_id . " 0 obj\n" . $object_body . "\nendobj\n";
-    }
+    $order_id = (int)($order['order_id'] ?? 0);
+    $customer_name = $escape($order['customer_name'] ?? '');
+    $email = $escape($order['email'] ?? '');
+    $shipping_address = nl2br($escape($order['shipping_address'] ?? ''));
+    $created_at = $escape($order['created_at'] ?? '');
+    $html = '<!doctype html><html lang="en"><head><meta charset="UTF-8"><style>
+        @page{margin:34px}
+        body{font-family:DejaVu Sans,sans-serif;color:#282722;font-size:11px;line-height:1.5}
+        .receipt{border:1px solid #d8d5ce;padding:30px 34px}
+        .masthead{width:100%;border-bottom:2px solid #292821;padding-bottom:18px}
+        .brand{font-size:17px;font-weight:bold;letter-spacing:3px}
+        .store-note{color:#777;font-size:9px;letter-spacing:1.5px}
+        .receipt-title{text-align:right;vertical-align:top}
+        .receipt-title strong{font-size:19px;letter-spacing:1px}
+        .receipt-title div{color:#777;font-size:10px}
+        .meta{width:100%;margin:20px 0 22px}
+        .meta td{width:50%;padding:4px 0;vertical-align:top}
+        .label{color:#777;font-size:9px;text-transform:uppercase;letter-spacing:.8px}
+        .value{font-size:11px}
+        table.items{width:100%;border-collapse:collapse}
+        .items th{padding:9px 8px;background:#f2f1ee;border-top:1px solid #d8d5ce;border-bottom:1px solid #d8d5ce;font-size:9px;text-transform:uppercase;letter-spacing:.5px;text-align:left}
+        .items td{padding:11px 8px;border-bottom:1px solid #e5e3de}
+        .items .number{text-align:right;white-space:nowrap}
+        .summary{width:100%;margin-top:16px}
+        .summary td{padding:5px 8px;text-align:right}
+        .summary .grand-total td{border-top:1px solid #292821;padding-top:10px;font-size:14px;font-weight:bold}
+        .footer{margin-top:28px;padding-top:12px;border-top:1px solid #d8d5ce;color:#777;text-align:center;font-size:9px}
+        </style></head><body><div class="receipt">
+        <table class="masthead"><tr><td><div class="brand">SOIGNÉ</div><div class="store-note">APPAREL SHOP</div></td>'
+        . '<td class="receipt-title"><strong>RECEIPT</strong><div>Order #' . $order_id
+        . '</div></td></tr></table>
+        <table class="meta"><tr><td><div class="label">Receipt date</div><div class="value">' . $created_at
+        . '</div></td><td><div class="label">Payment status</div><div class="value">Paid</div></td></tr>'
+        . '<tr><td><div class="label">Billed to</div><div class="value">' . $customer_name
+        . '<br>' . $email . '</div></td><td><div class="label">Delivered to</div><div class="value">' . $shipping_address
+        . '</div></td></tr></table>
+        <table class="items"><thead><tr><th>Item</th><th class="number">Qty</th>'
+        . '<th class="number">Unit price</th><th class="number">Amount</th></tr></thead>'
+        . '<tbody>' . $rows . '</tbody></table>
+        <table class="summary"><tr class="grand-total"><td>Total</td><td>' . $money($subtotal)
+        . '</td></tr></table>
+        <div class="footer">Thank you for shopping with Soigné.</div></div></body></html>';
 
-    $xref_offset = strlen($pdf);
-    $object_count = max(array_keys($objects)) + 1;
-    $pdf .= "xref\n0 " . $object_count . "\n0000000000 65535 f \n";
-    for ($object_id = 1; $object_id < $object_count; $object_id++) {
-        $pdf .= sprintf("%010d 00000 n \n", $offsets[$object_id] ?? 0);
-    }
-    $pdf .= "trailer\n<< /Size " . $object_count . " /Root 1 0 R >>\nstartxref\n"
-        . $xref_offset . "\n%%EOF";
+    $options = new Options();
+    $options->set('isRemoteEnabled', false);
+    $dompdf = new Dompdf($options);
+    $dompdf->loadHtml($html, 'UTF-8');
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
 
-    return $pdf;
+    return $dompdf->output();
 }
 
 function send_order_confirmation_email(array $order): void
