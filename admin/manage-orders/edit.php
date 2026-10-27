@@ -10,7 +10,7 @@ if ($order_id === false || $order_id < 1) {
 
 function load_admin_order(mysqli $conn, int $order_id): ?array
 {
-    $stmt = mysqli_prepare($conn,
+    $order_lookup_statement = mysqli_prepare($conn,
         "SELECT o.order_id, o.user_id, o.fulfillment_status, o.payment_status, o.shipping_address,
                 o.created_at, u.username, u.email,
                 COALESCE(NULLIF(c.customer_name, ''), u.username) AS customer_name
@@ -19,9 +19,9 @@ function load_admin_order(mysqli $conn, int $order_id): ?array
          LEFT JOIN customers c ON c.user_id = u.user_id
          WHERE o.order_id = ?"
     );
-    mysqli_stmt_bind_param($stmt, 'i', $order_id);
-    mysqli_stmt_execute($stmt);
-    $order = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_bind_param($order_lookup_statement, 'i', $order_id);
+    mysqli_stmt_execute($order_lookup_statement);
+    $order = mysqli_fetch_assoc(mysqli_stmt_get_result($order_lookup_statement));
     return $order ?: null;
 }
 
@@ -72,14 +72,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($shipping_address === '' || mb_strlen($shipping_address) > 255) {
                 $errors[] = 'Enter a shipping address up to 255 characters.';
             } else {
-                $stmt = mysqli_prepare($conn,
+                $address_update_statement = mysqli_prepare($conn,
                     "UPDATE orders
                      SET shipping_address = ?
                      WHERE order_id = ? AND fulfillment_status = 'pending'"
                 );
-                mysqli_stmt_bind_param($stmt, 'si', $shipping_address, $order_id);
-                mysqli_stmt_execute($stmt);
-                if (mysqli_stmt_affected_rows($stmt) !== 1) {
+                mysqli_stmt_bind_param($address_update_statement, 'si', $shipping_address, $order_id);
+                mysqli_stmt_execute($address_update_statement);
+                if (mysqli_stmt_affected_rows($address_update_statement) !== 1) {
                     $current_order = load_admin_order($conn, $order_id);
                     if (!$current_order || $current_order['fulfillment_status'] !== 'pending') {
                         $errors[] = 'Only pending orders can have their shipping address changed.';
@@ -119,23 +119,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_stmt_bind_param($lock_stmt, 'i', $order_id);
                 mysqli_stmt_execute($lock_stmt);
                 $locked_order = mysqli_fetch_assoc(mysqli_stmt_get_result($lock_stmt));
-                if (!$locked_order) throw new RuntimeException('Order not found.');
-                $old_fulfillment = $locked_order['fulfillment_status'];
-                $old_payment = $locked_order['payment_status'];
-                $target_fulfillment = null;
+                if (!$locked_order) {
+                    throw new RuntimeException('Order not found.');
+                }
+                $old_fulfillment_status = $locked_order['fulfillment_status'];
+                $old_payment_status = $locked_order['payment_status'];
+                $target_fulfillment_status = null;
                 $return_stock = false;
 
-                if ($action === 'mark_shipped' && $old_fulfillment === 'pending' && $old_payment === 'unpaid') {
-                    $target_fulfillment = 'shipped';
-                } elseif ($action === 'mark_delivered' && $old_fulfillment === 'shipped' && $old_payment === 'unpaid') {
-                    $target_fulfillment = 'delivered';
-                } elseif ($action === 'mark_failed_delivery' && $old_fulfillment === 'shipped' && $old_payment === 'unpaid') {
-                    $target_fulfillment = 'failed_delivery';
+                if ($action === 'mark_shipped' && $old_fulfillment_status === 'pending' && $old_payment_status === 'unpaid') {
+                    $target_fulfillment_status = 'shipped';
+                } elseif ($action === 'mark_delivered' && $old_fulfillment_status === 'shipped' && $old_payment_status === 'unpaid') {
+                    $target_fulfillment_status = 'delivered';
+                } elseif ($action === 'mark_failed_delivery' && $old_fulfillment_status === 'shipped' && $old_payment_status === 'unpaid') {
+                    $target_fulfillment_status = 'failed_delivery';
                     $return_stock = true;
-                } elseif ($action === 'cancel' && $old_fulfillment === 'pending' && $old_payment === 'unpaid') {
-                    $target_fulfillment = 'cancelled';
+                } elseif ($action === 'cancel' && $old_fulfillment_status === 'pending' && $old_payment_status === 'unpaid') {
+                    $target_fulfillment_status = 'cancelled';
                     $return_stock = true;
-                } elseif ($action === 'mark_paid' && $old_fulfillment === 'delivered' && $old_payment === 'unpaid') {
+                } elseif ($action === 'mark_paid' && $old_fulfillment_status === 'delivered' && $old_payment_status === 'unpaid') {
                     $payment_stmt = mysqli_prepare($conn,
                         "UPDATE orders SET payment_status = 'paid'
                          WHERE order_id = ? AND fulfillment_status = 'delivered' AND payment_status = 'unpaid'"
@@ -163,13 +165,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                if ($target_fulfillment !== null) {
+                if ($target_fulfillment_status !== null) {
                     $update_stmt = mysqli_prepare($conn,
                         "UPDATE orders
                          SET fulfillment_status = ?
                          WHERE order_id = ? AND fulfillment_status = ? AND payment_status = 'unpaid'"
                     );
-                    mysqli_stmt_bind_param($update_stmt, 'sis', $target_fulfillment, $order_id, $old_fulfillment);
+                    mysqli_stmt_bind_param($update_stmt, 'sis', $target_fulfillment_status, $order_id, $old_fulfillment_status);
                     mysqli_stmt_execute($update_stmt);
                     if (mysqli_stmt_affected_rows($update_stmt) !== 1) {
                         throw new RuntimeException('The order status changed. Refresh and try again.');
@@ -178,8 +180,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 mysqli_commit($conn);
                 $notification_order = $order;
-                if ($target_fulfillment !== null) {
-                    $notification_order['fulfillment_status'] = $target_fulfillment;
+                if ($target_fulfillment_status !== null) {
+                    $notification_order['fulfillment_status'] = $target_fulfillment_status;
                 }
                 if ($action === 'mark_paid') {
                     $notification_order['payment_status'] = 'paid';

@@ -3,8 +3,8 @@ session_start();
 include_once("../includes/config.php");
 
 // Only allow redirects to paths on this site (never full URLs)
-function safe_redirect($path) {
-    return preg_match('#^/(?!/)#', $path) ? $path : 'index.php';
+function safe_redirect($redirect_path) {
+    return preg_match('#^/(?!/)#', $redirect_path) ? $redirect_path : 'index.php';
 }
 
 $redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
@@ -45,15 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         // Only active customer and VIP accounts can authenticate through the storefront login.
         $login_column = filter_var($login_value, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-        $q = "SELECT user_id, username, password, role, vip_expires_at,
+        $user_lookup_sql = "SELECT user_id, username, password, role, vip_expires_at,
                      (vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP) AS vip_expired
               FROM users
               WHERE $login_column = ? AND role IN ('customer', 'vip') AND status = 'active'
               LIMIT 1";
-        $stmt = mysqli_prepare($conn, $q);
-        mysqli_stmt_bind_param($stmt, 's', $login_value);
-        mysqli_stmt_execute($stmt);
-        $user = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        $user_stmt = mysqli_prepare($conn, $user_lookup_sql);
+        mysqli_stmt_bind_param($user_stmt, 's', $login_value);
+        mysqli_stmt_execute($user_stmt);
+        $user = mysqli_fetch_assoc(mysqli_stmt_get_result($user_stmt));
 
         if ($user && password_verify($password, $user['password'])) {
             session_regenerate_id(true);   // new session id after login

@@ -4,8 +4,8 @@ include_once("../includes/config.php");
 require_once("../includes/profile_image.php");
 
 // Only allow redirects to paths on this site (never full URLs)
-function safe_redirect($path) {
-    return preg_match('#^/(?!/)#', $path) ? $path : BASE_URL . 'index.php';
+function safe_redirect($redirect_path) {
+    return preg_match('#^/(?!/)#', $redirect_path) ? $redirect_path : BASE_URL . 'index.php';
 }
 
 $redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone    = trim($_POST['phone'] ?? '');
     $address  = trim($_POST['address'] ?? '');
     $password = $_POST['password'] ?? '';
-    $confirm  = $_POST['confirm_password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
 
     // --- Validate ---
     if ($name === '' || mb_strlen($name) > 120) {
@@ -53,26 +53,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strlen($password) > 72) {
         $errors[] = 'Password must be 72 characters or fewer.';
     }
-    if ($password !== $confirm) {
+    if ($password !== $confirm_password) {
         $errors[] = 'Passwords do not match.';
     }
     // --- Check username / email are free ---
     if (!$errors) {
         // This query checks whether the chosen username or email is already in use before creating the account.
-        $stmt = mysqli_prepare($conn, "SELECT username, email FROM users WHERE username = ? OR email = ?");
-        mysqli_stmt_bind_param($stmt, 'ss', $username, $email);
-        mysqli_stmt_execute($stmt);
-        $taken = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
-        foreach ($taken as $t) {
-            if (strcasecmp($t['username'], $username) === 0) { $errors[] = 'That username is already taken.'; }
-            if (strcasecmp($t['email'], $email) === 0)       { $errors[] = 'That email is already registered.'; }
+        $accounts_stmt = mysqli_prepare($conn, "SELECT username, email FROM users WHERE username = ? OR email = ?");
+        mysqli_stmt_bind_param($accounts_stmt, 'ss', $username, $email);
+        mysqli_stmt_execute($accounts_stmt);
+        $taken = mysqli_fetch_all(mysqli_stmt_get_result($accounts_stmt), MYSQLI_ASSOC);
+        foreach ($taken as $account) {
+            if (strcasecmp($account['username'], $username) === 0) {
+                $errors[] = 'That username is already taken.';
+            }
+            if (strcasecmp($account['email'], $email) === 0) {
+                $errors[] = 'That email is already registered.';
+            }
         }
         $errors = array_unique($errors);
     }
 
     // --- Create the account ---
     if (!$errors) {
-        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
         $user_id = 0;
         $saved_profile_image = null;
 
@@ -80,15 +84,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_begin_transaction($conn);
 
             // This query creates the account login row in the users table.
-            $stmt = mysqli_prepare($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, 'sss', $username, $email, $hash);
-            mysqli_stmt_execute($stmt);
+            $user_insert_stmt = mysqli_prepare($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+            mysqli_stmt_bind_param($user_insert_stmt, 'sss', $username, $email, $password_hash);
+            mysqli_stmt_execute($user_insert_stmt);
             $user_id = mysqli_insert_id($conn);
 
             // This query stores the personal details in the customers table for the same user.
-            $stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address) VALUES (?, ?, ?, ?)");
-            mysqli_stmt_bind_param($stmt, 'isss', $user_id, $name, $phone, $address);
-            mysqli_stmt_execute($stmt);
+            $customer_insert_stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address) VALUES (?, ?, ?, ?)");
+            mysqli_stmt_bind_param($customer_insert_stmt, 'isss', $user_id, $name, $phone, $address);
+            mysqli_stmt_execute($customer_insert_stmt);
 
             $profile_upload = $_FILES['profile_photo'] ?? null;
             if (is_array($profile_upload) && ($profile_upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {

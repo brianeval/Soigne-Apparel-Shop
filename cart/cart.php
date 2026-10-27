@@ -69,7 +69,7 @@ unset($_SESSION['flash']);
 
 // --- Cart contents ---
 // This query gets every cart item for the current user, along with the product details and stock.
-$q = "SELECT c.cart_id, c.quantity,
+$cart_items_sql = "SELECT c.cart_id, c.quantity,
              v.size, v.stock,
              pc.color,
              (SELECT pci.image_path
@@ -84,24 +84,26 @@ $q = "SELECT c.cart_id, c.quantity,
       JOIN products p         ON p.product_id = pc.product_id
       WHERE c.user_id = ?
       ORDER BY c.cart_id DESC";
-$stmt = mysqli_prepare($conn, $q);
-mysqli_stmt_bind_param($stmt, 'i', $user_id);
-mysqli_stmt_execute($stmt);
-$items = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+$cart_items_stmt = mysqli_prepare($conn, $cart_items_sql);
+mysqli_stmt_bind_param($cart_items_stmt, 'i', $user_id);
+mysqli_stmt_execute($cart_items_stmt);
+$items = mysqli_fetch_all(mysqli_stmt_get_result($cart_items_stmt), MYSQLI_ASSOC);
 
 $vip_discount_rate = ($_SESSION['role'] ?? '') === 'vip' ? 0.10 : 0;
 $subtotal   = 0;
 $original_subtotal = 0;
 $item_count = 0;
 $has_issue  = false;
-foreach ($items as &$it) {
-    $it['discounted_price'] = round((float)$it['price'] * (1 - $vip_discount_rate), 2);
-    $original_subtotal += (float)$it['price'] * (int)$it['quantity'];
-    $subtotal += $it['discounted_price'] * (int)$it['quantity'];
-    $item_count += $it['quantity'];
-    if ($it['stock'] < $it['quantity']) { $has_issue = true; }
+foreach ($items as &$item) {
+    $item['discounted_price'] = round((float)$item['price'] * (1 - $vip_discount_rate), 2);
+    $original_subtotal += (float)$item['price'] * (int)$item['quantity'];
+    $subtotal += $item['discounted_price'] * (int)$item['quantity'];
+    $item_count += $item['quantity'];
+    if ($item['stock'] < $item['quantity']) {
+        $has_issue = true;
+    }
 }
-unset($it);
+unset($item);
 
 $page_title = "Your cart | Soigné";
 $extra_css  = "cart.css";
@@ -143,47 +145,47 @@ include_once ('../includes/header.php');
 
     <div class="cart-layout">
       <div class="cart-items">
-        <?php foreach ($items as $it) { ?>
+        <?php foreach ($items as $item) { ?>
           <div class="cart-row">
-            <label class="cart-item-select" aria-label="Select <?php echo htmlspecialchars($it['name']); ?>">
-              <input type="checkbox" class="cart-item-checkbox" name="selected_cart_ids[]" value="<?php echo (int)$it['cart_id']; ?>" form="cart-bulk-actions">
+            <label class="cart-item-select" aria-label="Select <?php echo htmlspecialchars($item['name']); ?>">
+              <input type="checkbox" class="cart-item-checkbox" name="selected_cart_ids[]" value="<?php echo (int)$item['cart_id']; ?>" form="cart-bulk-actions">
             </label>
-            <a class="cart-img" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$it['product_id']; ?>">
-              <?php if (!empty($it['image'])) { ?>
-                <img src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($it['image']); ?>"
-                     alt="<?php echo htmlspecialchars($it['name']); ?>">
+            <a class="cart-img" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$item['product_id']; ?>">
+              <?php if (!empty($item['image'])) { ?>
+                <img src="<?php echo BASE_URL; ?>images/<?php echo htmlspecialchars($item['image']); ?>"
+                     alt="<?php echo htmlspecialchars($item['name']); ?>">
               <?php } ?>
             </a>
 
             <div class="cart-info">
-              <a class="cart-name" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$it['product_id']; ?>">
-                <?php echo htmlspecialchars($it['name']); ?>
+              <a class="cart-name" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$item['product_id']; ?>">
+                <?php echo htmlspecialchars($item['name']); ?>
               </a>
               <p class="cart-variant">
-                Color: <?php echo htmlspecialchars($it['color']); ?> &middot; Size: <?php echo htmlspecialchars($it['size']); ?> &middot; Qty: <?php echo (int)$it['quantity']; ?>
+                Color: <?php echo htmlspecialchars($item['color']); ?> &middot; Size: <?php echo htmlspecialchars($item['size']); ?> &middot; Qty: <?php echo (int)$item['quantity']; ?>
               </p>
               <p class="cart-unit">
-                <?php if ($vip_discount_rate > 0) { ?><del><?php echo peso($it['price']); ?></del> <?php } ?>
-                <?php echo peso($it['discounted_price']); ?> each
+                <?php if ($vip_discount_rate > 0) { ?><del><?php echo peso($item['price']); ?></del> <?php } ?>
+                <?php echo peso($item['discounted_price']); ?> each
               </p>
 
-              <?php if ($it['stock'] < 1) { ?>
+              <?php if ($item['stock'] < 1) { ?>
                 <p class="cart-warn">This size is sold out. Please remove it.</p>
-              <?php } elseif ($it['stock'] < $it['quantity']) { ?>
-                <p class="cart-warn">Only <?php echo (int)$it['stock']; ?> left. Please lower the quantity.</p>
+              <?php } elseif ($item['stock'] < $item['quantity']) { ?>
+                <p class="cart-warn">Only <?php echo (int)$item['stock']; ?> left. Please lower the quantity.</p>
               <?php } ?>
 
               <div class="cart-actions">
-                <a class="link-btn" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$it['product_id']; ?>&cart_id=<?php echo (int)$it['cart_id']; ?>">Update</a>
+                <a class="link-btn" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$item['product_id']; ?>&cart_id=<?php echo (int)$item['cart_id']; ?>">Update</a>
               </div>
             </div>
 
-            <p class="cart-line"><?php echo peso($it['discounted_price'] * $it['quantity']); ?></p>
+            <p class="cart-line"><?php echo peso($item['discounted_price'] * $item['quantity']); ?></p>
 
             <form method="post" action="<?php echo BASE_URL; ?>cart/cart.php" class="cart-remove">
-              <input type="hidden" name="cart_id" value="<?php echo (int)$it['cart_id']; ?>">
+              <input type="hidden" name="cart_id" value="<?php echo (int)$item['cart_id']; ?>">
               <input type="hidden" name="action" value="remove">
-              <button type="submit" class="cart-remove-button" aria-label="Remove <?php echo htmlspecialchars($it['name']); ?> from cart" title="Remove item">&times;</button>
+              <button type="submit" class="cart-remove-button" aria-label="Remove <?php echo htmlspecialchars($item['name']); ?> from cart" title="Remove item">&times;</button>
             </form>
           </div>
         <?php } ?>

@@ -28,6 +28,13 @@ function inventory_cost_to_cents($value): ?int
     return ((int)$parts[0] * 100) + (int)$fraction;
 }
 
+function inventory_sorted_option_names(array $option_set): array
+{
+    $option_names = array_keys($option_set);
+    natcasesort($option_names);
+    return array_values($option_names);
+}
+
 $errors = [];
 $post_action = $_POST['action'] ?? '';
 $posted_supplier_id = is_string($_POST['supplier_id'] ?? null) ? $_POST['supplier_id'] : '';
@@ -229,27 +236,15 @@ $all_color_options = array_fill_keys(array_merge(
     array_keys($color_options_by_department['women']),
     array_keys($color_options_by_department['kids'])
 ), true);
-$color_options_by_department = array_map(static function (array $colors): array {
-    $color_names = array_keys($colors);
-    natcasesort($color_names);
-    return array_values($color_names);
-}, $color_options_by_department);
-$all_color_options = array_keys($all_color_options);
-natcasesort($all_color_options);
-$all_color_options = array_values($all_color_options);
+$color_options_by_department = array_map('inventory_sorted_option_names', $color_options_by_department);
+$all_color_options = inventory_sorted_option_names($all_color_options);
 $all_size_options = array_fill_keys(array_merge(
     array_keys($size_options_by_department['men']),
     array_keys($size_options_by_department['women']),
     array_keys($size_options_by_department['kids'])
 ), true);
-$size_options_by_department = array_map(static function (array $sizes): array {
-    $size_names = array_keys($sizes);
-    natcasesort($size_names);
-    return array_values($size_names);
-}, $size_options_by_department);
-$all_size_options = array_keys($all_size_options);
-natcasesort($all_size_options);
-$all_size_options = array_values($all_size_options);
+$size_options_by_department = array_map('inventory_sorted_option_names', $size_options_by_department);
+$all_size_options = inventory_sorted_option_names($all_size_options);
 
 $search = trim(is_string($_GET['search'] ?? null) ? $_GET['search'] : '');
 $search = mb_substr($search, 0, 150);
@@ -421,15 +416,15 @@ include("../includes/header.php");
     <?php if ($inventory_rows) { ?>
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Product</th><th>Department</th><th>Brand / Supplier</th><th>Category</th><th>Color</th><th>Size</th><th>Stock quantity</th></tr></thead>
-        <tbody><?php foreach ($inventory_rows as $row) { ?>
+        <tbody><?php foreach ($inventory_rows as $inventory_row) { ?>
           <tr>
-            <td class="order-number"><?php echo admin_escape($row['product_name']); ?></td>
-            <td><?php echo admin_escape(ucfirst($row['department'])); ?></td>
-            <td><?php echo admin_escape($row['supplier_name']); ?></td>
-            <td><?php echo admin_escape($row['category_name']); ?></td>
-            <td><?php echo admin_escape($row['color']); ?></td>
-            <td><?php echo admin_escape($row['size']); ?></td>
-            <td><?php echo number_format((int)$row['stock']); ?></td>
+            <td class="order-number"><?php echo admin_escape($inventory_row['product_name']); ?></td>
+            <td><?php echo admin_escape(ucfirst($inventory_row['department'])); ?></td>
+            <td><?php echo admin_escape($inventory_row['supplier_name']); ?></td>
+            <td><?php echo admin_escape($inventory_row['category_name']); ?></td>
+            <td><?php echo admin_escape($inventory_row['color']); ?></td>
+            <td><?php echo admin_escape($inventory_row['size']); ?></td>
+            <td><?php echo number_format((int)$inventory_row['stock']); ?></td>
           </tr>
         <?php } ?></tbody>
       </table></div>
@@ -449,15 +444,15 @@ include("../includes/header.php");
     <?php if ($history_rows) { ?>
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Batch number</th><th>Date</th><th>Supplier</th><th>Variant lines</th><th>Total units</th><th>Total cost</th><th>Details</th></tr></thead>
-        <tbody><?php foreach ($history_rows as $row) { ?>
+        <tbody><?php foreach ($history_rows as $restock_row) { ?>
           <tr>
-            <td class="order-number"><?php echo admin_escape($row['batch_number'] ?? ''); ?></td>
-            <td><?php echo admin_escape($row['restock_date']); ?></td>
-            <td><?php echo admin_escape($row['supplier_name']); ?></td>
-            <td><?php echo number_format((int)$row['line_count']); ?></td>
-            <td><?php echo number_format((int)$row['total_units']); ?></td>
-            <td><?php echo peso((float)$row['total_cost']); ?></td>
-            <td><a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-inventory/view.php?id=<?php echo (int)$row['restock_id']; ?>">View details</a></td>
+            <td class="order-number"><?php echo admin_escape($restock_row['batch_number'] ?? ''); ?></td>
+            <td><?php echo admin_escape($restock_row['restock_date']); ?></td>
+            <td><?php echo admin_escape($restock_row['supplier_name']); ?></td>
+            <td><?php echo number_format((int)$restock_row['line_count']); ?></td>
+            <td><?php echo number_format((int)$restock_row['total_units']); ?></td>
+            <td><?php echo peso((float)$restock_row['total_cost']); ?></td>
+            <td><a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-inventory/view.php?id=<?php echo (int)$restock_row['restock_id']; ?>">View details</a></td>
           </tr>
         <?php } ?></tbody>
       </table></div>

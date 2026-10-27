@@ -10,7 +10,7 @@ if ($search_term !== '') {
     $like = '%' . $search_term . '%';
 
     // This query finds matching products by name or category.
-    $product_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
+    $products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
                          pc.product_color_id AS first_color_id,
                          (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
                     FROM products p
@@ -20,20 +20,20 @@ if ($search_term !== '') {
                     WHERE LOWER(p.name) LIKE LOWER(?)
                        OR LOWER(COALESCE(c.name, '')) LIKE LOWER(?)
                     ORDER BY p.product_id DESC";
-    $stmt = mysqli_prepare($conn, $product_sql);
-    mysqli_stmt_bind_param($stmt, 'ss', $like, $like);
-    mysqli_stmt_execute($stmt);
-    $products = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+    $products_stmt = mysqli_prepare($conn, $products_sql);
+    mysqli_stmt_bind_param($products_stmt, 'ss', $like, $like);
+    mysqli_stmt_execute($products_stmt);
+    $products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
 
     // This query finds matching brands by name.
     $brand_sql = "SELECT supplier_id, name, image
                   FROM suppliers
                   WHERE LOWER(name) LIKE LOWER(?)
                   ORDER BY name";
-    $stmt = mysqli_prepare($conn, $brand_sql);
-    mysqli_stmt_bind_param($stmt, 's', $like);
-    mysqli_stmt_execute($stmt);
-    $brands = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+    $brands_stmt = mysqli_prepare($conn, $brand_sql);
+    mysqli_stmt_bind_param($brands_stmt, 's', $like);
+    mysqli_stmt_execute($brands_stmt);
+    $brands = mysqli_fetch_all(mysqli_stmt_get_result($brands_stmt), MYSQLI_ASSOC);
 }
 
 $page_title = $search_term !== '' ? 'Search results for "' . $search_term . '" | Soigné' : 'Search | Soigné';

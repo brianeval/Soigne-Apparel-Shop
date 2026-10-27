@@ -26,20 +26,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_begin_transaction($conn);
 
             // This query locks the order row so customer changes remain limited to pending orders.
-            $stmt = mysqli_prepare($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = ? AND user_id = ? FOR UPDATE");
-            mysqli_stmt_bind_param($stmt, 'ii', $order_id, $user_id);
-            mysqli_stmt_execute($stmt);
-            $locked_order = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+            $locked_order_stmt = mysqli_prepare($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = ? AND user_id = ? FOR UPDATE");
+            mysqli_stmt_bind_param($locked_order_stmt, 'ii', $order_id, $user_id);
+            mysqli_stmt_execute($locked_order_stmt);
+            $locked_order = mysqli_fetch_assoc(mysqli_stmt_get_result($locked_order_stmt));
 
             if (!$locked_order || $locked_order['fulfillment_status'] !== 'pending') {
                 mysqli_rollback($conn);
                 $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Only pending orders can be changed or cancelled.'];
             } elseif ($action === 'cancel_order') {
                 // This query loads the order items so the stock can be returned before cancelling the order.
-                $stmt = mysqli_prepare($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ? FOR UPDATE");
-                mysqli_stmt_bind_param($stmt, 'i', $order_id);
-                mysqli_stmt_execute($stmt);
-                $order_items = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+                $order_items_stmt = mysqli_prepare($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ? FOR UPDATE");
+                mysqli_stmt_bind_param($order_items_stmt, 'i', $order_id);
+                mysqli_stmt_execute($order_items_stmt);
+                $order_items = mysqli_fetch_all(mysqli_stmt_get_result($order_items_stmt), MYSQLI_ASSOC);
 
                 // This query returns the cancelled items back into stock for each variant.
                 $stock_stmt = mysqli_prepare($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?");
@@ -51,10 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 // This query marks the order as cancelled only if it is still pending and still belongs to this user.
-                $stmt = mysqli_prepare($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = ? AND user_id = ? AND fulfillment_status = 'pending' AND payment_status = 'unpaid'");
-                mysqli_stmt_bind_param($stmt, 'ii', $order_id, $user_id);
-                mysqli_stmt_execute($stmt);
-                if (mysqli_stmt_affected_rows($stmt) !== 1) {
+                $cancel_order_stmt = mysqli_prepare($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = ? AND user_id = ? AND fulfillment_status = 'pending' AND payment_status = 'unpaid'");
+                mysqli_stmt_bind_param($cancel_order_stmt, 'ii', $order_id, $user_id);
+                mysqli_stmt_execute($cancel_order_stmt);
+                if (mysqli_stmt_affected_rows($cancel_order_stmt) !== 1) {
                     throw new mysqli_sql_exception('Order status changed during cancellation.');
                 }
 
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Order changes were invalid. Please try again.'];
                 } else {
                     // This query loads the order items and their products so the app can validate each change before updating the order.
-                    $stmt = mysqli_prepare($conn,
+                    $current_items_stmt = mysqli_prepare($conn,
                         "SELECT oi.order_item_id, oi.variant_id, oi.quantity, pc.product_id
                          FROM order_items oi
                          JOIN product_variants v ON v.variant_id = oi.variant_id
@@ -75,9 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                          WHERE oi.order_id = ?
                          FOR UPDATE"
                     );
-                    mysqli_stmt_bind_param($stmt, 'i', $order_id);
-                    mysqli_stmt_execute($stmt);
-                    $current_items = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+                    mysqli_stmt_bind_param($current_items_stmt, 'i', $order_id);
+                    mysqli_stmt_execute($current_items_stmt);
+                    $current_items = mysqli_fetch_all(mysqli_stmt_get_result($current_items_stmt), MYSQLI_ASSOC);
 
                     $current_by_id = [];
                     foreach ($current_items as $current_item) {
@@ -188,7 +188,7 @@ $flash = $_SESSION['orders_flash'] ?? null;
 unset($_SESSION['orders_flash']);
 
 // Keep orders with no line items visible while using the transaction view for totals.
-$stmt = mysqli_prepare($conn,
+$orders_stmt = mysqli_prepare($conn,
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at,
             COALESCE(SUM(details.line_subtotal), 0) AS order_total,
             COALESCE(SUM(details.quantity), 0) AS item_count
@@ -198,9 +198,9 @@ $stmt = mysqli_prepare($conn,
      GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at
      ORDER BY o.order_id DESC"
 );
-mysqli_stmt_bind_param($stmt, 'i', $user_id);
-mysqli_stmt_execute($stmt);
-$orders = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+mysqli_stmt_bind_param($orders_stmt, 'i', $user_id);
+mysqli_stmt_execute($orders_stmt);
+$orders = mysqli_fetch_all(mysqli_stmt_get_result($orders_stmt), MYSQLI_ASSOC);
 
 foreach ($orders as &$order) {
     $order_id = (int)$order['order_id'];

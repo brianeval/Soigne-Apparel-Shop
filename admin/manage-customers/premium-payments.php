@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$result = mysqli_query($conn,
+$payments_result = mysqli_query($conn,
     "SELECT pp.payment_id, pp.user_id, pp.amount, pp.receipt_filename, pp.receipt_mime,
             pp.status, pp.submitted_at, pp.reviewed_at,
             u.username, c.customer_name
@@ -81,7 +81,7 @@ $result = mysqli_query($conn,
      ORDER BY (pp.status = 'pending') DESC, pp.payment_id DESC
      LIMIT 100"
 );
-$payments = mysqli_fetch_all($result, MYSQLI_ASSOC);
+$payments = mysqli_fetch_all($payments_result, MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Premium Payments';
 $admin_active_page = 'customers';

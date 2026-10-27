@@ -7,14 +7,14 @@ if ($payment_id === false || $payment_id < 1) {
     exit('Receipt not found.');
 }
 
-$stmt = mysqli_prepare($conn,
+$receipt_lookup_statement = mysqli_prepare($conn,
     "SELECT receipt_filename, receipt_mime
      FROM premium_payments
      WHERE payment_id = ?"
 );
-mysqli_stmt_bind_param($stmt, 'i', $payment_id);
-mysqli_stmt_execute($stmt);
-$receipt = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_bind_param($receipt_lookup_statement, 'i', $payment_id);
+mysqli_stmt_execute($receipt_lookup_statement);
+$receipt = mysqli_fetch_assoc(mysqli_stmt_get_result($receipt_lookup_statement));
 $allowed_types = ['image/jpeg', 'image/png', 'image/webp'];
 if (!$receipt || !in_array($receipt['receipt_mime'], $allowed_types, true)
     || !preg_match('/^[a-f0-9]{48}\\.(jpg|png|webp)$/', $receipt['receipt_filename'])) {

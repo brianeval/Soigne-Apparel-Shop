@@ -27,10 +27,10 @@ function brand_logo_filename(string $name, ?string $stored_image): ?string
 }
 
 if ($brand_name !== '') {
-    $stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE name = ?");
-    mysqli_stmt_bind_param($stmt, 's', $brand_name);
-    mysqli_stmt_execute($stmt);
-    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    $brand_stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE name = ?");
+    mysqli_stmt_bind_param($brand_stmt, 's', $brand_name);
+    mysqli_stmt_execute($brand_stmt);
+    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($brand_stmt));
 
     if (!$brand) {
         http_response_code(404);
@@ -43,10 +43,10 @@ if ($brand_name !== '') {
 if ($brand_id > 0) {
     // --- One brand and its products ---
     // This query loads the selected brand so the page can show its name and logo.
-    $stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE supplier_id = ?");
-    mysqli_stmt_bind_param($stmt, 'i', $brand_id);
-    mysqli_stmt_execute($stmt);
-    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    $brand_stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE supplier_id = ?");
+    mysqli_stmt_bind_param($brand_stmt, 'i', $brand_id);
+    mysqli_stmt_execute($brand_stmt);
+    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($brand_stmt));
 
     if (!$brand) {
         http_response_code(404);
@@ -54,7 +54,7 @@ if ($brand_id > 0) {
     }
 
     // This query gets every product from the selected brand, along with a preview image and color count.
-    $q = "SELECT p.product_id, p.name, p.price, c.name AS category,
+    $products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
                  pc.product_color_id AS first_color_id,
                  (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
           FROM products p
@@ -63,10 +63,10 @@ if ($brand_id > 0) {
             ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
           WHERE p.supplier_id = ?
           ORDER BY p.product_id DESC";
-    $stmt = mysqli_prepare($conn, $q);
-    mysqli_stmt_bind_param($stmt, 'i', $brand_id);
-    mysqli_stmt_execute($stmt);
-    $products = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+    $products_stmt = mysqli_prepare($conn, $products_sql);
+    mysqli_stmt_bind_param($products_stmt, 'i', $brand_id);
+    mysqli_stmt_execute($products_stmt);
+    $products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
 
     $page_title = $brand['name'] . " | Soigné";
 } else {

@@ -35,14 +35,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password === '') {
         $error = 'Enter your password.';
     } else {
-        $query = "SELECT user_id, username, password, role
-                  FROM users
-                  WHERE (username = ? OR email = ?) AND role = 'admin' AND status = 'active'
-                  LIMIT 1";
-        $stmt = mysqli_prepare($conn, $query);
-        mysqli_stmt_bind_param($stmt, 'ss', $login_value, $login_value);
-        mysqli_stmt_execute($stmt);
-        $admin = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        $admin_lookup_query = "SELECT user_id, username, password, role
+                               FROM users
+                               WHERE (username = ? OR email = ?) AND role = 'admin' AND status = 'active'
+                               LIMIT 1";
+        $admin_lookup_statement = mysqli_prepare($conn, $admin_lookup_query);
+        mysqli_stmt_bind_param($admin_lookup_statement, 'ss', $login_value, $login_value);
+        mysqli_stmt_execute($admin_lookup_statement);
+        $admin = mysqli_fetch_assoc(mysqli_stmt_get_result($admin_lookup_statement));
 
         if ($admin && password_verify($password, $admin['password'])) {
             session_regenerate_id(true);

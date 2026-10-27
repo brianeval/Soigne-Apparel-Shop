@@ -1,6 +1,6 @@
 <?php
-include ('config.php');
-require_once ('profile_image.php');
+include("config.php");
+require_once("profile_image.php");
 require_once("customer_auth.php");
 
 $customer_role = sync_customer_session($conn);
@@ -9,21 +9,21 @@ $customer_role = sync_customer_session($conn);
 // This query totals the quantity of all items in the current user's cart for the cart badge.
 $cart_count = 0;
 if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
-    $stmt = mysqli_prepare($conn,
+    $cart_count_statement = mysqli_prepare($conn,
         "SELECT COALESCE(SUM(c.quantity), 0) AS item_count
          FROM cart c
          JOIN users u ON u.user_id = c.user_id
          WHERE c.user_id = ? AND u.role IN ('customer', 'vip') AND u.status = 'active'"
     );
     $user_id = (int)$_SESSION['user_id'];
-    mysqli_stmt_bind_param($stmt, 'i', $user_id);
-    mysqli_stmt_execute($stmt);
-    $cart_count = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['item_count'];
+    mysqli_stmt_bind_param($cart_count_statement, 'i', $user_id);
+    mysqli_stmt_execute($cart_count_statement);
+    $cart_count = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($cart_count_statement))['item_count'];
 }
 
-// Use a default title if the page did not set one
+// Use a default title if the current page did not set one.
 if (!isset($page_title)) {
-    $page_title = "Soigné";
+    $page_title = 'Soigné';
 }
 ?>
 <!DOCTYPE html>
@@ -42,7 +42,7 @@ if (!isset($page_title)) {
 <header class="site-header">
     <a href="<?php echo BASE_URL; ?>index.php" class="logo">Soigné</a>
     <nav class="main-nav" aria-label="Main">
-    <a href="<?php echo BASE_URL; ?>department.php?dept=men"   class="<?php echo (($dept ?? '') === 'men')   ? 'active' : ''; ?>">Men</a>
+    <a href="<?php echo BASE_URL; ?>department.php?dept=men" class="<?php echo (($dept ?? '') === 'men') ? 'active' : ''; ?>">Men</a>
     <a href="<?php echo BASE_URL; ?>department.php?dept=women" class="<?php echo (($dept ?? '') === 'women') ? 'active' : ''; ?>">Women</a>
     <a href="<?php echo BASE_URL; ?>department.php?dept=kids"  class="<?php echo (($dept ?? '') === 'kids')  ? 'active' : ''; ?>">Kids</a>
     <a href="<?php echo BASE_URL; ?>brands.php" class="<?php echo (($nav_active ?? '') === 'brands') ? 'active' : ''; ?>">Brands</a>
@@ -81,18 +81,32 @@ if (!isset($page_title)) {
 
     <script>
     (function () {
-      var menu  = document.getElementById('account-menu');
-      var btn   = menu.querySelector('.account-toggle');
+      var menu = document.getElementById('account-menu');
+      var button = menu.querySelector('.account-toggle');
       var panel = document.getElementById('account-dropdown');
 
       function setOpen(open) {
         panel.hidden = !open;
-        btn.setAttribute('aria-expanded', open);
+        button.setAttribute('aria-expanded', open);
       }
 
-      btn.addEventListener('click', function (e) { e.stopPropagation(); setOpen(panel.hidden); });
-      document.addEventListener('click', function (e) { if (!menu.contains(e.target)) setOpen(false); });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { setOpen(false); btn.focus(); } });
+      button.addEventListener('click', function (event) {
+        event.stopPropagation();
+        setOpen(panel.hidden);
+      });
+
+      document.addEventListener('click', function (event) {
+        if (!menu.contains(event.target)) {
+          setOpen(false);
+        }
+      });
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+          setOpen(false);
+          button.focus();
+        }
+      });
     })();
     </script>
   </header>
@@ -138,10 +152,18 @@ if (!isset($page_title)) {
     var openButton = document.querySelector('[data-premium-open]');
     var closeButton = document.querySelector('[data-premium-close]');
     if (!dialog || !openButton || !closeButton) return;
-    openButton.addEventListener('click', function () { dialog.showModal(); });
-    closeButton.addEventListener('click', function () { dialog.close(); });
+    openButton.addEventListener('click', function () {
+      dialog.showModal();
+    });
+
+    closeButton.addEventListener('click', function () {
+      dialog.close();
+    });
+
     dialog.addEventListener('click', function (event) {
-      if (event.target === dialog) dialog.close();
+      if (event.target === dialog) {
+        dialog.close();
+      }
     });
   })();
   </script>

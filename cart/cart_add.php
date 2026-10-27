@@ -38,7 +38,8 @@ if ($is_resume) {
     exit;
 }
 
-function flash_and_go($type, $text) {
+function flash_and_go(string $type, string $text): void
+{
     $_SESSION['flash'] = ['type' => $type, 'text' => $text];
     header('Location: ' . BASE_URL . 'cart/cart.php');
     exit;
@@ -47,10 +48,10 @@ function flash_and_go($type, $text) {
 $user_id    = (int)$_SESSION['user_id'];
 
 // This query checks whether the chosen size exists and how many items are left in stock.
-$stmt = mysqli_prepare($conn, "SELECT stock FROM product_variants WHERE variant_id = ?");
-mysqli_stmt_bind_param($stmt, 'i', $variant_id);
-mysqli_stmt_execute($stmt);
-$variant = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$variant_stmt = mysqli_prepare($conn, "SELECT stock FROM product_variants WHERE variant_id = ?");
+mysqli_stmt_bind_param($variant_stmt, 'i', $variant_id);
+mysqli_stmt_execute($variant_stmt);
+$variant = mysqli_fetch_assoc(mysqli_stmt_get_result($variant_stmt));
 
 if (!$variant) {
     flash_and_go('error', 'Please choose a size before adding to cart.');
@@ -64,11 +65,10 @@ if ($stock < 1) {
 $quantity = min($quantity, $stock);
 
 // This query adds the item to the cart. If the same size is already there, it increases the quantity without going over stock.
-$q = "INSERT INTO cart (user_id, variant_id, quantity) VALUES (?, ?, ?)
+$cart_insert_sql = "INSERT INTO cart (user_id, variant_id, quantity) VALUES (?, ?, ?)
       ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + VALUES(quantity), ?)";
-$stmt = mysqli_prepare($conn, $q);
-mysqli_stmt_bind_param($stmt, 'iiii', $user_id, $variant_id, $quantity, $stock);
-mysqli_stmt_execute($stmt);
+$cart_insert_stmt = mysqli_prepare($conn, $cart_insert_sql);
+mysqli_stmt_bind_param($cart_insert_stmt, 'iiii', $user_id, $variant_id, $quantity, $stock);
+mysqli_stmt_execute($cart_insert_stmt);
 
 flash_and_go('success', 'Added to your cart.');
-print_r($_SESSION['flash']);

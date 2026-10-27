@@ -4,12 +4,12 @@
     include_once("includes/config.php");
     require_once("includes/product_images.php");
 
-    $q = "SELECT p.*, pc.product_color_id AS first_color_id
+    $products_sql = "SELECT p.*, pc.product_color_id AS first_color_id
       FROM products p
       LEFT JOIN product_colors pc
         ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
       ORDER BY p.product_id DESC";
-    $products = mysqli_fetch_all(mysqli_query($conn, $q), MYSQLI_ASSOC);
+    $products = mysqli_fetch_all(mysqli_query($conn, $products_sql), MYSQLI_ASSOC);
     $product_image_map = product_color_image_paths($conn, array_map('intval', array_column($products, 'first_color_id')));
 
 ?>

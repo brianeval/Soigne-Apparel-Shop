@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             mysqli_begin_transaction($conn);
 
             // This query locks the selected cart items and their product details so checkout can safely confirm stock and create the order.
-            $stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.variant_id, c.quantity,
+            $selected_items_stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.variant_id, c.quantity,
                                                    v.stock, v.size, pc.color,
                                                    (SELECT pci.image_path
                                                     FROM product_color_images AS pci
@@ -79,9 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_list)
                                             ORDER BY c.cart_id
                                             FOR UPDATE");
-            mysqli_stmt_bind_param($stmt, 'i', $user_id);
-            mysqli_stmt_execute($stmt);
-            $items = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+            mysqli_stmt_bind_param($selected_items_stmt, 'i', $user_id);
+            mysqli_stmt_execute($selected_items_stmt);
+            $items = mysqli_fetch_all(mysqli_stmt_get_result($selected_items_stmt), MYSQLI_ASSOC);
 
             if (!$items) {
                 mysqli_rollback($conn);
@@ -109,9 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     // This query creates the main order record for the user and shipping address.
-                    $stmt = mysqli_prepare($conn, "INSERT INTO orders (user_id, shipping_address) VALUES (?, ?)");
-                    mysqli_stmt_bind_param($stmt, 'is', $user_id, $address);
-                    mysqli_stmt_execute($stmt);
+                    $order_stmt = mysqli_prepare($conn, "INSERT INTO orders (user_id, shipping_address) VALUES (?, ?)");
+                    mysqli_stmt_bind_param($order_stmt, 'is', $user_id, $address);
+                    mysqli_stmt_execute($order_stmt);
                     $order_id = mysqli_insert_id($conn);
 
                     // This query adds each item to the order_items table and records the price at checkout time.
@@ -191,10 +191,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     // This query loads the saved shipping information for the logged-in user so checkout can be pre-filled.
-    $stmt = mysqli_prepare($conn, "SELECT customer_name, phone, address FROM customers WHERE user_id = ?");
-    mysqli_stmt_bind_param($stmt, 'i', $user_id);
-    mysqli_stmt_execute($stmt);
-    $customer = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    $customer_stmt = mysqli_prepare($conn, "SELECT customer_name, phone, address FROM customers WHERE user_id = ?");
+    mysqli_stmt_bind_param($customer_stmt, 'i', $user_id);
+    mysqli_stmt_execute($customer_stmt);
+    $customer = mysqli_fetch_assoc(mysqli_stmt_get_result($customer_stmt));
     if ($customer) {
         $customer_name = $customer['customer_name'] ?? '';
         $phone = $customer['phone'] ?? '';
@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // This query loads the cart items again for the checkout summary so the user can review what they are ordering.
-$stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.quantity, v.variant_id, v.size, v.stock,
+$summary_stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.quantity, v.variant_id, v.size, v.stock,
                                       pc.color,
                                       (SELECT pci.image_path
                                        FROM product_color_images AS pci
@@ -217,9 +217,9 @@ $stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.quantity, v.variant_id, v.siz
                                JOIN products p ON p.product_id = pc.product_id
                                WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_list)
                                ORDER BY c.cart_id DESC");
-mysqli_stmt_bind_param($stmt, 'i', $user_id);
-mysqli_stmt_execute($stmt);
-$items = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+mysqli_stmt_bind_param($summary_stmt, 'i', $user_id);
+mysqli_stmt_execute($summary_stmt);
+$items = mysqli_fetch_all(mysqli_stmt_get_result($summary_stmt), MYSQLI_ASSOC);
 
 $vip_discount_rate = ($_SESSION['role'] ?? '') === 'vip' ? 0.10 : 0;
 $item_count = 0;

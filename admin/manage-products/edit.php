@@ -118,12 +118,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $price = product_price_value($_POST['price'] ?? null);
             $description = trim(is_string($_POST['description'] ?? null) ? $_POST['description'] : '');
 
-            if ($supplier_id === null) $errors[] = 'Choose a valid brand.';
-            if ($name === '' || mb_strlen($name) > 150) $errors[] = 'Enter a product name up to 150 characters.';
-            if ($category_id_value !== '' && !is_string($category_id_value)) $errors[] = 'Choose a valid category.';
-            if ($category_id_input !== '' && $category_id === null) $errors[] = 'Choose a valid category.';
-            if (!in_array($department, ['men', 'women', 'kids'], true)) $errors[] = 'Choose a valid department.';
-            if ($price === null) $errors[] = 'Enter a valid non-negative price with no more than two decimal places.';
+            if ($supplier_id === null) {
+                $errors[] = 'Choose a valid brand.';
+            }
+            if ($name === '' || mb_strlen($name) > 150) {
+                $errors[] = 'Enter a product name up to 150 characters.';
+            }
+            if ($category_id_value !== '' && !is_string($category_id_value)) {
+                $errors[] = 'Choose a valid category.';
+            }
+            if ($category_id_input !== '' && $category_id === null) {
+                $errors[] = 'Choose a valid category.';
+            }
+            if (!in_array($department, ['men', 'women', 'kids'], true)) {
+                $errors[] = 'Choose a valid department.';
+            }
+            if ($price === null) {
+                $errors[] = 'Enter a valid non-negative price with no more than two decimal places.';
+            }
 
             if (!$errors) {
                 $supplier_stmt = mysqli_prepare($conn, "SELECT supplier_id FROM suppliers WHERE supplier_id = ?");
@@ -133,15 +145,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errors[] = 'Choose a valid brand.';
                 }
             }
-            if (!$errors) {
-                if ($category_id !== null) {
-                    $category_stmt = mysqli_prepare($conn, "SELECT category_id FROM categories WHERE category_id = ?");
-                    mysqli_stmt_bind_param($category_stmt, 'i', $category_id);
-                    mysqli_stmt_execute($category_stmt);
-                    $category_row = mysqli_fetch_assoc(mysqli_stmt_get_result($category_stmt));
-                    if (!$category_row) {
-                        $errors[] = 'Choose a valid category.';
-                    }
+            if (!$errors && $category_id !== null) {
+                $category_stmt = mysqli_prepare($conn, "SELECT category_id FROM categories WHERE category_id = ?");
+                mysqli_stmt_bind_param($category_stmt, 'i', $category_id);
+                mysqli_stmt_execute($category_stmt);
+                $category_row = mysqli_fetch_assoc(mysqli_stmt_get_result($category_stmt));
+                if (!$category_row) {
+                    $errors[] = 'Choose a valid category.';
                 }
             }
 
@@ -156,8 +166,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'add_color') {
             $color = trim(is_string($_POST['color'] ?? null) ? $_POST['color'] : '');
             $image = trim(is_string($_POST['image'] ?? null) ? $_POST['image'] : '');
-            if ($color === '' || mb_strlen($color) > 80) $errors[] = 'Enter a color name up to 80 characters.';
-            if (mb_strlen($image) > 255) $errors[] = 'Image path must be 255 characters or fewer.';
+            if ($color === '' || mb_strlen($color) > 80) {
+                $errors[] = 'Enter a color name up to 80 characters.';
+            }
+            if (mb_strlen($image) > 255) {
+                $errors[] = 'Image path must be 255 characters or fewer.';
+            }
             if (!$errors) {
                 try {
                     mysqli_begin_transaction($conn);

@@ -12,13 +12,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $quantities = $_POST['quantities'] ?? [];
         $shipping_address = trim(is_string($_POST['shipping_address'] ?? null) ? $_POST['shipping_address'] : '');
 
-        if ($user_id === false || $user_id < 1) $errors[] = 'Choose a customer.';
+        if ($user_id === false || $user_id < 1) {
+            $errors[] = 'Choose a customer.';
+        }
         if (!is_array($product_ids) || !is_array($variant_ids) || !is_array($quantities)
             || !$product_ids || count($product_ids) !== count($variant_ids)
             || count($variant_ids) !== count($quantities)) {
             $errors[] = 'Choose at least one product and enter its quantity.';
         }
-        if ($shipping_address === '' || mb_strlen($shipping_address) > 255) $errors[] = 'Enter a shipping address up to 255 characters.';
+        if ($shipping_address === '' || mb_strlen($shipping_address) > 255) {
+            $errors[] = 'Enter a shipping address up to 255 characters.';
+        }
 
         $order_items = [];
         $selected_products = [];

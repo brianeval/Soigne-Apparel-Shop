@@ -6,18 +6,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Refresh the page and try again.';
     } elseif (($_POST['action'] ?? '') === 'create') {
-        $name = trim(is_string($_POST['customer_name'] ?? null) ? $_POST['customer_name'] : '');
+        $customer_name = trim(is_string($_POST['customer_name'] ?? null) ? $_POST['customer_name'] : '');
         $username = trim(is_string($_POST['username'] ?? null) ? $_POST['username'] : '');
         $email = trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : '');
         $phone = trim(is_string($_POST['phone'] ?? null) ? $_POST['phone'] : '');
         $address = trim(is_string($_POST['address'] ?? null) ? $_POST['address'] : '');
         $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 
-        if ($name === '' || mb_strlen($name) > 120) $errors[] = 'Enter a customer name up to 120 characters.';
-        if (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) $errors[] = 'Username must be 3–50 letters, numbers, or underscores.';
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 120) $errors[] = 'Enter a valid email address.';
-        if (mb_strlen($phone) > 30 || mb_strlen($address) > 255) $errors[] = 'Phone or address is longer than the allowed limit.';
-        if (strlen($password) < 8 || strlen($password) > 72) $errors[] = 'Password must be 8–72 characters.';
+        if ($customer_name === '' || mb_strlen($customer_name) > 120) {
+            $errors[] = 'Enter a customer name up to 120 characters.';
+        }
+        if (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) {
+            $errors[] = 'Username must be 3–50 letters, numbers, or underscores.';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 120) {
+            $errors[] = 'Enter a valid email address.';
+        }
+        if (mb_strlen($phone) > 30 || mb_strlen($address) > 255) {
+            $errors[] = 'Phone or address is longer than the allowed limit.';
+        }
+        if (strlen($password) < 8 || strlen($password) > 72) {
+            $errors[] = 'Password must be 8–72 characters.';
+        }
 
         if (!$errors) {
             mysqli_begin_transaction($conn);
@@ -29,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $new_user_id = mysqli_insert_id($conn);
 
                 $customer_stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address) VALUES (?, ?, ?, ?)");
-                mysqli_stmt_bind_param($customer_stmt, 'isss', $new_user_id, $name, $phone, $address);
+                mysqli_stmt_bind_param($customer_stmt, 'isss', $new_user_id, $customer_name, $phone, $address);
                 mysqli_stmt_execute($customer_stmt);
                 mysqli_commit($conn);
                 admin_set_flash('success', 'Customer account created.');
@@ -46,10 +56,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user_id === false || $user_id < 1 || !in_array($new_status, ['active', 'inactive'], true)) {
             $errors[] = 'Choose a valid customer account status.';
         } else {
-            $stmt = mysqli_prepare($conn, "UPDATE users SET status = ? WHERE user_id = ? AND role IN ('customer', 'vip')");
-            mysqli_stmt_bind_param($stmt, 'si', $new_status, $user_id);
-            mysqli_stmt_execute($stmt);
-            if (mysqli_stmt_affected_rows($stmt) !== 1) {
+            $status_update_statement = mysqli_prepare($conn, "UPDATE users SET status = ? WHERE user_id = ? AND role IN ('customer', 'vip')");
+            mysqli_stmt_bind_param($status_update_statement, 'si', $new_status, $user_id);
+            mysqli_stmt_execute($status_update_statement);
+            if (mysqli_stmt_affected_rows($status_update_statement) !== 1) {
                 $errors[] = 'Customer not found or already has that status.';
             } else {
                 admin_set_flash('success', $new_status === 'active' ? 'Customer account reactivated.' : 'Customer account deactivated.');
@@ -107,7 +117,7 @@ $customer_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) A
 $customer_pagination = admin_pagination_page($customer_total);
 $customer_limit = $customer_pagination['page_size'];
 $customer_offset = $customer_pagination['offset'];
-$result = mysqli_query($conn,
+$customer_list_result = mysqli_query($conn,
     "SELECT u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone,
             COUNT(DISTINCT o.order_id) AS order_count
      FROM users u
@@ -118,7 +128,7 @@ $result = mysqli_query($conn,
      ORDER BY u.user_id DESC
      LIMIT $customer_limit OFFSET $customer_offset"
 );
-$customers = mysqli_fetch_all($result, MYSQLI_ASSOC);
+$customers = mysqli_fetch_all($customer_list_result, MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Customers';
 $admin_active_page = 'customers';

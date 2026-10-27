@@ -16,13 +16,13 @@ if (!isset($_SESSION['profile_csrf'])) {
 }
 
 // This query loads the current user's account and customer details so the form fields can be pre-filled.
-$stmt = mysqli_prepare($conn, "SELECT u.username, u.email, c.customer_name, c.phone, c.address
+$profile_stmt = mysqli_prepare($conn, "SELECT u.username, u.email, c.customer_name, c.phone, c.address
                                FROM users u
                                LEFT JOIN customers c ON c.user_id = u.user_id
                                WHERE u.user_id = ?");
-mysqli_stmt_bind_param($stmt, 'i', $user_id);
-mysqli_stmt_execute($stmt);
-$profile = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_bind_param($profile_stmt, 'i', $user_id);
+mysqli_stmt_execute($profile_stmt);
+$profile = mysqli_fetch_assoc(mysqli_stmt_get_result($profile_stmt));
 
 if (!$profile) {
     http_response_code(404);
@@ -109,11 +109,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$errors) {
             // This query checks whether another account already uses the same username or email.
-            $stmt = mysqli_prepare($conn, "SELECT username, email FROM users
+            $accounts_stmt = mysqli_prepare($conn, "SELECT username, email FROM users
                                            WHERE (username = ? OR email = ?) AND user_id <> ?");
-            mysqli_stmt_bind_param($stmt, 'ssi', $username, $email, $user_id);
-            mysqli_stmt_execute($stmt);
-            $taken = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+            mysqli_stmt_bind_param($accounts_stmt, 'ssi', $username, $email, $user_id);
+            mysqli_stmt_execute($accounts_stmt);
+            $taken = mysqli_fetch_all(mysqli_stmt_get_result($accounts_stmt), MYSQLI_ASSOC);
             foreach ($taken as $account) {
                 if (strcasecmp($account['username'], $username) === 0) {
                     $errors[] = 'That username is already taken.';
@@ -129,25 +129,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_begin_transaction($conn);
 
                 // This query updates the login details for the signed-in user.
-                $stmt = mysqli_prepare($conn, "UPDATE users SET username = ?, email = ? WHERE user_id = ?");
-                mysqli_stmt_bind_param($stmt, 'ssi', $username, $email, $user_id);
-                mysqli_stmt_execute($stmt);
+                $account_update_stmt = mysqli_prepare($conn, "UPDATE users SET username = ?, email = ? WHERE user_id = ?");
+                mysqli_stmt_bind_param($account_update_stmt, 'ssi', $username, $email, $user_id);
+                mysqli_stmt_execute($account_update_stmt);
 
                 // This query saves or updates the user's shipping/contact details in the customers table.
-                $stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address)
+                $customer_details_stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address)
                                                VALUES (?, ?, ?, ?)
                                                ON DUPLICATE KEY UPDATE customer_name = VALUES(customer_name),
                                                                        phone = VALUES(phone),
                                                                        address = VALUES(address)");
-                mysqli_stmt_bind_param($stmt, 'isss', $user_id, $name, $phone, $address);
-                mysqli_stmt_execute($stmt);
+                mysqli_stmt_bind_param($customer_details_stmt, 'isss', $user_id, $name, $phone, $address);
+                mysqli_stmt_execute($customer_details_stmt);
 
                 if ($password !== '') {
                     $password_hash = password_hash($password, PASSWORD_DEFAULT);
                     // This query changes the password only when the user entered a new one.
-                    $stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE user_id = ?");
-                    mysqli_stmt_bind_param($stmt, 'si', $password_hash, $user_id);
-                    mysqli_stmt_execute($stmt);
+                    $password_update_stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE user_id = ?");
+                    mysqli_stmt_bind_param($password_update_stmt, 'si', $password_hash, $user_id);
+                    mysqli_stmt_execute($password_update_stmt);
                 }
 
                 mysqli_commit($conn);

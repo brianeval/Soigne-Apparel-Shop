@@ -4,26 +4,25 @@ include_once('includes/config.php');
 require_once("includes/product_images.php");
 
 
-// STEP 1: Get the product id from the URL (product.php?id=4)
-$id = (int)($_GET['id'] ?? 0);
+// Read the product id from the URL (for example, product.php?id=4).
+$product_id = (int)($_GET['id'] ?? 0);
 
-// STEP 2: Find the product in the database.
-// This query asks: "give me the row from products where product_id matches the URL id".
-$productQuery = "SELECT p.*, c.name AS size_guide_category
+// Load the product details and its category for the size guide.
+$product_sql = "SELECT p.*, c.name AS size_guide_category
                  FROM products p
                  LEFT JOIN categories c ON c.category_id = p.category_id
                  WHERE p.product_id = ?";
-$stmt = mysqli_prepare($conn, $productQuery);
-mysqli_stmt_bind_param($stmt, 'i', $id);
-mysqli_stmt_execute($stmt);
-$product = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+$product_stmt = mysqli_prepare($conn, $product_sql);
+mysqli_stmt_bind_param($product_stmt, 'i', $product_id);
+mysqli_stmt_execute($product_stmt);
+$product = mysqli_fetch_assoc(mysqli_stmt_get_result($product_stmt));
 
 if (!$product) {
     echo "Product not found.";
     exit;
 }
 
-$stmt = mysqli_prepare($conn,
+$reviews_stmt = mysqli_prepare($conn,
     "SELECT r.review_id, r.user_id, u.username, r.rating, r.review_text, r.status, r.created_at, r.updated_at,
             pc.color AS purchased_color, v.size AS purchased_size
      FROM product_reviews r
@@ -34,9 +33,9 @@ $stmt = mysqli_prepare($conn,
      WHERE r.product_id = ? AND r.status = 'published'
      ORDER BY r.created_at DESC, r.review_id DESC"
 );
-mysqli_stmt_bind_param($stmt, 'i', $id);
-mysqli_stmt_execute($stmt);
-$published_reviews = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+mysqli_stmt_bind_param($reviews_stmt, 'i', $product_id);
+mysqli_stmt_execute($reviews_stmt);
+$published_reviews = mysqli_fetch_all(mysqli_stmt_get_result($reviews_stmt), MYSQLI_ASSOC);
 $review_colors = [];
 $review_sizes = [];
 foreach ($published_reviews as $review) {
@@ -65,7 +64,7 @@ $editing_cart_item = null;
 if ($edit_cart_id > 0 && isset($_SESSION['user_id'])) {
     // This query checks the item the user is editing in the cart.
     // It joins the cart table to the variant and color tables so we can match the correct product.
-    $stmt = mysqli_prepare($conn,
+    $cart_item_stmt = mysqli_prepare($conn,
         "SELECT c.cart_id, c.quantity, v.variant_id, pc.product_color_id
          FROM cart c
          JOIN product_variants v ON v.variant_id = c.variant_id
@@ -73,28 +72,25 @@ if ($edit_cart_id > 0 && isset($_SESSION['user_id'])) {
          WHERE c.cart_id = ? AND c.user_id = ? AND pc.product_id = ?"
     );
     $user_id = (int)$_SESSION['user_id'];
-    mysqli_stmt_bind_param($stmt, 'iii', $edit_cart_id, $user_id, $id);
-    mysqli_stmt_execute($stmt);
-    $editing_cart_item = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_bind_param($cart_item_stmt, 'iii', $edit_cart_id, $user_id, $product_id);
+    mysqli_stmt_execute($cart_item_stmt);
+    $editing_cart_item = mysqli_fetch_assoc(mysqli_stmt_get_result($cart_item_stmt));
     if (!$editing_cart_item) {
         header('Location: ' . BASE_URL . 'cart/cart.php');
         exit;
     }
 }
 
-// STEP 3: Get all available colors for this product.
-// This query asks: "list every color row that belongs to this product".
-$colorQuery = "SELECT * FROM product_colors WHERE product_id = ?";
-$stmt = mysqli_prepare($conn, $colorQuery);
-mysqli_stmt_bind_param($stmt, 'i', $id);
-mysqli_stmt_execute($stmt);
-$colors = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+$colors_sql = "SELECT * FROM product_colors WHERE product_id = ?";
+$colors_stmt = mysqli_prepare($conn, $colors_sql);
+mysqli_stmt_bind_param($colors_stmt, 'i', $product_id);
+mysqli_stmt_execute($colors_stmt);
+$colors = mysqli_fetch_all(mysqli_stmt_get_result($colors_stmt), MYSQLI_ASSOC);
 $color_image_map = product_color_image_paths(
     $conn,
     array_map('intval', array_column($colors, 'product_color_id'))
 );
 
-// STEP 4: Decide which color to show (default is the first one)
 $selected = null;
 if (isset($_GET['color'])) {
     foreach ($colors as $c) {
@@ -118,15 +114,13 @@ $selected_images = $selected
     ? ($color_image_map[(int)$selected['product_color_id']] ?? [])
     : [];
 
-// STEP 5: Get the sizes and stock of the selected color.
-// This query asks: "show every size variant for this color, including how many are in stock".
 $variants = [];
 if ($selected) {
-    $variantQuery = "SELECT * FROM product_variants WHERE product_color_id = ?";
-    $stmt = mysqli_prepare($conn, $variantQuery);
-    mysqli_stmt_bind_param($stmt, 'i', $selected['product_color_id']);
-    mysqli_stmt_execute($stmt);
-    $variants = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+    $variants_sql = "SELECT * FROM product_variants WHERE product_color_id = ?";
+    $variants_stmt = mysqli_prepare($conn, $variants_sql);
+    mysqli_stmt_bind_param($variants_stmt, 'i', $selected['product_color_id']);
+    mysqli_stmt_execute($variants_stmt);
+    $variants = mysqli_fetch_all(mysqli_stmt_get_result($variants_stmt), MYSQLI_ASSOC);
 }
 
 $original_variant_id = $editing_cart_item ? (int)$editing_cart_item['variant_id'] : 0;
@@ -204,7 +198,7 @@ include_once('includes/header.php');
         }
         ?>
         <a class="<?php echo $class; ?>"
-           href="product.php?id=<?php echo $id; ?>&color=<?php echo (int)$c['product_color_id']; ?><?php echo $editing_cart_item ? '&cart_id=' . (int)$edit_cart_id : ''; ?>">
+           href="product.php?id=<?php echo $product_id; ?>&color=<?php echo (int)$c['product_color_id']; ?><?php echo $editing_cart_item ? '&cart_id=' . (int)$edit_cart_id : ''; ?>">
           <?php echo htmlspecialchars($c['color']); ?>
         </a>
       <?php } ?>

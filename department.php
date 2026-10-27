@@ -14,7 +14,7 @@ $dept_label = $allowed[$dept];
 
 // Products in this department, each with the image of its first color.
 // This query gets all products in the chosen department and attaches the first color image for each one.
-$q = "SELECT p.product_id, p.name, p.price, c.name AS category,
+$products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
              pc.product_color_id AS first_color_id,
              (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
       FROM products p
@@ -23,10 +23,10 @@ $q = "SELECT p.product_id, p.name, p.price, c.name AS category,
         ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
       WHERE p.department = ?
       ORDER BY p.product_id DESC";
-$stmt = mysqli_prepare($conn, $q);
-mysqli_stmt_bind_param($stmt, 's', $dept);
-mysqli_stmt_execute($stmt);
-$products = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
+$products_stmt = mysqli_prepare($conn, $products_sql);
+mysqli_stmt_bind_param($products_stmt, 's', $dept);
+mysqli_stmt_execute($products_stmt);
+$products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
 
 $page_title = $dept_label . " | Soigné";
 $extra_css  = "department.css";

@@ -28,7 +28,7 @@ if ($order_id === false || $order_id < 1 || $order_item_id === false || $order_i
     exit;
 }
 
-$stmt = mysqli_prepare($conn,
+$purchased_item_stmt = mysqli_prepare($conn,
     "SELECT o.payment_status
      FROM orders o
      JOIN order_items oi ON oi.order_id = o.order_id
@@ -38,9 +38,9 @@ $stmt = mysqli_prepare($conn,
        AND pc.product_id = ? AND o.payment_status = 'paid'
      LIMIT 1"
 );
-mysqli_stmt_bind_param($stmt, 'iiii', $order_id, $order_item_id, $user_id, $product_id);
-mysqli_stmt_execute($stmt);
-if (!mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
+mysqli_stmt_bind_param($purchased_item_stmt, 'iiii', $order_id, $order_item_id, $user_id, $product_id);
+mysqli_stmt_execute($purchased_item_stmt);
+if (!mysqli_fetch_assoc(mysqli_stmt_get_result($purchased_item_stmt))) {
     $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Only products in your paid orders can be reviewed.'];
     header('Location: ' . $redirect_url);
     exit;
@@ -54,15 +54,15 @@ if ($action !== 'create' && ($review_id === false || $review_id < 1)) {
 }
 
 if ($action !== 'create') {
-    $stmt = mysqli_prepare($conn,
+    $existing_review_stmt = mysqli_prepare($conn,
         "SELECT review_id
          FROM product_reviews
          WHERE review_id = ? AND product_id = ? AND user_id = ?
            AND status IN ('pending', 'published')"
     );
-    mysqli_stmt_bind_param($stmt, 'iii', $review_id, $product_id, $user_id);
-    mysqli_stmt_execute($stmt);
-    if (!mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))) {
+    mysqli_stmt_bind_param($existing_review_stmt, 'iii', $review_id, $product_id, $user_id);
+    mysqli_stmt_execute($existing_review_stmt);
+    if (!mysqli_fetch_assoc(mysqli_stmt_get_result($existing_review_stmt))) {
         $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Only your active review can be edited or deleted.'];
         header('Location: ' . $redirect_url);
         exit;
@@ -70,15 +70,15 @@ if ($action !== 'create') {
 }
 
 if ($action === 'delete') {
-    $stmt = mysqli_prepare($conn,
+    $delete_review_stmt = mysqli_prepare($conn,
         "UPDATE product_reviews
          SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
          WHERE review_id = ? AND product_id = ? AND user_id = ?
            AND status IN ('pending', 'published')"
     );
-    mysqli_stmt_bind_param($stmt, 'iii', $review_id, $product_id, $user_id);
-    mysqli_stmt_execute($stmt);
-    $_SESSION['orders_flash'] = mysqli_stmt_affected_rows($stmt) === 1
+    mysqli_stmt_bind_param($delete_review_stmt, 'iii', $review_id, $product_id, $user_id);
+    mysqli_stmt_execute($delete_review_stmt);
+    $_SESSION['orders_flash'] = mysqli_stmt_affected_rows($delete_review_stmt) === 1
         ? ['type' => 'success', 'text' => 'Your review was deleted. You can submit a new review for this product.']
         : ['type' => 'error', 'text' => 'Only your active review can be deleted.'];
     header('Location: ' . $redirect_url);
@@ -132,33 +132,33 @@ if ($contains_vulgar_language + $contains_tagalog_vulgar_language > 0) {
 
 try {
     if ($action === 'create') {
-        $stmt = mysqli_prepare($conn,
+        $restore_review_stmt = mysqli_prepare($conn,
             "UPDATE product_reviews
              SET rating = ?, review_text = ?, order_item_id = ?, status = 'published',
                  published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
              WHERE product_id = ? AND user_id = ? AND status = 'deleted'"
         );
-        mysqli_stmt_bind_param($stmt, 'isiii', $rating, $review_text, $order_item_id, $product_id, $user_id);
-        mysqli_stmt_execute($stmt);
-        if (mysqli_stmt_affected_rows($stmt) === 0) {
-            $stmt = mysqli_prepare($conn,
+        mysqli_stmt_bind_param($restore_review_stmt, 'isiii', $rating, $review_text, $order_item_id, $product_id, $user_id);
+        mysqli_stmt_execute($restore_review_stmt);
+        if (mysqli_stmt_affected_rows($restore_review_stmt) === 0) {
+            $create_review_stmt = mysqli_prepare($conn,
                 "INSERT INTO product_reviews (product_id, user_id, order_item_id, rating, review_text, status, published_at)
                  VALUES (?, ?, ?, ?, ?, 'published', CURRENT_TIMESTAMP)"
             );
-            mysqli_stmt_bind_param($stmt, 'iiiis', $product_id, $user_id, $order_item_id, $rating, $review_text);
-            mysqli_stmt_execute($stmt);
+            mysqli_stmt_bind_param($create_review_stmt, 'iiiis', $product_id, $user_id, $order_item_id, $rating, $review_text);
+            mysqli_stmt_execute($create_review_stmt);
         }
         $_SESSION['orders_flash'] = ['type' => 'success', 'text' => 'Thanks! Your review is now published.'];
     } else {
-        $stmt = mysqli_prepare($conn,
+        $update_review_stmt = mysqli_prepare($conn,
             "UPDATE product_reviews
              SET rating = ?, review_text = ?, order_item_id = ?, updated_at = CURRENT_TIMESTAMP
              WHERE review_id = ? AND product_id = ? AND user_id = ?
                AND status IN ('pending', 'published')"
         );
-        mysqli_stmt_bind_param($stmt, 'isiiii', $rating, $review_text, $order_item_id, $review_id, $product_id, $user_id);
-        mysqli_stmt_execute($stmt);
-        $updated = mysqli_stmt_affected_rows($stmt) === 1;
+        mysqli_stmt_bind_param($update_review_stmt, 'isiiii', $rating, $review_text, $order_item_id, $review_id, $product_id, $user_id);
+        mysqli_stmt_execute($update_review_stmt);
+        $updated = mysqli_stmt_affected_rows($update_review_stmt) === 1;
         if (!$updated) {
             $check_stmt = mysqli_prepare($conn,
                 "SELECT 1 FROM product_reviews

@@ -7,15 +7,15 @@ if ($user_id === false || $user_id < 1) {
     exit('Customer not found.');
 }
 
-$stmt = mysqli_prepare($conn,
+$customer_lookup_statement = mysqli_prepare($conn,
     "SELECT u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone, c.address
      FROM users u
      LEFT JOIN customers c ON c.user_id = u.user_id
      WHERE u.user_id = ? AND u.role IN ('customer', 'vip')"
 );
-mysqli_stmt_bind_param($stmt, 'i', $user_id);
-mysqli_stmt_execute($stmt);
-$customer = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+mysqli_stmt_bind_param($customer_lookup_statement, 'i', $user_id);
+mysqli_stmt_execute($customer_lookup_statement);
+$customer = mysqli_fetch_assoc(mysqli_stmt_get_result($customer_lookup_statement));
 if (!$customer) {
     http_response_code(404);
     exit('Customer not found.');
@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Refresh the page and try again.';
     } else {
-        $name = trim(is_string($_POST['customer_name'] ?? null) ? $_POST['customer_name'] : '');
+        $customer_name = trim(is_string($_POST['customer_name'] ?? null) ? $_POST['customer_name'] : '');
         $username = trim(is_string($_POST['username'] ?? null) ? $_POST['username'] : '');
         $email = trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : '');
         $phone = trim(is_string($_POST['phone'] ?? null) ? $_POST['phone'] : '');
@@ -35,12 +35,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $role = is_string($_POST['role'] ?? null) ? $_POST['role'] : '';
         $renew_vip = ($_POST['renew_vip'] ?? '') === '1';
 
-        if ($name === '' || mb_strlen($name) > 120) $errors[] = 'Enter a customer name up to 120 characters.';
-        if (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) $errors[] = 'Username must be 3–50 letters, numbers, or underscores.';
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 120) $errors[] = 'Enter a valid email address.';
-        if (mb_strlen($phone) > 30 || mb_strlen($address) > 255) $errors[] = 'Phone or address is longer than the allowed limit.';
-        if ($password !== '' && (strlen($password) < 8 || strlen($password) > 72)) $errors[] = 'A new password must be 8–72 characters.';
-        if (!in_array($role, ['customer', 'vip'], true)) $errors[] = 'Choose a valid customer role.';
+        if ($customer_name === '' || mb_strlen($customer_name) > 120) {
+            $errors[] = 'Enter a customer name up to 120 characters.';
+        }
+        if (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) {
+            $errors[] = 'Username must be 3–50 letters, numbers, or underscores.';
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 120) {
+            $errors[] = 'Enter a valid email address.';
+        }
+        if (mb_strlen($phone) > 30 || mb_strlen($address) > 255) {
+            $errors[] = 'Phone or address is longer than the allowed limit.';
+        }
+        if ($password !== '' && (strlen($password) < 8 || strlen($password) > 72)) {
+            $errors[] = 'A new password must be 8–72 characters.';
+        }
+        if (!in_array($role, ['customer', 'vip'], true)) {
+            $errors[] = 'Choose a valid customer role.';
+        }
 
         if (!$errors) {
             mysqli_begin_transaction($conn);
@@ -64,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      VALUES (?, ?, ?, ?)
                      ON DUPLICATE KEY UPDATE customer_name = VALUES(customer_name), phone = VALUES(phone), address = VALUES(address)"
                 );
-                mysqli_stmt_bind_param($customer_stmt, 'isss', $user_id, $name, $phone, $address);
+                mysqli_stmt_bind_param($customer_stmt, 'isss', $user_id, $customer_name, $phone, $address);
                 mysqli_stmt_execute($customer_stmt);
                 if ($password !== '') {
                     $password_hash = password_hash($password, PASSWORD_DEFAULT);
