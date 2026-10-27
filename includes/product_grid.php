@@ -1,7 +1,7 @@
 <?php
 // Prints a grid of product cards.
 // Expects $products (array). Optional: $empty_message.
-require_once __DIR__ . '/product_images.php';
+require_once("product_images.php");
 $empty_message = $empty_message ?? 'No products found.';
 ?>
 <?php if (!$products) { ?>

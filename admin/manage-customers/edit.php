@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+require_once("../includes/bootstrap.php");
 
 $user_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if ($user_id === false || $user_id < 1) {
@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash = admin_take_flash();
 $admin_page_title = 'Edit Customer';
 $admin_active_page = 'customers';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">CUSTOMER DIRECTORY</p><h1>Edit Customer</h1><p>Update this account’s name, login details, and contact information.</p></div>
@@ -132,4 +132,4 @@ include __DIR__ . '/../includes/header.php';
     <div class="manage-form-wide manage-form-buttons"><button class="admin-button" type="submit">Save customer</button><a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-customers/">Cancel</a></div>
   </form>
 </section>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

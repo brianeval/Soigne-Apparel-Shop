@@ -27,7 +27,7 @@ function save_product_image_upload(array $upload): ?string
         throw new RuntimeException('Choose a JPEG, PNG, or WebP image for the product.');
     }
 
-    $directory = __DIR__ . '/../images/products';
+    $directory = APP_ROOT . '/images/products';
     if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
         throw new RuntimeException('The product image could not be saved. Please try again.');
     }

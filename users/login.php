@@ -1,6 +1,6 @@
 <?php
 session_start();
-include_once('../includes/config.php');
+include_once("../includes/config.php");
 
 // Only allow redirects to paths on this site (never full URLs)
 function safe_redirect($path) {

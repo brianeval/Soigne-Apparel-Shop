@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
-require_once __DIR__ . '/../../includes/order_email.php';
+require_once("../includes/bootstrap.php");
+require_once("../../includes/order_email.php");
 
 $order_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if ($order_id === false || $order_id < 1) {
@@ -223,7 +223,7 @@ $items = mysqli_fetch_all(mysqli_stmt_get_result($items_stmt), MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Order #' . $order_id;
 $admin_active_page = 'orders';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">ORDER #<?php echo (int)$order_id; ?></p><h1>Order details</h1><p>Customer: <?php echo admin_escape($order['username']); ?> &middot; Placed <?php echo admin_escape(date('M j, Y', strtotime($order['created_at']))); ?></p></div>
@@ -273,4 +273,4 @@ include __DIR__ . '/../includes/header.php';
     <p class="manage-help">For COD orders: mark shipped, then delivered, then mark paid after the courier collects payment. Cancelling is only available before shipping. Failed delivery is final and restores returned items to stock.</p>
   <?php } ?>
 </section>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

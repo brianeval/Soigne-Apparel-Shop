@@ -41,7 +41,7 @@ include_once ('includes/header.php');
 
   <?php
   $empty_message = 'No products in this department yet. Please check back soon.';
-  include __DIR__ . '/includes/product_grid.php';
+  include("includes/product_grid.php");
   ?>
 </main>
 

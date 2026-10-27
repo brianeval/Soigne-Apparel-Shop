@@ -4,7 +4,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once(APP_ROOT . '/vendor/autoload.php');
 
 function send_order_email_message(string $email, string $customer_name, string $subject, string $html, string $text, array $attachments = []): void
 {

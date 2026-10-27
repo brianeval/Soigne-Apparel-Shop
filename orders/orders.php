@@ -1,7 +1,7 @@
 <?php
 session_start();
-include_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/customer_auth.php';
+include_once("../includes/config.php");
+require_once("../includes/customer_auth.php");
 
 require_active_customer($conn, BASE_URL . 'orders/orders.php');
 
@@ -298,7 +298,7 @@ $order_tabs = [
 
 $page_title = 'My Orders | Soigné';
 $extra_css = 'orders.css';
-include_once __DIR__ . '/../includes/header.php';
+include_once("../includes/header.php");
 ?>
 
 <main class="orders-page">
@@ -653,4 +653,4 @@ include_once __DIR__ . '/../includes/header.php';
 })();
 </script>
 
-<?php include_once __DIR__ . '/../includes/footer.php'; ?>
+<?php include_once("../includes/footer.php"); ?>

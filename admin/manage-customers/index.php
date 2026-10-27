@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+require_once("../includes/bootstrap.php");
 
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -122,7 +122,7 @@ $customers = mysqli_fetch_all($result, MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Customers';
 $admin_active_page = 'customers';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">CUSTOMER ACCOUNTS</p><h1>Manage Customers</h1><p>Create accounts, edit contact details, and manage customer access.</p></div>
@@ -185,4 +185,4 @@ include __DIR__ . '/../includes/header.php';
     <?php admin_render_pagination($customer_pagination['page'], $customer_pagination['total_pages']); ?>
   <?php } else { ?><p class="manage-empty">No customer accounts found.</p><?php } ?>
 </section>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

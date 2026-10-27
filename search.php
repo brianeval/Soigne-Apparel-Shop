@@ -76,7 +76,7 @@ include_once ('includes/header.php');
 
     <?php if ($products) { ?>
       <h2>Products</h2>
-      <?php $empty_message = 'No products matched your search.'; include __DIR__ . '/includes/product_grid.php'; ?>
+      <?php $empty_message = 'No products matched your search.'; include("includes/product_grid.php"); ?>
     <?php } ?>
 
     <?php if (!$brands && !$products) { ?>

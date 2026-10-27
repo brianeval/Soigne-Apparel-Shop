@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
-require_once __DIR__ . '/../../includes/product_images.php';
-require_once __DIR__ . '/../../includes/product_validation.php';
+require_once("../includes/bootstrap.php");
+require_once("../../includes/product_images.php");
+require_once("../../includes/product_validation.php");
 
 $product_id = product_positive_integer($_GET['id'] ?? null);
 if ($product_id === null) {
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             mysqli_rollback($conn);
                         }
                         foreach ($saved_images as $image_path) {
-                            $file_path = __DIR__ . '/../../images/' . $image_path;
+                            $file_path = APP_ROOT . '/images/' . $image_path;
                             if (is_file($file_path) && !unlink($file_path)) {
                                 $errors[] = 'An uploaded image could not be removed after the upload failed.';
                             }
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             mysqli_rollback($conn);
                         }
                         foreach ($saved_images as $image_path) {
-                            $file_path = __DIR__ . '/../../images/' . $image_path;
+                            $file_path = APP_ROOT . '/images/' . $image_path;
                             if (is_file($file_path) && !unlink($file_path)) {
                                 $errors[] = 'An uploaded image could not be removed after the save failed.';
                             }
@@ -405,7 +405,7 @@ unset($color);
 $flash = admin_take_flash();
 $admin_page_title = 'Edit Product';
 $admin_active_page = 'products';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">PRODUCT CATALOG</p><h1>Edit Product</h1><p>Update product details, colors, sizes, and stock.</p></div>
@@ -557,4 +557,4 @@ include __DIR__ . '/../includes/header.php';
   });
 })();
 </script>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

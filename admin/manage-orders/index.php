@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+require_once("../includes/bootstrap.php");
 
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -213,7 +213,7 @@ $history_orders = mysqli_fetch_all($history_orders_result, MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Orders';
 $admin_active_page = 'orders';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">SALES</p><h1>Manage Orders</h1><p>Review ongoing orders, manage fulfillment, and view order history.</p></div>
@@ -277,4 +277,4 @@ include __DIR__ . '/../includes/header.php';
   </table></div><?php } else { ?><p class="manage-empty">No orders in history.</p><?php } ?>
   <?php if ($history_orders) { admin_render_pagination($history_pagination['page'], $history_pagination['total_pages'], 'history_page'); } ?>
 </section>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

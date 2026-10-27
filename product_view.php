@@ -2,7 +2,7 @@
     session_start();
     include_once("includes/header.php");
     include_once("includes/config.php");
-    require_once __DIR__ . '/includes/product_images.php';
+    require_once("includes/product_images.php");
 
     $q = "SELECT p.*, pc.product_color_id AS first_color_id
       FROM products p

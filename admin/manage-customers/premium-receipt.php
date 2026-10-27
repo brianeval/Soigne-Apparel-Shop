@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+require_once("../includes/bootstrap.php");
 
 $payment_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if ($payment_id === false || $payment_id < 1) {
@@ -22,7 +22,7 @@ if (!$receipt || !in_array($receipt['receipt_mime'], $allowed_types, true)
     exit('Receipt not found.');
 }
 
-$receipt_path = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'soigne_private_uploads'
+$receipt_path = dirname(APP_ROOT) . DIRECTORY_SEPARATOR . 'soigne_private_uploads'
     . DIRECTORY_SEPARATOR . 'premium-payments' . DIRECTORY_SEPARATOR . $receipt['receipt_filename'];
 if (!is_file($receipt_path)) {
     http_response_code(404);

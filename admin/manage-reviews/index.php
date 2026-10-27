@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+require_once("../includes/bootstrap.php");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $review_id = filter_var($_POST['review_id'] ?? null, FILTER_VALIDATE_INT);
@@ -52,7 +52,7 @@ $reviews = mysqli_fetch_all(mysqli_stmt_get_result($reviews_stmt), MYSQLI_ASSOC)
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Reviews';
 $admin_active_page = 'reviews';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">CUSTOMER FEEDBACK</p><h1>Manage Reviews</h1><p>Review customer feedback and remove reviews when needed.</p></div>
@@ -92,4 +92,4 @@ include __DIR__ . '/../includes/header.php';
     <p class="manage-empty">No reviews found.</p>
   <?php } ?>
 </section>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

@@ -1,7 +1,7 @@
 <?php
 include ('config.php');
 require_once ('profile_image.php');
-require_once __DIR__ . '/customer_auth.php';
+require_once("customer_auth.php");
 
 $customer_role = sync_customer_session($conn);
 
@@ -32,7 +32,7 @@ if (!isset($page_title)) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo ($page_title); ?></title>
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>styles/homepage.css?v=<?php echo filemtime(__DIR__ . '/../styles/homepage.css'); ?>">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>styles/homepage.css?v=<?php echo filemtime(APP_ROOT . '/styles/homepage.css'); ?>">
   <?php if (isset($extra_css)) { ?>
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>styles/<?php echo $extra_css; ?>?v=<?php echo time(); ?>">
   <?php } ?>

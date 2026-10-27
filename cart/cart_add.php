@@ -1,7 +1,7 @@
 <?php
 session_start();
 include_once ('../includes/config.php');
-require_once __DIR__ . '/../includes/customer_auth.php';
+require_once("../includes/customer_auth.php");
 
 // Keep an administrator's add-to-cart request while they sign in with a customer account.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_SESSION['role'] ?? '') === 'admin') {

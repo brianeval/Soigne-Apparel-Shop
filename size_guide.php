@@ -4,7 +4,7 @@ session_start();
 $page_title = "Size Guide | Soigné";
 $extra_css = 'size-guide.css';
 $dept = 'men';
-$product_size_guide = require __DIR__ . '/includes/product_size_guide.php';
+$product_size_guide = require("includes/product_size_guide.php");
 
 $size_ranges = [
     '25-27' => [

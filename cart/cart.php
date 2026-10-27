@@ -1,7 +1,7 @@
 <?php
 session_start();
-include_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/customer_auth.php';
+include_once("../includes/config.php");
+require_once("../includes/customer_auth.php");
 require_active_customer($conn, BASE_URL . 'cart/cart.php');
 $user_id = (int)$_SESSION['user_id'];
 

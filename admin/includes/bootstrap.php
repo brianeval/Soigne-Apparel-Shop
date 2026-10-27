@@ -3,8 +3,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-require_once __DIR__ . '/../../includes/config.php';
-require_once __DIR__ . '/../../includes/admin_redirect.php';
+require_once("../../includes/config.php");
+require_once("../../includes/admin_redirect.php");
 
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
     $return_path = safe_admin_return_path($_SERVER['REQUEST_URI'] ?? '');

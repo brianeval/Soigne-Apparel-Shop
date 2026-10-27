@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+require_once("../includes/bootstrap.php");
 
 $restock_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if ($restock_id === false || $restock_id < 1) {
@@ -45,7 +45,7 @@ foreach ($items as $item) {
 
 $admin_page_title = 'Restock ' . ($restock['batch_number'] ?? '');
 $admin_active_page = 'inventory';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">RESTOCK HISTORY</p><h1><?php echo admin_escape($restock['batch_number'] ?? 'Restock details'); ?></h1><p><?php echo admin_escape($restock['supplier_name']); ?> · <?php echo admin_escape($restock['restock_date']); ?></p></div>
@@ -71,4 +71,4 @@ include __DIR__ . '/../includes/header.php';
     </table></div>
   <?php } else { ?><p class="manage-empty">This restock has no recorded variant lines.</p><?php } ?>
 </section>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

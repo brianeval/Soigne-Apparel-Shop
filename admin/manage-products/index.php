@@ -1,10 +1,10 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
-require_once __DIR__ . '/../../includes/product_images.php';
-require_once __DIR__ . '/../../includes/product_validation.php';
+require_once("../includes/bootstrap.php");
+require_once("../../includes/product_images.php");
+require_once("../../includes/product_validation.php");
 
 $errors = [];
-$product_size_guide = require __DIR__ . '/../../includes/product_size_guide.php';
+$product_size_guide = require("../../includes/product_size_guide.php");
 
 function product_size_options(array $guide, string $department, ?string $category): array
 {
@@ -48,7 +48,7 @@ function save_brand_logo_upload(array $upload): ?string
         throw new RuntimeException('Choose a JPEG, PNG, or WebP image for the brand logo.');
     }
 
-    $directory = __DIR__ . '/../../images/brands';
+    $directory = APP_ROOT . '/images/brands';
     if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
         throw new RuntimeException('The brand logo could not be saved. Please try again.');
     }
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = $exception->getMessage();
             } catch (mysqli_sql_exception $exception) {
                 if ($brand_logo !== null) {
-                    $logo_path = __DIR__ . '/../../images/brands/' . $brand_logo;
+                    $logo_path = APP_ROOT . '/images/brands/' . $brand_logo;
                     if (is_file($logo_path) && !unlink($logo_path)) {
                         $errors[] = 'The brand already exists, and its uploaded logo could not be removed.';
                     }
@@ -265,7 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($errors && $saved_images) {
             foreach ($saved_images as $saved_image) {
-                $image_path = __DIR__ . '/../../images/' . $saved_image;
+                $image_path = APP_ROOT . '/images/' . $saved_image;
                 if (is_file($image_path) && !unlink($image_path)) {
                     $errors[] = 'An uploaded image could not be removed after validation failed.';
                 }
@@ -307,7 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (mysqli_sql_exception $exception) {
                 mysqli_rollback($conn);
                 foreach ($saved_images as $saved_image) {
-                    $image_path = __DIR__ . '/../../images/' . $saved_image;
+                    $image_path = APP_ROOT . '/images/' . $saved_image;
                     if (is_file($image_path) && !unlink($image_path)) {
                         $errors[] = 'The product could not be created, and an uploaded image could not be removed.';
                     }
@@ -400,7 +400,7 @@ $products = mysqli_fetch_all($products_result, MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Products';
 $admin_active_page = 'products';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">CATALOG</p><h1>Manage Products</h1><p>Create products, update their details, and manage available variants.</p></div>
@@ -801,4 +801,4 @@ include __DIR__ . '/../includes/header.php';
     <?php admin_render_pagination($product_pagination['page'], $product_pagination['total_pages']); ?>
   <?php } else { ?><p class="manage-empty">No products yet. Use Add Product above to add your first product.</p><?php } ?>
 </section>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

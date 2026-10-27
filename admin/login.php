@@ -1,7 +1,7 @@
 <?php
 session_start();
-include_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/admin_redirect.php';
+include_once("../includes/config.php");
+require_once("../includes/admin_redirect.php");
 
 $redirect = safe_admin_return_path($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 $login_notice = $_SESSION['admin_login_notice'] ?? '';
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Admin sign in | Soigné</title>
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>admin/styles/admin.css?v=<?php echo filemtime(__DIR__ . '/styles/admin.css'); ?>">
+  <link rel="stylesheet" href="<?php echo BASE_URL; ?>admin/styles/admin.css?v=<?php echo filemtime(APP_ROOT . '/admin/styles/admin.css'); ?>">
 </head>
 <body class="admin-login-body">
   <main class="admin-login-layout">

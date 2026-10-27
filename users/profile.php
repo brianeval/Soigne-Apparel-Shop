@@ -1,8 +1,8 @@
 <?php
 session_start();
 include_once('../includes/config.php');
-require_once __DIR__ . '/../includes/profile_image.php';
-require_once __DIR__ . '/../includes/customer_auth.php';
+require_once("../includes/profile_image.php");
+require_once("../includes/customer_auth.php");
 
 require_active_customer($conn, BASE_URL . 'users/profile.php');
 

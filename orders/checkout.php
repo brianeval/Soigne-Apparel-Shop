@@ -1,8 +1,8 @@
 <?php
 session_start();
 include_once('../includes/config.php');
-require_once __DIR__ . '/../includes/customer_auth.php';
-require_once __DIR__ . '/../includes/order_email.php';
+require_once("../includes/customer_auth.php");
+require_once("../includes/order_email.php");
 
 require_active_customer($conn, BASE_URL . 'orders/checkout.php');
 

@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/customer_auth.php';
+require_once("../includes/config.php");
+require_once("../includes/customer_auth.php");
 
 $order_id = filter_var($_POST['order_id'] ?? null, FILTER_VALIDATE_INT);
 $order_item_id = filter_var($_POST['order_item_id'] ?? null, FILTER_VALIDATE_INT);

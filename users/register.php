@@ -1,7 +1,7 @@
 <?php
 session_start();
-include_once('../includes/config.php');
-require_once __DIR__ . '/../includes/profile_image.php';
+include_once("../includes/config.php");
+require_once("../includes/profile_image.php");
 
 // Only allow redirects to paths on this site (never full URLs)
 function safe_redirect($path) {

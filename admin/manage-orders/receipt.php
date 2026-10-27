@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
-require_once __DIR__ . '/../../includes/order_email.php';
+require_once("../includes/bootstrap.php");
+require_once("../../includes/order_email.php");
 
 $order_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
 if ($order_id === false || $order_id < 1) {

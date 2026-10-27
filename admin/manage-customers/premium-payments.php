@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+require_once("../includes/bootstrap.php");
 
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -85,7 +85,7 @@ $payments = mysqli_fetch_all($result, MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Premium Payments';
 $admin_active_page = 'customers';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">SOIGNÉ PREMIUM</p><h1>Premium Payments</h1><p>Review GCash receipts before activating or renewing VIP.</p></div>
@@ -126,4 +126,4 @@ include __DIR__ . '/../includes/header.php';
     <p class="manage-empty">No Premium payment requests have been submitted.</p>
   <?php } ?>
 </section>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php include("../includes/footer.php"); ?>

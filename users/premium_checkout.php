@@ -1,7 +1,7 @@
 <?php
 session_start();
-include_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/customer_auth.php';
+include_once("../includes/config.php");
+require_once("../includes/customer_auth.php");
 
 $role = sync_customer_session($conn);
 if (!in_array($role, ['customer', 'vip'], true)) {
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$errors && is_array($upload)) {
         $receipt_filename = bin2hex(random_bytes(24)) . '.' . $receipt_extension;
-        $private_upload_dir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR
+        $private_upload_dir = dirname(APP_ROOT) . DIRECTORY_SEPARATOR
             . 'soigne_private_uploads' . DIRECTORY_SEPARATOR . 'premium-payments';
         if (!is_dir($private_upload_dir) && !mkdir($private_upload_dir, 0700, true) && !is_dir($private_upload_dir)) {
             $errors[] = 'Could not prepare secure receipt storage. Please try again later.';
@@ -139,7 +139,7 @@ if (!isset($_SESSION['premium_checkout_csrf'])) {
 }
 
 $page_title = 'Soigné Premium payment | Soigné';
-include_once __DIR__ . '/../includes/header.php';
+include_once("../includes/header.php");
 ?>
 <main class="premium-checkout-page">
   <section class="premium-checkout-card">
@@ -179,4 +179,4 @@ include_once __DIR__ . '/../includes/header.php';
     <a class="premium-checkout-back" href="<?php echo BASE_URL; ?>index.php">Continue shopping</a>
   </section>
 </main>
-<?php include_once __DIR__ . '/../includes/footer.php'; ?>
+<?php include_once("../includes/footer.php"); ?>

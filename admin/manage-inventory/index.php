@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+require_once("../includes/bootstrap.php");
 
 const INVENTORY_MAX_STOCK = 2147483647;
 const INVENTORY_MAX_TOTAL_CENTS = 9007199254740991;
@@ -379,7 +379,7 @@ $history_rows = mysqli_fetch_all(mysqli_stmt_get_result($history_stmt), MYSQLI_A
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Inventory';
 $admin_active_page = 'inventory';
-include __DIR__ . '/../includes/header.php';
+include("../includes/header.php");
 ?>
 <div class="inventory-page">
   <section class="admin-page-heading">
@@ -538,5 +538,5 @@ include __DIR__ . '/../includes/header.php';
     <button class="manage-small-button is-danger" type="button" data-remove-restock-line aria-label="Remove variant line">Remove</button>
   </div>
 </template>
-<script src="<?php echo BASE_URL; ?>admin/inventory.js?v=<?php echo filemtime(__DIR__ . '/../inventory.js'); ?>" defer></script>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+<script src="<?php echo BASE_URL; ?>admin/inventory.js?v=<?php echo filemtime(APP_ROOT . '/admin/inventory.js'); ?>" defer></script>
+<?php include("../includes/footer.php"); ?>

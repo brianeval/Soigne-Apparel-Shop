@@ -1,7 +1,7 @@
 <?php
 session_start();
 include_once('includes/config.php');
-require_once __DIR__ . '/includes/product_images.php';
+require_once("includes/product_images.php");
 
 
 // STEP 1: Get the product id from the URL (product.php?id=4)
@@ -52,7 +52,7 @@ $review_sizes = array_values(array_unique($review_sizes));
 sort($review_colors, SORT_NATURAL | SORT_FLAG_CASE);
 sort($review_sizes, SORT_NATURAL | SORT_FLAG_CASE);
 
-$product_size_guide = require __DIR__ . '/includes/product_size_guide.php';
+$product_size_guide = require("includes/product_size_guide.php");
 $size_guide_department = strtolower(trim($product['department'] ?? 'men'));
 if (!in_array($size_guide_department, ['men', 'women', 'kids'], true)) {
     $size_guide_department = 'men';
