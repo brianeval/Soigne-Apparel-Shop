@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
-            // This query locks the order row so customer changes remain limited to pending orders.
+            // Lock order
             $locked_order_stmt = mysqli_prepare($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = ? AND user_id = ? FOR UPDATE");
             mysqli_stmt_bind_param($locked_order_stmt, 'ii', $order_id, $user_id);
             mysqli_stmt_execute($locked_order_stmt);
@@ -35,13 +35,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mysqli_rollback($conn);
                 $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Only pending orders can be changed or cancelled.'];
             } elseif ($action === 'cancel_order') {
-                // This query loads the order items so the stock can be returned before cancelling the order.
+                // Load order items
                 $order_items_stmt = mysqli_prepare($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ? FOR UPDATE");
                 mysqli_stmt_bind_param($order_items_stmt, 'i', $order_id);
                 mysqli_stmt_execute($order_items_stmt);
                 $order_items = mysqli_fetch_all(mysqli_stmt_get_result($order_items_stmt), MYSQLI_ASSOC);
 
-                // This query returns the cancelled items back into stock for each variant.
+                // Restore stock
                 $stock_stmt = mysqli_prepare($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?");
                 foreach ($order_items as $item) {
                     $quantity = (int)$item['quantity'];
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     mysqli_stmt_execute($stock_stmt);
                 }
 
-                // This query marks the order as cancelled only if it is still pending and still belongs to this user.
+                // Cancel order
                 $cancel_order_stmt = mysqli_prepare($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = ? AND user_id = ? AND fulfillment_status = 'pending' AND payment_status = 'unpaid'");
                 mysqli_stmt_bind_param($cancel_order_stmt, 'ii', $order_id, $user_id);
                 mysqli_stmt_execute($cancel_order_stmt);
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     mysqli_rollback($conn);
                     $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Order changes were invalid. Please try again.'];
                 } else {
-                    // This query loads the order items and their products so the app can validate each change before updating the order.
+                    // Load current order items
                     $current_items_stmt = mysqli_prepare($conn,
                         "SELECT oi.order_item_id, oi.variant_id, oi.quantity, pc.product_id
                          FROM order_items oi
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $seen_variants[$requested_variant] = true;
 
                         $product_id = (int)$current_by_id[$item_id]['product_id'];
-                        // This query checks that the requested size belongs to the same product before the change is accepted.
+                        // Validate requested variant
                         $variant_stmt = mysqli_prepare($conn,
                             "SELECT v.variant_id
                              FROM product_variants v
@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         mysqli_rollback($conn);
                         $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Choose a valid size and quantity for every order item.'];
                     } else {
-                        // This query restores the old stock before the replacement item is checked against current inventory.
+                        // Restore previous stock
                         $stock_add_stmt = mysqli_prepare($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?");
                         foreach ($changes as $change) {
                             $old_quantity = $change['old_quantity'];
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             mysqli_stmt_execute($stock_add_stmt);
                         }
 
-                        // This query reduces stock for the new size while making sure there is enough available.
+                        // Reserve replacement stock
                         $stock_take_stmt = mysqli_prepare($conn, "UPDATE product_variants SET stock = stock - ? WHERE variant_id = ? AND stock >= ?");
                         $item_update_stmt = mysqli_prepare($conn, "UPDATE order_items SET variant_id = ?, quantity = ? WHERE order_item_id = ? AND order_id = ?");
                         $inventory_ok = true;
@@ -187,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash = $_SESSION['orders_flash'] ?? null;
 unset($_SESSION['orders_flash']);
 
-// Keep orders with no line items visible while using the transaction view for totals.
+// Customer orders
 $orders_stmt = mysqli_prepare($conn,
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at,
             COALESCE(SUM(details.line_subtotal), 0) AS order_total,
@@ -205,7 +205,7 @@ $orders = mysqli_fetch_all(mysqli_stmt_get_result($orders_stmt), MYSQLI_ASSOC);
 foreach ($orders as &$order) {
     $order_id = (int)$order['order_id'];
 
-    // The transaction view supplies purchased item details; color images and reviews remain separate.
+    // Order item details
     $item_stmt = mysqli_prepare($conn,
         "SELECT details.order_item_id, details.variant_id, details.quantity,
                 details.unit_price AS price, details.product_id, details.product_name,

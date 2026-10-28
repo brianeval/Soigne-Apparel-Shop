@@ -3,20 +3,20 @@ session_start();
 include_once("../includes/config.php");
 require_once("../includes/profile_image.php");
 
-// Only allow redirects to paths on this site (never full URLs)
+// Redirect validation
 function safe_redirect($redirect_path) {
     return preg_match('#^/(?!/)#', $redirect_path) ? $redirect_path : BASE_URL . 'index.php';
 }
 
 $redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
-// Keep signed-in administrators in the admin area.
+// Admin redirect
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
     header('Location: ' . BASE_URL . 'admin/index.php');
     exit;
 }
 
-// Already signed in as a customer? No need to register.
+// Existing customer redirect
 if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
     header('Location: ' . $redirect);
     exit;
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
-    // --- Validate ---
+    // Validate registration
     if ($name === '' || mb_strlen($name) > 120) {
         $errors[] = 'Please enter your full name.';
     }
@@ -56,9 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($password !== $confirm_password) {
         $errors[] = 'Passwords do not match.';
     }
-    // --- Check username / email are free ---
+    // Check account availability
     if (!$errors) {
-        // This query checks whether the chosen username or email is already in use before creating the account.
+        // Check username and email
         $accounts_stmt = mysqli_prepare($conn, "SELECT username, email FROM users WHERE username = ? OR email = ?");
         mysqli_stmt_bind_param($accounts_stmt, 'ss', $username, $email);
         mysqli_stmt_execute($accounts_stmt);
@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors = array_unique($errors);
     }
 
-    // --- Create the account ---
+    // Create account
     if (!$errors) {
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
         $user_id = 0;
@@ -83,13 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
-            // This query creates the account login row in the users table.
+            // Save login details
             $user_insert_stmt = mysqli_prepare($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
             mysqli_stmt_bind_param($user_insert_stmt, 'sss', $username, $email, $password_hash);
             mysqli_stmt_execute($user_insert_stmt);
             $user_id = mysqli_insert_id($conn);
 
-            // This query stores the personal details in the customers table for the same user.
+            // Save customer details
             $customer_insert_stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address) VALUES (?, ?, ?, ?)");
             mysqli_stmt_bind_param($customer_insert_stmt, 'isss', $user_id, $name, $phone, $address);
             mysqli_stmt_execute($customer_insert_stmt);
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             mysqli_commit($conn);
 
-            // Sign the new user in and send them back where they came from
+            // Sign in new customer
             session_regenerate_id(true);
             $_SESSION['user_id']  = (int)$user_id;
             $_SESSION['username'] = $username;

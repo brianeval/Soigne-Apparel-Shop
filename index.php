@@ -4,7 +4,7 @@
   include_once("includes/config.php");
   require_once("includes/product_images.php");
 
-  // Show the newest products on the homepage, including items that are currently sold out.
+  // Featured products
   $products_sql = "SELECT p.*, pc.product_color_id AS first_color_id
       FROM products p
       LEFT JOIN product_colors pc

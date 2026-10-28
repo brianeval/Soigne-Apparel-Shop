@@ -3,7 +3,7 @@ session_start();
 include_once ('../includes/config.php');
 require_once("../includes/customer_auth.php");
 
-// Keep an administrator's add-to-cart request while they sign in with a customer account.
+// Resume cart addition after sign-in
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_SESSION['role'] ?? '') === 'admin') {
     $_SESSION['pending_cart_add'] = [
         'variant_id' => (int)($_POST['variant_id'] ?? 0),
@@ -22,7 +22,7 @@ $redirect_path = $is_resume
     ? BASE_URL . 'cart/cart_add.php?resume=1'
     : BASE_URL . 'cart/cart.php';
 
-// Only active customer accounts can add products to a cart.
+// Customer access
 require_active_customer($conn, $redirect_path);
 
 if ($is_resume) {
@@ -47,7 +47,7 @@ function flash_and_go(string $type, string $text): void
 
 $user_id    = (int)$_SESSION['user_id'];
 
-// This query checks whether the chosen size exists and how many items are left in stock.
+// Check variant stock
 $variant_stmt = mysqli_prepare($conn, "SELECT stock FROM product_variants WHERE variant_id = ?");
 mysqli_stmt_bind_param($variant_stmt, 'i', $variant_id);
 mysqli_stmt_execute($variant_stmt);
@@ -64,9 +64,10 @@ if ($stock < 1) {
 
 $quantity = min($quantity, $stock);
 
-// This query adds the item to the cart. If the same size is already there, it increases the quantity without going over stock.
-$cart_insert_sql = "INSERT INTO cart (user_id, variant_id, quantity) VALUES (?, ?, ?)
-      ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + VALUES(quantity), ?)";
+// Add item to cart
+$cart_insert_sql = "INSERT INTO cart (user_id, variant_id, quantity)
+                    VALUES (?, ?, ?)
+                    ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + VALUES(quantity), ?)";
 $cart_insert_stmt = mysqli_prepare($conn, $cart_insert_sql);
 mysqli_stmt_bind_param($cart_insert_stmt, 'iiii', $user_id, $variant_id, $quantity, $stock);
 mysqli_stmt_execute($cart_insert_stmt);

@@ -1,5 +1,5 @@
 <?php
-// Department page: department.php?dept=men | women | kids
+// Department products
 session_start();
 include_once ('includes/config.php');
 
@@ -12,8 +12,7 @@ if (!isset($allowed[$dept])) {
 }
 $dept_label = $allowed[$dept];
 
-// Products in this department, each with the image of its first color.
-// This query gets all products in the chosen department and attaches the first color image for each one.
+// Product list
 $products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
              pc.product_color_id AS first_color_id,
              (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count

@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
-            // This query locks the selected cart items and their product details so checkout can safely confirm stock and create the order.
+            // Lock selected items
             $selected_items_stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.variant_id, c.quantity,
                                                    v.stock, v.size, pc.color,
                                                    (SELECT pci.image_path
@@ -108,16 +108,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new mysqli_sql_exception('The customer email address is unavailable.');
                     }
 
-                    // This query creates the main order record for the user and shipping address.
+                    // Create order
                     $order_stmt = mysqli_prepare($conn, "INSERT INTO orders (user_id, shipping_address) VALUES (?, ?)");
                     mysqli_stmt_bind_param($order_stmt, 'is', $user_id, $address);
                     mysqli_stmt_execute($order_stmt);
                     $order_id = mysqli_insert_id($conn);
 
-                    // This query adds each item to the order_items table and records the price at checkout time.
+                    // Save order items
                     $item_stmt = mysqli_prepare($conn, "INSERT INTO order_items (order_id, variant_id, quantity, price)
                                                         VALUES (?, ?, ?, ?)");
-                    // This query subtracts each ordered quantity from stock while making sure stock never goes below zero.
+                    // Update stock
                     $stock_stmt = mysqli_prepare($conn, "UPDATE product_variants
                                                          SET stock = stock - ?
                                                          WHERE variant_id = ? AND stock >= ?");
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
 
-                    // This query clears the checked-out cart items for the signed-in user.
+                    // Clear checked-out items
                     $delete_stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
                     foreach ($items as $item) {
                         $cart_id = (int)$item['cart_id'];
@@ -190,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    // This query loads the saved shipping information for the logged-in user so checkout can be pre-filled.
+    // Saved customer details
     $customer_stmt = mysqli_prepare($conn, "SELECT customer_name, phone, address FROM customers WHERE user_id = ?");
     mysqli_stmt_bind_param($customer_stmt, 'i', $user_id);
     mysqli_stmt_execute($customer_stmt);
@@ -202,7 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     }
 }
 
-// This query loads the cart items again for the checkout summary so the user can review what they are ordering.
+// Checkout summary
 $summary_stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.quantity, v.variant_id, v.size, v.stock,
                                       pc.color,
                                       (SELECT pci.image_path

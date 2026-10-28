@@ -1,6 +1,5 @@
 <?php
-// Brands page:  brands.php  -> list of brands
-//               brands.php?id=3  -> products of that brand
+// Brand listings
 include_once ('includes/config.php');
 
 $brand_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -41,8 +40,7 @@ if ($brand_name !== '') {
 }
 
 if ($brand_id > 0) {
-    // --- One brand and its products ---
-    // This query loads the selected brand so the page can show its name and logo.
+    // Brand details
     $brand_stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE supplier_id = ?");
     mysqli_stmt_bind_param($brand_stmt, 'i', $brand_id);
     mysqli_stmt_execute($brand_stmt);
@@ -53,7 +51,7 @@ if ($brand_id > 0) {
         exit('Brand not found.');
     }
 
-    // This query gets every product from the selected brand, along with a preview image and color count.
+    // Brand products
     $products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
                  pc.product_color_id AS first_color_id,
                  (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
@@ -70,8 +68,7 @@ if ($brand_id > 0) {
 
     $page_title = $brand['name'] . " | Soigné";
 } else {
-    // --- All brands that have at least one product ---
-    // This query lists each brand with a count of how many products it has.
+    // All brands
     $result = mysqli_query($conn,
         "SELECT s.supplier_id, s.name, s.image, COUNT(p.product_id) AS product_count
          FROM suppliers s

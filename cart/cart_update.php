@@ -38,7 +38,7 @@ if ($cart_id < 1 || $variant_id < 1 || $quantity === false || $quantity === null
 try {
     mysqli_begin_transaction($conn);
 
-    // This query loads the cart item being updated and its product so the system can confirm it belongs to the current user.
+    // Load cart item
     $cart_item_stmt = mysqli_prepare($conn,
         "SELECT c.cart_id, pc.product_id
          FROM cart c
@@ -57,7 +57,7 @@ try {
     }
 
     $product_id = (int)$cart_item['product_id'];
-    // This query checks the stock of the new size before the update is allowed.
+    // Check variant stock
     $variant_stmt = mysqli_prepare($conn,
         "SELECT v.stock
          FROM product_variants v
@@ -80,7 +80,7 @@ try {
         update_flash_and_go('error', 'The selected quantity is greater than the available stock.', $product_id, $cart_id);
     }
 
-    // This query looks for a duplicate cart entry for the same size, so the app can merge quantities instead of creating two rows.
+    // Find duplicate cart item
     $duplicate_stmt = mysqli_prepare($conn,
         "SELECT cart_id, quantity
          FROM cart
@@ -99,17 +99,17 @@ try {
         }
 
         $duplicate_cart_id = (int)$duplicate['cart_id'];
-        // This query combines the quantities in the duplicate cart row for the same size.
+        // Merge quantities
         $merge_stmt = mysqli_prepare($conn, "UPDATE cart SET quantity = ? WHERE cart_id = ? AND user_id = ?");
         mysqli_stmt_bind_param($merge_stmt, 'iii', $merged_quantity, $duplicate_cart_id, $user_id);
         mysqli_stmt_execute($merge_stmt);
 
-        // This query removes the old cart row after the duplicate has been merged.
+        // Remove old cart row
         $delete_stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
         mysqli_stmt_bind_param($delete_stmt, 'ii', $cart_id, $user_id);
         mysqli_stmt_execute($delete_stmt);
     } else {
-        // This query updates the chosen size and quantity for the current cart item.
+        // Update cart item
         $update_stmt = mysqli_prepare($conn, "UPDATE cart SET variant_id = ?, quantity = ? WHERE cart_id = ? AND user_id = ?");
         mysqli_stmt_bind_param($update_stmt, 'iiii', $variant_id, $quantity, $cart_id, $user_id);
         mysqli_stmt_execute($update_stmt);

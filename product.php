@@ -4,10 +4,9 @@ include_once('includes/config.php');
 require_once("includes/product_images.php");
 
 
-// Read the product id from the URL (for example, product.php?id=4).
+// Product details
 $product_id = (int)($_GET['id'] ?? 0);
 
-// Load the product details and its category for the size guide.
 $product_sql = "SELECT p.*, c.name AS size_guide_category
                  FROM products p
                  LEFT JOIN categories c ON c.category_id = p.category_id
@@ -62,8 +61,7 @@ $size_guide_type = $product_size_guide['category_groups'][$category_slug] ?? 'to
 $edit_cart_id = (int)($_GET['cart_id'] ?? 0);
 $editing_cart_item = null;
 if ($edit_cart_id > 0 && isset($_SESSION['user_id'])) {
-    // This query checks the item the user is editing in the cart.
-    // It joins the cart table to the variant and color tables so we can match the correct product.
+    // Cart item lookup
     $cart_item_stmt = mysqli_prepare($conn,
         "SELECT c.cart_id, c.quantity, v.variant_id, pc.product_color_id
          FROM cart c
@@ -137,7 +135,7 @@ foreach ($variants as $variant) {
 $product_flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-// Page title, then the header
+// Page header
 $page_title = $product['name'] . " | Soigné";
 $extra_css = "product.css";
 include_once('includes/header.php');
@@ -340,7 +338,7 @@ include_once('includes/header.php');
     const modal = document.getElementById('login-modal');
     const cartForm = document.querySelector('form[action="cart/cart_add.php"]');
 
-    // The submit event only fires after the "pick a size" check passes
+    // Sign-in prompt
     if (cartForm) {
       cartForm.addEventListener('submit', function (e) {
         e.preventDefault();
@@ -349,7 +347,7 @@ include_once('includes/header.php');
     }
 
     modal.querySelector('.modal-close').addEventListener('click', () => modal.close());
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.close(); }); // click outside
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.close(); }); // Close on backdrop click
   </script>
 <?php } ?>
 <script>

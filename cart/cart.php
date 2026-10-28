@@ -5,7 +5,7 @@ require_once("../includes/customer_auth.php");
 require_active_customer($conn, BASE_URL . 'cart/cart.php');
 $user_id = (int)$_SESSION['user_id'];
 
-// --- Update / remove (then redirect so a refresh doesn't repeat it) ---
+// Cart actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $valid_ids = array_values(array_unique($valid_ids));
 
         if ($valid_ids) {
-            // This query checks that every selected cart item belongs to the signed-in user before checkout starts.
+            // Validate selected items
             $id_list = implode(',', $valid_ids);
             $result = mysqli_query($conn, "SELECT cart_id FROM cart WHERE user_id = $user_id AND cart_id IN ($id_list)");
             $owned_ids = array_map('intval', array_column(mysqli_fetch_all($result, MYSQLI_ASSOC), 'cart_id'));
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'remove_selected') {
         $selected_ids = $_POST['selected_cart_ids'] ?? [];
         if (is_array($selected_ids)) {
-            // This query removes one selected cart row only if it belongs to the signed-in user.
+            // Remove selected items
             $stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
             foreach ($selected_ids as $selected_id) {
                 if (!is_string($selected_id) && !is_int($selected_id)) {
@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'remove') {
         $cart_id = (int)($_POST['cart_id'] ?? 0);
-        // This query deletes the chosen cart item only if it matches the active user's cart.
+        // Remove one item
         $stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
         mysqli_stmt_bind_param($stmt, 'ii', $cart_id, $user_id);
         mysqli_stmt_execute($stmt);
@@ -63,12 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// --- Message from cart_add.php or other actions ---
+// Cart message
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-// --- Cart contents ---
-// This query gets every cart item for the current user, along with the product details and stock.
+// Cart contents
 $cart_items_sql = "SELECT c.cart_id, c.quantity,
              v.size, v.stock,
              pc.color,
@@ -175,6 +174,7 @@ include_once ('../includes/header.php');
                 <p class="cart-warn">Only <?php echo (int)$item['stock']; ?> left. Please lower the quantity.</p>
               <?php } ?>
 
+              <!-- Update button -->
               <div class="cart-actions">
                 <a class="link-btn" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$item['product_id']; ?>&cart_id=<?php echo (int)$item['cart_id']; ?>">Update</a>
               </div>
@@ -204,6 +204,7 @@ include_once ('../includes/header.php');
         <?php if ($has_issue) { ?>
           <p class="cart-warn">Some items in your cart have stock issues. Select only available items to check out.</p>
         <?php } ?>
+        <!-- Checkout button -->
         <button class="btn is-disabled" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions" id="cart-checkout-selected" disabled>Checkout</button>
         <a class="sum-continue" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
       </aside>

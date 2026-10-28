@@ -15,7 +15,7 @@ if (!isset($_SESSION['profile_csrf'])) {
     $_SESSION['profile_csrf'] = bin2hex(random_bytes(32));
 }
 
-// This query loads the current user's account and customer details so the form fields can be pre-filled.
+// Profile details
 $profile_stmt = mysqli_prepare($conn, "SELECT u.username, u.email, c.customer_name, c.phone, c.address
                                FROM users u
                                LEFT JOIN customers c ON c.user_id = u.user_id
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$errors) {
-            // This query checks whether another account already uses the same username or email.
+            // Check username and email
             $accounts_stmt = mysqli_prepare($conn, "SELECT username, email FROM users
                                            WHERE (username = ? OR email = ?) AND user_id <> ?");
             mysqli_stmt_bind_param($accounts_stmt, 'ssi', $username, $email, $user_id);
@@ -128,12 +128,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 mysqli_begin_transaction($conn);
 
-                // This query updates the login details for the signed-in user.
+                // Update account details
                 $account_update_stmt = mysqli_prepare($conn, "UPDATE users SET username = ?, email = ? WHERE user_id = ?");
                 mysqli_stmt_bind_param($account_update_stmt, 'ssi', $username, $email, $user_id);
                 mysqli_stmt_execute($account_update_stmt);
 
-                // This query saves or updates the user's shipping/contact details in the customers table.
+                // Save customer details
                 $customer_details_stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address)
                                                VALUES (?, ?, ?, ?)
                                                ON DUPLICATE KEY UPDATE customer_name = VALUES(customer_name),
@@ -144,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($password !== '') {
                     $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                    // This query changes the password only when the user entered a new one.
+                    // Update password
                     $password_update_stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE user_id = ?");
                     mysqli_stmt_bind_param($password_update_stmt, 'si', $password_hash, $user_id);
                     mysqli_stmt_execute($password_update_stmt);

@@ -2,7 +2,7 @@
 session_start();
 include_once("../includes/config.php");
 
-// Only allow redirects to paths on this site (never full URLs)
+// Redirect validation
 function safe_redirect($redirect_path) {
     return preg_match('#^/(?!/)#', $redirect_path) ? $redirect_path : 'index.php';
 }
@@ -15,7 +15,7 @@ $cart_redirects = [
 ];
 $is_cart_redirect = in_array($redirect, $cart_redirects, true);
 
-// Keep administrators in the admin area except when they are switching to a customer account for cart access.
+// Admin redirect
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
     if (!$is_cart_redirect) {
         header('Location: ' . BASE_URL . 'admin/index.php');
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password === '') {
         $error = 'Please enter your password.';
     } else {
-        // Only active customer and VIP accounts can authenticate through the storefront login.
+        // Customer account lookup
         $login_column = filter_var($login_value, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
         $user_lookup_sql = "SELECT user_id, username, password, role, vip_expires_at,
                      (vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP) AS vip_expired
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = mysqli_fetch_assoc(mysqli_stmt_get_result($user_stmt));
 
         if ($user && password_verify($password, $user['password'])) {
-            session_regenerate_id(true);   // new session id after login
+            session_regenerate_id(true);   // Refresh session ID
             if ($user['role'] === 'vip' && (int)$user['vip_expired'] === 1) {
                 $expire_stmt = mysqli_prepare($conn,
                     "UPDATE users SET role = 'customer', vip_expires_at = NULL
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // Same message for wrong user and wrong password
+        // Login error
         $error = 'Incorrect username/email or password, or this is not an active customer account.';
     }
 }

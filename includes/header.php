@@ -5,8 +5,7 @@ require_once("customer_auth.php");
 
 $customer_role = sync_customer_session($conn);
 
-// Count the signed-in user's cart items.
-// This query totals the quantity of all items in the current user's cart for the cart badge.
+// Cart badge
 $cart_count = 0;
 if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
     $cart_count_statement = mysqli_prepare($conn,
@@ -21,7 +20,7 @@ if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer'
     $cart_count = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($cart_count_statement))['item_count'];
 }
 
-// Use a default title if the current page did not set one.
+// Default page title
 if (!isset($page_title)) {
     $page_title = 'Soigné';
 }

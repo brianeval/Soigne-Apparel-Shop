@@ -1,6 +1,5 @@
 <?php
-// Prints a grid of product cards.
-// Expects $products (array). Optional: $empty_message.
+// Product grid
 require_once("product_images.php");
 $empty_message = $empty_message ?? 'No products found.';
 ?>

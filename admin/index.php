@@ -1,6 +1,12 @@
 <?php
 require_once("includes/bootstrap.php");
 
+function admin_dashboard_is_valid_date(string $date): bool
+{
+    $parsed_date = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+    return $parsed_date !== false && $parsed_date->format('Y-m-d') === $date;
+}
+
 $stats_result = mysqli_query($conn,
     "SELECT
         (SELECT COUNT(*) FROM products) AS product_count,
@@ -13,6 +19,61 @@ $stats_result = mysqli_query($conn,
          WHERE o.payment_status = 'paid') AS sales_total"
 );
 $stats = mysqli_fetch_assoc($stats_result);
+
+$today = date('Y-m-d');
+$month_start = date('Y-m-01');
+$revenue_from = $_GET['revenue_from'] ?? $month_start;
+$revenue_to = $_GET['revenue_to'] ?? $today;
+$revenue_from_value = is_string($revenue_from) ? $revenue_from : '';
+$revenue_to_value = is_string($revenue_to) ? $revenue_to : '';
+$revenue_error = '';
+$income = [
+    'sales_total' => 0.0,
+    'expenses_total' => 0.0,
+    'restock_total' => 0.0,
+    'net_income' => 0.0,
+];
+
+if (!admin_dashboard_is_valid_date($revenue_from_value)
+    || !admin_dashboard_is_valid_date($revenue_to_value)) {
+    $revenue_error = 'Choose valid start and end dates.';
+} elseif ($revenue_from_value > $revenue_to_value) {
+    $revenue_error = 'The start date must be on or before the end date.';
+}
+
+if ($revenue_error === '') {
+    $income_stmt = mysqli_prepare($conn,
+        "SELECT
+            (SELECT COALESCE(SUM(details.line_subtotal), 0)
+             FROM order_transaction_details AS details
+             JOIN orders AS o ON o.order_id = details.order_id
+             WHERE o.payment_status = 'paid'
+               AND o.created_at >= CONCAT(?, ' 00:00:00')
+               AND o.created_at < DATE_ADD(?, INTERVAL 1 DAY)) AS sales_total,
+            (SELECT COALESCE(SUM(amount), 0)
+             FROM expenses
+             WHERE expense_date BETWEEN ? AND ?) AS expenses_total,
+            (SELECT COALESCE(SUM(ri.quantity * ri.unit_cost), 0)
+             FROM restocks AS r
+             JOIN restock_items AS ri ON ri.restock_id = r.restock_id
+             WHERE r.restock_date BETWEEN ? AND ?) AS restock_total"
+    );
+    mysqli_stmt_bind_param(
+        $income_stmt,
+        'ssssss',
+        $revenue_from_value,
+        $revenue_to_value,
+        $revenue_from_value,
+        $revenue_to_value,
+        $revenue_from_value,
+        $revenue_to_value
+    );
+    mysqli_stmt_execute($income_stmt);
+    $income = mysqli_fetch_assoc(mysqli_stmt_get_result($income_stmt));
+    $income['net_income'] = (float)$income['sales_total']
+        - (float)$income['expenses_total']
+        - (float)$income['restock_total'];
+}
 
 $recent_orders_result = mysqli_query($conn,
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, u.username,
@@ -135,11 +196,30 @@ $admin_name = $_SESSION['username'] ?? 'Administrator';
             </div>
           </article>
 
-          <article class="admin-panel quick-panel">
-            <div class="admin-panel-heading"><div><p class="admin-eyebrow">SHORTCUTS</p><h2>Quick access</h2></div></div>
-            <a class="quick-link" href="<?php echo BASE_URL; ?>admin/manage-orders/"><span class="quick-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg></span><span><strong>Manage orders</strong><small>View and update customer orders</small></span><span class="quick-arrow">&rarr;</span></a>
-            <a class="quick-link" href="<?php echo BASE_URL; ?>admin/manage-products/"><span class="quick-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m4 8 8-4 8 4v9l-8 4-8-4z"></path><path d="m4 8 8 4 8-4M12 12v9"></path></svg></span><span><strong>Manage products</strong><small>Update catalog, sizes, and stock</small></span><span class="quick-arrow">&rarr;</span></a>
-            <a class="quick-link" href="<?php echo BASE_URL; ?>admin/manage-customers/"><span class="quick-link-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 20v-1.5a5.5 5.5 0 0 1 11 0V20M16 5.5a3 3 0 0 1 0 5.8M17 14a4.5 4.5 0 0 1 3.5 4.4V20"></path></svg></span><span><strong>Manage customers</strong><small>Update customer accounts</small></span><span class="quick-arrow">&rarr;</span></a>
+          <article class="admin-panel revenue-panel">
+            <div class="admin-panel-heading">
+              <div><p class="admin-eyebrow">INCOME</p><h2>Income overview</h2></div>
+              <span class="panel-period">Net income</span>
+            </div>
+            <form class="revenue-filter" method="get" action="<?php echo BASE_URL; ?>admin/index.php">
+              <label for="revenue-from">From</label>
+              <input id="revenue-from" type="date" name="revenue_from" value="<?php echo htmlspecialchars($revenue_from_value, ENT_QUOTES, 'UTF-8'); ?>" required>
+              <label for="revenue-to">To</label>
+              <input id="revenue-to" type="date" name="revenue_to" value="<?php echo htmlspecialchars($revenue_to_value, ENT_QUOTES, 'UTF-8'); ?>" required>
+              <button class="admin-button" type="submit">Show revenue</button>
+            </form>
+            <?php if ($revenue_error !== '') { ?>
+              <p class="revenue-error" role="alert"><?php echo htmlspecialchars($revenue_error, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php } else { ?>
+              <p class="sales-total"><?php echo peso((float)$income['net_income']); ?></p>
+              <p class="sales-caption">Paid order sales by order date, minus recorded expenses and restock costs.</p>
+              <dl class="income-breakdown">
+                <div><dt>Paid order sales</dt><dd><?php echo peso((float)$income['sales_total']); ?></dd></div>
+                <div><dt>Expenses</dt><dd>-<?php echo peso((float)$income['expenses_total']); ?></dd></div>
+                <div><dt>Restock costs</dt><dd>-<?php echo peso((float)$income['restock_total']); ?></dd></div>
+              </dl>
+              <p class="income-period">For <?php echo htmlspecialchars(date('M j, Y', strtotime($revenue_from_value))); ?> to <?php echo htmlspecialchars(date('M j, Y', strtotime($revenue_to_value))); ?>.</p>
+            <?php } ?>
           </article>
         </section>
 
