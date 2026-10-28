@@ -379,7 +379,7 @@ include("../includes/header.php");
 <div class="inventory-page">
   <section class="admin-page-heading">
     <div><p class="admin-eyebrow">STOCK MANAGEMENT</p><h1>Manage Inventory</h1><p>Review variant stock levels and record supplier deliveries.</p></div>
-    <button class="admin-button" type="button" data-open-dialog="restock-dialog">Restock Products</button>
+    <a class="admin-button" href="#restock-panel">Restock Products</a>
   </section>
 
   <?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
@@ -404,11 +404,11 @@ include("../includes/header.php");
     </div>
     <form method="get" class="inventory-filters" aria-label="Filter inventory">
       <label class="inventory-search">Product name<input type="search" name="search" value="<?php echo admin_escape($search); ?>" placeholder="Search product name"></label>
-      <label>Department<select name="department" data-inventory-department><option value="">All departments</option><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $department_value => $department_label) { ?><option value="<?php echo $department_value; ?>" <?php echo $filter_department === $department_value ? 'selected' : ''; ?>><?php echo $department_label; ?></option><?php } ?></select></label>
+      <label>Department<select name="department"><option value="">All departments</option><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $department_value => $department_label) { ?><option value="<?php echo $department_value; ?>" <?php echo $filter_department === $department_value ? 'selected' : ''; ?>><?php echo $department_label; ?></option><?php } ?></select></label>
       <label>Brand<select name="supplier_id"><option value="">All brands</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo $filter_supplier === (int)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
       <label>Category<select name="category_id"><option value="">All categories</option><?php foreach ($categories as $category) { ?><option value="<?php echo (int)$category['category_id']; ?>" <?php echo $filter_category === (int)$category['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category['name']); ?></option><?php } ?></select></label>
-      <label>Color<select name="color" data-inventory-color data-color-options="<?php echo admin_escape(json_encode($color_options_by_department, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG)); ?>"><option value="">All colors</option><?php foreach ($visible_color_options as $color) { ?><option value="<?php echo admin_escape($color); ?>" <?php echo $filter_color === $color ? 'selected' : ''; ?>><?php echo admin_escape($color); ?></option><?php } ?></select></label>
-      <label>Size<select name="size" data-inventory-size data-size-options="<?php echo admin_escape(json_encode($size_options_by_department, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_HEX_TAG)); ?>"><option value="">All sizes</option><?php foreach ($visible_size_options as $size) { ?><option value="<?php echo admin_escape($size); ?>" <?php echo $filter_size === $size ? 'selected' : ''; ?>><?php echo admin_escape($size); ?></option><?php } ?></select></label>
+      <label>Color<select name="color"><option value="">All colors</option><?php foreach ($visible_color_options as $color) { ?><option value="<?php echo admin_escape($color); ?>" <?php echo $filter_color === $color ? 'selected' : ''; ?>><?php echo admin_escape($color); ?></option><?php } ?></select></label>
+      <label>Size<select name="size"><option value="">All sizes</option><?php foreach ($visible_size_options as $size) { ?><option value="<?php echo admin_escape($size); ?>" <?php echo $filter_size === $size ? 'selected' : ''; ?>><?php echo admin_escape($size); ?></option><?php } ?></select></label>
       <input type="hidden" name="history_search" value="<?php echo admin_escape($history_search); ?>">
       <button class="admin-button" type="submit">Apply filters</button>
       <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-inventory/">Clear</a>
@@ -461,77 +461,42 @@ include("../includes/header.php");
   </section>
 </div>
 
-<dialog class="catalog-dialog inventory-restock-dialog" id="restock-dialog" aria-labelledby="restock-dialog-title"<?php echo $errors && $post_action === 'create' ? ' data-open-on-load' : ''; ?>>
+<details class="manage-panel inventory-restock-panel" id="restock-panel"<?php echo $errors && $post_action === 'create' ? ' open' : ''; ?>>
+  <summary class="admin-button">Restock Products</summary>
+  <div class="inventory-restock-content">
   <div class="catalog-dialog-heading">
-    <div><p class="admin-eyebrow">SUPPLIER DELIVERY</p><h2 id="restock-dialog-title">Restock Products</h2></div>
-    <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
+    <div><p class="admin-eyebrow">SUPPLIER DELIVERY</p><h2 id="restock-dialog-title">Record a supplier delivery</h2></div>
   </div>
-  <form method="post" class="manage-form inventory-restock-form" data-restock-form novalidate>
+  <form method="post" class="manage-form inventory-restock-form" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="restock_token" value="<?php echo admin_escape($restock_token); ?>">
     <input type="hidden" name="action" value="create">
-    <input type="hidden" name="confirmed" value="0" data-restock-confirmed>
-    <div data-restock-edit>
-      <label>Supplier<select name="supplier_id" required data-restock-supplier><option value="">Choose a supplier</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo $posted_supplier_id === (string)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
-      <div class="inventory-restock-lines-heading"><h3>Variant lines</h3><button class="manage-small-button" type="button" data-add-restock-line>Add variant</button></div>
-      <div class="inventory-restock-lines" data-restock-lines>
-        <?php
-        $line_count = max(1, min(count($posted_variant_ids), 50));
-        for ($line_index = 0; $line_index < $line_count; $line_index++) {
-            $selected_variant_id = (string)($posted_variant_ids[$line_index] ?? '');
-            $line_quantity = (string)($posted_quantities[$line_index] ?? '');
-            $line_cost = (string)($posted_unit_costs[$line_index] ?? '');
-        ?>
-          <div class="inventory-restock-line" data-restock-line>
-            <label>Product variant<select name="variant_ids[]" required data-restock-variant>
-              <option value="">Choose a variant</option>
-              <?php foreach ($variant_options as $variant_option) { ?>
-                <option value="<?php echo (int)$variant_option['variant_id']; ?>" data-supplier-id="<?php echo (int)$variant_option['supplier_id']; ?>" data-stock="<?php echo (int)$variant_option['stock']; ?>" <?php echo $selected_variant_id === (string)$variant_option['variant_id'] ? 'selected' : ''; ?>><?php echo admin_escape($variant_option['product_name'] . ' · ' . $variant_option['color'] . ' · ' . $variant_option['size'] . ' · Current stock: ' . number_format((int)$variant_option['stock'])); ?></option>
-              <?php } ?>
-            </select><small class="manage-secondary" data-current-stock>Current stock: —</small></label>
-            <label>Quantity received<input type="number" name="quantities[]" min="1" max="<?php echo INVENTORY_MAX_STOCK; ?>" step="1" required value="<?php echo admin_escape($line_quantity); ?>" data-restock-quantity></label>
-            <label>Unit purchase cost (₱)<input type="number" name="unit_costs[]" min="0.01" max="99999999.99" step="0.01" required value="<?php echo admin_escape($line_cost); ?>" data-restock-cost></label>
-            <div class="inventory-restock-line-total"><span>Line total</span><strong data-line-total>₱0.00</strong></div>
-            <button class="manage-small-button is-danger" type="button" data-remove-restock-line aria-label="Remove variant line">Remove</button>
-          </div>
-        <?php } ?>
-      </div>
-      <div class="inventory-restock-total"><span>Restock total</span><strong data-restock-total>₱0.00</strong></div>
-      <p class="inventory-review-error" role="alert" data-review-error hidden></p>
-      <div class="manage-form-buttons">
-        <button class="admin-button" type="button" data-review-restock>Review restock</button>
-        <button class="manage-small-button" type="button" data-close-dialog>Cancel</button>
+    <label>Supplier<select name="supplier_id" required><option value="">Choose a supplier</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo $posted_supplier_id === (string)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
+    <div class="inventory-restock-lines">
+      <?php
+      $selected_variant_id = (string)($posted_variant_ids[0] ?? '');
+      $line_quantity = (string)($posted_quantities[0] ?? '');
+      $line_cost = (string)($posted_unit_costs[0] ?? '');
+      ?>
+      <div class="inventory-restock-line">
+        <label>Product variant<select name="variant_ids[]" required>
+          <option value="">Choose a variant</option>
+          <?php foreach ($variant_options as $variant_option) { ?>
+            <option value="<?php echo (int)$variant_option['variant_id']; ?>" <?php echo $selected_variant_id === (string)$variant_option['variant_id'] ? 'selected' : ''; ?>><?php echo admin_escape($variant_option['supplier_name'] . ' · ' . $variant_option['product_name'] . ' · ' . $variant_option['color'] . ' · ' . $variant_option['size'] . ' · Current stock: ' . number_format((int)$variant_option['stock'])); ?></option>
+          <?php } ?>
+        </select></label>
+        <label>Quantity received<input type="number" name="quantities[]" min="1" max="<?php echo INVENTORY_MAX_STOCK; ?>" step="1" required value="<?php echo admin_escape($line_quantity); ?>"></label>
+        <label>Unit purchase cost (₱)<input type="number" name="unit_costs[]" min="0.01" max="99999999.99" step="0.01" required value="<?php echo admin_escape($line_cost); ?>"></label>
       </div>
     </div>
-    <section class="inventory-restock-review" data-restock-review hidden>
-      <div class="inventory-restock-review-heading"><p class="admin-eyebrow">CONFIRM DELIVERY</p><h3>Review restock transaction</h3><p>Check the supplier, quantities, and purchase costs before saving.</p></div>
-      <div class="inventory-review-supplier" data-review-supplier></div>
-      <div class="admin-table-wrap"><table class="admin-table">
-        <thead><tr><th>Product variant</th><th>Current stock</th><th>Received</th><th>Unit cost</th><th>Line total</th></tr></thead>
-        <tbody data-review-lines></tbody>
-      </table></div>
-      <div class="inventory-restock-total"><span>Confirmed restock total</span><strong data-review-total>₱0.00</strong></div>
-      <div class="manage-form-buttons">
-        <button class="admin-button" type="submit" data-confirm-restock>Confirm and save restock</button>
-        <button class="manage-small-button" type="button" data-edit-restock>Edit lines</button>
-      </div>
-    </section>
+    <label class="inventory-restock-confirm">
+      <input type="checkbox" name="confirmed" value="1" required <?php echo ($_POST['confirmed'] ?? '') === '1' ? 'checked' : ''; ?>>
+      I have reviewed the selected variant, received quantity, and unit cost.
+    </label>
+    <div class="manage-form-buttons">
+      <button class="admin-button" type="submit">Confirm and save restock</button>
+    </div>
   </form>
-</dialog>
-<template id="restock-variant-options">
-  <option value="">Choose a variant</option>
-  <?php foreach ($variant_options as $variant_option) { ?>
-    <option value="<?php echo (int)$variant_option['variant_id']; ?>" data-supplier-id="<?php echo (int)$variant_option['supplier_id']; ?>" data-stock="<?php echo (int)$variant_option['stock']; ?>"><?php echo admin_escape($variant_option['product_name'] . ' · ' . $variant_option['color'] . ' · ' . $variant_option['size'] . ' · Current stock: ' . number_format((int)$variant_option['stock'])); ?></option>
-  <?php } ?>
-</template>
-<template id="restock-line-template">
-  <div class="inventory-restock-line" data-restock-line>
-    <label>Product variant<select name="variant_ids[]" required data-restock-variant><option value="">Choose a variant</option></select><small class="manage-secondary" data-current-stock>Current stock: —</small></label>
-    <label>Quantity received<input type="number" name="quantities[]" min="1" max="<?php echo INVENTORY_MAX_STOCK; ?>" step="1" required data-restock-quantity></label>
-    <label>Unit purchase cost (₱)<input type="number" name="unit_costs[]" min="0.01" max="99999999.99" step="0.01" required data-restock-cost></label>
-    <div class="inventory-restock-line-total"><span>Line total</span><strong data-line-total>₱0.00</strong></div>
-    <button class="manage-small-button is-danger" type="button" data-remove-restock-line aria-label="Remove variant line">Remove</button>
-  </div>
-</template>
-<script src="<?php echo BASE_URL; ?>admin/inventory.js?v=<?php echo filemtime(APP_ROOT . '/admin/inventory.js'); ?>" defer></script>
+</div>
+</details>
 <?php include("../includes/footer.php"); ?>

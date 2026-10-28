@@ -52,16 +52,16 @@ if (!isset($page_title)) {
     <div class="icons">
       <a href="<?php echo BASE_URL; ?>cart/cart.php">🛒 Cart (<?php echo $cart_count; ?>)</a>
 
-      <div class="account-menu" id="account-menu">
-        <button type="button" class="account-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="account-dropdown">
+      <details class="account-menu">
+        <summary class="account-toggle">
           <?php if (isset($_SESSION['user_id'])) { ?>
             <img class="account-avatar" src="<?php echo htmlspecialchars(profile_image_url((int)$_SESSION['user_id'])); ?>"
                  alt="" width="28" height="28">
           <?php } ?>
           Account <span aria-hidden="true">&#9662;</span>
-        </button>
+        </summary>
 
-        <div class="account-dropdown" id="account-dropdown" hidden>
+        <div class="account-dropdown">
           <?php if (isset($_SESSION['user_id'])) { ?>
             <p class="account-hello">Hi, <?php echo htmlspecialchars($_SESSION['username'] ?? 'there'); ?></p>
             <a href="<?php echo BASE_URL; ?>users/profile.php">My profile</a>
@@ -75,39 +75,8 @@ if (!isset($page_title)) {
             <a href="<?php echo BASE_URL; ?>users/register.php?redirect=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>">Create account</a>
           <?php } ?>
         </div>
-      </div>
+      </details>
     </div>
-
-    <script>
-    (function () {
-      var menu = document.getElementById('account-menu');
-      var button = menu.querySelector('.account-toggle');
-      var panel = document.getElementById('account-dropdown');
-
-      function setOpen(open) {
-        panel.hidden = !open;
-        button.setAttribute('aria-expanded', open);
-      }
-
-      button.addEventListener('click', function (event) {
-        event.stopPropagation();
-        setOpen(panel.hidden);
-      });
-
-      document.addEventListener('click', function (event) {
-        if (!menu.contains(event.target)) {
-          setOpen(false);
-        }
-      });
-
-      document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-          setOpen(false);
-          button.focus();
-        }
-      });
-    })();
-    </script>
   </header>
 
   <nav class="sub-nav" aria-label="Men categories">
@@ -122,7 +91,21 @@ if (!isset($page_title)) {
     <a href="<?php echo BASE_URL; ?>category.php?category=chinos">Chinos</a>
     <a href="<?php echo BASE_URL; ?>category.php?category=jeans">Jeans</a>
     <a href="<?php echo BASE_URL; ?>category.php?category=polos">Polos</a>
-    <button type="button" class="premium-nav-trigger" data-premium-open>Soigné Premium</button>
+    <details class="premium-nav-menu">
+      <summary class="premium-nav-trigger">Soigné Premium</summary>
+      <div class="premium-dialog" id="premium-dialog">
+        <p class="premium-eyebrow">SOIGNÉ PREMIUM</p>
+        <h2 id="premium-dialog-title">A little more Soigné</h2>
+        <p class="premium-price">₱1,000 <span>/ 1 month</span></p>
+        <p>Enjoy 10% off every product while your Soigné Premium VIP membership is active.</p>
+        <p class="premium-activation-note">Pay through GCash and submit your receipt. An administrator will review the payment and activate VIP after approval.</p>
+        <?php if ($customer_role === 'vip') { ?>
+          <p class="premium-active-note">Your VIP membership is active. Thank you for purchasing Soigné Premium.</p>
+        <?php } elseif (in_array($customer_role, ['customer', 'guest'], true)) { ?>
+          <a class="btn premium-buy-now" href="<?php echo BASE_URL; ?>users/premium_checkout.php">Buy Now</a>
+        <?php } ?>
+      </div>
+    </details>
 
   
   </nav>
@@ -132,37 +115,3 @@ if (!isset($page_title)) {
       Thank you for purchasing VIP — your 10% product discount is applied automatically.
     </p>
   <?php } ?>
-  <dialog class="premium-dialog" id="premium-dialog" aria-labelledby="premium-dialog-title">
-    <button type="button" class="premium-dialog-close" data-premium-close aria-label="Close Soigné Premium details">&times;</button>
-    <p class="premium-eyebrow">SOIGNÉ PREMIUM</p>
-    <h2 id="premium-dialog-title">A little more Soigné</h2>
-    <p class="premium-price">₱1,000 <span>/ 1 month</span></p>
-    <p>Enjoy 10% off every product while your Soigné Premium VIP membership is active.</p>
-    <p class="premium-activation-note">Pay through GCash and submit your receipt. An administrator will review the payment and activate VIP after approval.</p>
-    <?php if ($customer_role === 'vip') { ?>
-      <p class="premium-active-note">Your VIP membership is active. Thank you for purchasing Soigné Premium.</p>
-    <?php } elseif (in_array($customer_role, ['customer', 'guest'], true)) { ?>
-      <a class="btn premium-buy-now" href="<?php echo BASE_URL; ?>users/premium_checkout.php">Buy Now</a>
-    <?php } ?>
-  </dialog>
-  <script>
-  (function () {
-    var dialog = document.getElementById('premium-dialog');
-    var openButton = document.querySelector('[data-premium-open]');
-    var closeButton = document.querySelector('[data-premium-close]');
-    if (!dialog || !openButton || !closeButton) return;
-    openButton.addEventListener('click', function () {
-      dialog.showModal();
-    });
-
-    closeButton.addEventListener('click', function () {
-      dialog.close();
-    });
-
-    dialog.addEventListener('click', function (event) {
-      if (event.target === dialog) {
-        dialog.close();
-      }
-    });
-  })();
-  </script>

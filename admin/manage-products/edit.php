@@ -446,7 +446,6 @@ include("../includes/header.php");
 <section class="manage-panel manage-list-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT OPTIONS</p><h2>Colors, sizes &amp; stock</h2></div></div>
   <div class="manage-color-gallery-action">
-    <button class="admin-button admin-button-light" type="button" data-open-dialog="product-images-dialog">View All Images</button>
   </div>
   <form method="post" class="manage-form manage-add-color" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
@@ -474,7 +473,7 @@ include("../includes/header.php");
         <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="add_images">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
-        <label>Add images for <?php echo admin_escape($color['color']); ?><input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple data-color-gallery-upload><small class="manage-secondary" data-upload-count>Choose up to 10 JPEG, PNG, or WebP files · 5 MB each. Select again to add more.</small></label>
+        <label>Add images for <?php echo admin_escape($color['color']); ?><input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple><small class="manage-secondary">Select up to 10 JPEG, PNG, or WebP files at once · 5 MB each.</small></label>
         <button class="manage-small-button" type="submit">Upload images</button>
       </form>
       <div class="manage-variant-heading"><strong>Sizes and stock (<?php echo count($color['variants']); ?>)</strong>
@@ -501,7 +500,7 @@ include("../includes/header.php");
               </td>
               <td><input form="<?php echo $variant_form_id; ?>" type="text" inputmode="numeric" name="stock" value="<?php echo $variant['stock']; ?>" aria-label="Stock"></td>
               <td><button form="<?php echo $variant_form_id; ?>" class="manage-small-button" type="submit">Save</button>
-                <form method="post" class="manage-inline-form" novalidate onsubmit="return confirm('Delete this size variant? Variants with cart, order, or restock history cannot be deleted.');">
+                <form method="post" class="manage-inline-form" novalidate>
                   <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                   <input type="hidden" name="action" value="delete_variant">
                   <input type="hidden" name="variant_id" value="<?php echo $variant['variant_id']; ?>">
@@ -513,7 +512,7 @@ include("../includes/header.php");
         </table></div>
         <?php admin_render_pagination($variant_pagination['page'], $variant_pagination['total_pages'], $variant_page_key); ?>
       <?php } else { ?><p class="manage-empty">No sizes added for this color.</p><?php } ?>
-      <form method="post" class="manage-delete-color" novalidate onsubmit="return confirm('Delete this color and its unused sizes?');">
+      <form method="post" class="manage-delete-color" novalidate>
         <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="delete_color">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
@@ -522,10 +521,10 @@ include("../includes/header.php");
     </div>
   <?php } ?>
 </section>
-<dialog class="catalog-dialog product-images-dialog" id="product-images-dialog" aria-labelledby="product-images-title">
+<details class="catalog-disclosure catalog-image-disclosure">
+  <summary class="admin-button admin-button-light">View All Images</summary>
   <div class="catalog-dialog-heading">
     <div><p class="admin-eyebrow">PRODUCT GALLERY</p><h2 id="product-images-title">All images — <?php echo admin_escape($product['name']); ?></h2></div>
-    <button class="catalog-dialog-close" type="button" aria-label="Close image gallery" data-close-dialog>Close</button>
   </div>
   <?php $has_product_images = false; foreach ($colors as $color) { $images_for_color = $color_images[(int)$color['product_color_id']] ?? []; if ($images_for_color) { $has_product_images = true; ?>
     <section class="product-admin-image-group">
@@ -538,37 +537,5 @@ include("../includes/header.php");
     </section>
   <?php } } ?>
   <?php if (!$has_product_images) { ?><p class="manage-empty">No images have been added to this product yet.</p><?php } ?>
-</dialog>
-<script>
-(function () {
-  document.querySelectorAll('[data-color-gallery-upload]').forEach(function (input) {
-    var selectedFiles = [];
-    var countLabel = input.closest('label').querySelector('[data-upload-count]');
-    input.addEventListener('change', function () {
-      var files = selectedFiles.slice();
-      Array.prototype.forEach.call(input.files || [], function (file) {
-        var duplicate = files.some(function (selectedFile) {
-          return selectedFile.name === file.name
-            && selectedFile.size === file.size
-            && selectedFile.lastModified === file.lastModified;
-        });
-        if (!duplicate) files.push(file);
-      });
-
-      if (files.length > 10) {
-        files = selectedFiles;
-        countLabel.textContent = 'Maximum 10 images. Previous selection kept.';
-      } else {
-        countLabel.textContent = files.length + (files.length === 1 ? ' image selected' : ' images selected')
-          + ' · Select again to add more';
-      }
-
-      var dataTransfer = new DataTransfer();
-      files.forEach(function (file) { dataTransfer.items.add(file); });
-      input.files = dataTransfer.files;
-      selectedFiles = files;
-    });
-  });
-})();
-</script>
+</details>
 <?php include("../includes/footer.php"); ?>

@@ -115,11 +115,8 @@ include_once ('../includes/header.php');
       <div class="cart-page-heading-main">
         <h1>Your cart</h1>
         <form method="post" action="<?php echo BASE_URL; ?>cart/cart.php" class="cart-select-all-form" id="cart-bulk-actions">
-          <button type="submit" name="action" value="remove_selected" class="cart-remove-all" id="cart-remove-selected" disabled>Remove selected</button>
-          <label class="cart-select-all">
-            <input type="checkbox" id="cart-select-all">
-            <span>Select all</span>
-          </label>
+          <button type="submit" name="action" value="remove_selected" class="cart-remove-all">Remove selected</button>
+          <span>Select items below to remove or check out.</span>
         </form>
       </div>
     </div>
@@ -205,47 +202,12 @@ include_once ('../includes/header.php');
           <p class="cart-warn">Some items in your cart have stock issues. Select only available items to check out.</p>
         <?php } ?>
         <!-- Checkout button -->
-        <button class="btn is-disabled" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions" id="cart-checkout-selected" disabled>Checkout</button>
+        <button class="btn" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions">Checkout selected</button>
         <a class="sum-continue" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
       </aside>
     </div>
 
   <?php } ?>
 </main>
-
-<script>
-(function () {
-  var selectAll = document.getElementById('cart-select-all');
-  var removeSelected = document.getElementById('cart-remove-selected');
-  var checkoutSelected = document.getElementById('cart-checkout-selected');
-  var itemCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.cart-item-checkbox'));
-  if (!selectAll || !removeSelected || !checkoutSelected || !itemCheckboxes.length) return;
-
-  function syncSelection() {
-    var selectedCount = 0;
-    itemCheckboxes.forEach(function (checkbox) {
-      var selected = checkbox.checked;
-      checkbox.closest('.cart-row').classList.toggle('is-selected', selected);
-      if (selected) selectedCount++;
-    });
-    selectAll.checked = selectedCount === itemCheckboxes.length;
-    selectAll.indeterminate = selectedCount > 0 && selectedCount < itemCheckboxes.length;
-    removeSelected.disabled = selectedCount === 0;
-    checkoutSelected.disabled = selectedCount === 0;
-    checkoutSelected.classList.toggle('is-disabled', selectedCount === 0);
-  }
-
-  selectAll.addEventListener('change', function () {
-    itemCheckboxes.forEach(function (checkbox) {
-      checkbox.checked = selectAll.checked;
-    });
-    syncSelection();
-  });
-
-  itemCheckboxes.forEach(function (checkbox) {
-    checkbox.addEventListener('change', syncSelection);
-  });
-})();
-</script>
 
 <?php include_once ('../includes/footer.php'); ?>

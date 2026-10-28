@@ -200,13 +200,6 @@ include_once('../includes/header.php');
       <section class="profile-panel profile-picture-panel" aria-labelledby="profile-picture-title">
         <div class="profile-panel-heading">
           <h2 id="profile-picture-title">Profile picture</h2>
-          <button class="profile-edit profile-photo-edit" id="profile-photo-edit" type="button">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
-            </svg>
-            <span>Edit</span>
-          </button>
         </div>
         <form method="post" action="<?php echo BASE_URL; ?>users/profile.php" enctype="multipart/form-data">
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['profile_csrf']); ?>">
@@ -214,18 +207,17 @@ include_once('../includes/header.php');
           <img class="profile-photo-preview" id="profile-photo-preview"
                src="<?php echo htmlspecialchars(profile_image_url($user_id)); ?>"
                alt="Your profile picture">
-          <div class="profile-photo-picker" id="profile-photo-picker" hidden>
+          <div class="profile-photo-picker">
             <label for="profile_photo">Choose a new picture</label>
             <div class="profile-file-picker">
               <label class="profile-file-button" for="profile_photo">Choose file</label>
               <span class="profile-file-name" id="profile-file-name">No file chosen</span>
-              <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" disabled required>
+              <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" required>
             </div>
             <small>JPEG, PNG, or WebP; max 5 MB.</small>
           </div>
-          <div class="profile-photo-actions" id="profile-photo-actions" hidden>
+          <div class="profile-photo-actions">
             <button class="btn" type="submit">Update picture</button>
-            <button class="profile-cancel" id="profile-photo-cancel" type="button">Cancel</button>
           </div>
         </form>
       </section>
@@ -233,13 +225,6 @@ include_once('../includes/header.php');
       <section class="profile-panel profile-details-panel" aria-labelledby="profile-details-title">
         <div class="profile-panel-heading">
           <h2 id="profile-details-title">Personal information</h2>
-          <button class="profile-edit" id="profile-edit" type="button" aria-label="Edit profile details">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
-            </svg>
-            <span>Edit</span>
-          </button>
         </div>
         <form method="post" action="<?php echo BASE_URL; ?>users/profile.php" id="profile-form">
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['profile_csrf']); ?>">
@@ -247,38 +232,33 @@ include_once('../includes/header.php');
           <div class="profile-field">
             <label for="customer_name">Name</label>
             <input type="text" id="customer_name" name="customer_name" maxlength="120"
-                   value="<?php echo htmlspecialchars($name); ?>" readonly required>
+                   value="<?php echo htmlspecialchars($name); ?>" required>
           </div>
 
           <div class="profile-field">
             <label for="username">Username</label>
             <input type="text" id="username" name="username" maxlength="50"
-                   value="<?php echo htmlspecialchars($username); ?>" readonly required>
+                   value="<?php echo htmlspecialchars($username); ?>" required>
           </div>
 
           <div class="profile-field">
             <label for="email">Email</label>
             <input type="email" id="email" name="email" maxlength="120"
-                   value="<?php echo htmlspecialchars($email); ?>" readonly required>
+                   value="<?php echo htmlspecialchars($email); ?>" required>
           </div>
 
           <div class="profile-field">
             <label for="phone">Phone number</label>
             <input type="tel" id="phone" name="phone" maxlength="30"
-                   value="<?php echo htmlspecialchars($phone); ?>" readonly>
+                   value="<?php echo htmlspecialchars($phone); ?>">
           </div>
 
           <div class="profile-field">
             <label for="address">Address</label>
-            <textarea id="address" name="address" maxlength="255" readonly><?php echo htmlspecialchars($address); ?></textarea>
+            <textarea id="address" name="address" maxlength="255"><?php echo htmlspecialchars($address); ?></textarea>
           </div>
 
-          <div class="profile-field">
-            <label for="password-mask">Password</label>
-            <input type="text" id="password-mask" value="********" readonly aria-label="Password hidden">
-          </div>
-
-          <div class="profile-password-fields" id="profile-password-fields" hidden>
+          <div class="profile-password-fields">
             <p>Leave these blank if you don't want to change your password.</p>
             <div class="profile-field">
               <label for="new_password">New password</label>
@@ -292,84 +272,13 @@ include_once('../includes/header.php');
             </div>
           </div>
 
-          <div class="profile-actions" id="profile-actions" hidden>
+          <div class="profile-actions">
             <button class="btn" type="submit">Save changes</button>
-            <button class="profile-cancel" id="profile-cancel" type="button">Cancel</button>
           </div>
         </form>
       </section>
     </div>
   </section>
 </main>
-
-<script>
-(function () {
-  var form = document.getElementById('profile-form');
-  var editButton = document.getElementById('profile-edit');
-  var cancelButton = document.getElementById('profile-cancel');
-  var actions = document.getElementById('profile-actions');
-  var passwordFields = document.getElementById('profile-password-fields');
-  var editableFields = form.querySelectorAll('#customer_name, #username, #email, #phone, #address');
-  var photoForm = document.querySelector('.profile-picture-panel form');
-  var photoEditButton = document.getElementById('profile-photo-edit');
-  var photoCancelButton = document.getElementById('profile-photo-cancel');
-  var photoActions = document.getElementById('profile-photo-actions');
-  var photoPicker = document.getElementById('profile-photo-picker');
-  var photoInput = document.getElementById('profile_photo');
-  var photoPreview = document.getElementById('profile-photo-preview');
-  var originalPhoto = photoPreview.src;
-
-  function setEditing(editing) {
-    editableFields.forEach(function (field) {
-      field.readOnly = !editing;
-    });
-    editButton.hidden = editing;
-    actions.hidden = !editing;
-    passwordFields.hidden = !editing;
-  }
-
-  editButton.addEventListener('click', function () {
-    setEditing(true);
-    document.getElementById('customer_name').focus();
-  });
-
-  cancelButton.addEventListener('click', function () {
-    form.reset();
-    setEditing(false);
-  });
-
-  function setPhotoEditing(editing) {
-    photoEditButton.hidden = editing;
-    photoPicker.hidden = !editing;
-    photoActions.hidden = !editing;
-    photoInput.disabled = !editing;
-  }
-
-  photoEditButton.addEventListener('click', function () {
-    setPhotoEditing(true);
-    photoInput.focus();
-  });
-
-  var fileNameText = document.getElementById('profile-file-name');
-
-  function updateFileLabel() {
-    if (photoInput.files && photoInput.files[0]) {
-      fileNameText.textContent = photoInput.files[0].name;
-      photoPreview.src = URL.createObjectURL(photoInput.files[0]);
-    } else {
-      fileNameText.textContent = 'No file chosen';
-    }
-  }
-
-  photoInput.addEventListener('change', updateFileLabel);
-
-  photoCancelButton.addEventListener('click', function () {
-    photoForm.reset();
-    photoPreview.src = originalPhoto;
-    fileNameText.textContent = 'No file chosen';
-    setPhotoEditing(false);
-  });
-})();
-</script>
 
 <?php include_once('../includes/footer.php'); ?>

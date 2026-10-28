@@ -36,9 +36,6 @@ $admin_header_name = $_SESSION['username'] ?? 'Administrator';
     <main class="admin-main">
       <header class="admin-topbar">
         <div class="admin-topbar-start">
-          <button class="admin-sidebar-toggle" type="button" aria-label="Collapse sidebar" aria-controls="admin-sidebar" aria-expanded="true">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
-          </button>
           <div class="admin-breadcrumb">Workspace <span>/</span> <?php echo admin_escape($admin_page_title); ?></div>
         </div>
         <div class="admin-user">

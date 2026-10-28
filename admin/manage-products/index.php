@@ -408,16 +408,10 @@ include("../includes/header.php");
 <?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
 <?php if ($errors) { ?><div class="manage-alert is-error" role="alert"><ul><?php foreach ($errors as $error) { ?><li><?php echo admin_escape($error); ?></li><?php } ?></ul></div><?php } ?>
 
-<div class="catalog-actions" aria-label="Catalog actions">
-  <button class="admin-button" type="button" data-open-dialog="add-product-dialog">Add Product</button>
-  <button class="admin-button admin-button-light" type="button" data-open-dialog="add-category-dialog">Add Category</button>
-  <button class="admin-button admin-button-light" type="button" data-open-dialog="add-brand-dialog">Add Brand</button>
-</div>
-
-<dialog class="catalog-dialog catalog-form-dialog" id="add-category-dialog" aria-labelledby="add-category-title"<?php echo $errors && ($_POST['action'] ?? '') === 'add_category' ? ' data-open-on-load' : ''; ?>>
+<details class="catalog-disclosure catalog-form-dialog"<?php echo $errors && ($_POST['action'] ?? '') === 'add_category' ? ' open' : ''; ?>>
+  <summary class="admin-button admin-button-light">Add Category</summary>
   <div class="catalog-dialog-heading">
     <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-category-title">Add Category</h2></div>
-    <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
   </div>
   <form method="post" class="manage-form catalog-simple-form" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
@@ -425,15 +419,14 @@ include("../includes/header.php");
     <label>Category name<input name="category_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_category' && is_string($_POST['category_name'] ?? null) ? $_POST['category_name'] : ''); ?>"></label>
     <div class="manage-form-buttons">
       <button class="admin-button" type="submit">Add Category</button>
-      <button class="manage-small-button" type="button" data-close-dialog>Cancel</button>
     </div>
   </form>
-</dialog>
+</details>
 
-<dialog class="catalog-dialog catalog-form-dialog" id="add-brand-dialog" aria-labelledby="add-brand-title"<?php echo $errors && ($_POST['action'] ?? '') === 'add_brand' ? ' data-open-on-load' : ''; ?>>
+<details class="catalog-disclosure catalog-form-dialog"<?php echo $errors && ($_POST['action'] ?? '') === 'add_brand' ? ' open' : ''; ?>>
+  <summary class="admin-button admin-button-light">Add Brand</summary>
   <div class="catalog-dialog-heading">
     <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-brand-title">Add Brand</h2></div>
-    <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
   </div>
   <form method="post" enctype="multipart/form-data" class="manage-form catalog-simple-form" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
@@ -442,15 +435,14 @@ include("../includes/header.php");
     <label>Brand logo (optional)<input type="file" name="brand_logo" accept="image/jpeg,image/png,image/webp"><small class="manage-secondary">JPEG, PNG, or WebP · 5 MB max</small></label>
     <div class="manage-form-buttons">
       <button class="admin-button" type="submit">Add Brand</button>
-      <button class="manage-small-button" type="button" data-close-dialog>Cancel</button>
     </div>
   </form>
-</dialog>
+</details>
 
-<dialog class="catalog-dialog catalog-product-dialog" id="add-product-dialog" aria-labelledby="add-product-title"<?php echo $errors && ($_POST['action'] ?? '') === 'create' ? ' data-open-on-load' : ''; ?>>
+<details class="catalog-disclosure catalog-product-disclosure"<?php echo $errors && ($_POST['action'] ?? '') === 'create' ? ' open' : ''; ?>>
+  <summary class="admin-button">Add Product</summary>
   <div class="catalog-dialog-heading">
     <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-product-title">Create a product</h2></div>
-    <button class="catalog-dialog-close" type="button" aria-label="Close dialog" data-close-dialog>Close</button>
   </div>
 <?php if (!$suppliers) { ?>
   <section class="manage-panel product-create-panel">
@@ -462,7 +454,7 @@ include("../includes/header.php");
   if (!is_array($form_colors) || !$form_colors) {
       $form_colors = [0 => ['name' => '', 'sizes' => [], 'stocks' => []]];
   }
-  $form_colors = array_slice($form_colors, 0, 20, true);
+  $form_colors = array_slice($form_colors, 0, 1, true);
   $all_size_options = [];
   foreach ($product_size_guide['sizes'] as $department_sizes) {
       foreach ($department_sizes as $group_sizes) {
@@ -472,8 +464,6 @@ include("../includes/header.php");
   $all_size_options = array_values(array_unique($all_size_options));
   $selected_department = is_string($_POST['department'] ?? null) ? $_POST['department'] : 'men';
   $selected_category_id = product_positive_integer($_POST['category_id'] ?? null);
-  $selected_category_name = $selected_category_id === null ? null : ($category_names[$selected_category_id] ?? null);
-  $selected_size_options = product_size_options($product_size_guide, $selected_department, $selected_category_name);
   ?>
   <form method="post" enctype="multipart/form-data" class="manage-form manage-product-create create-product-form" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
@@ -486,7 +476,7 @@ include("../includes/header.php");
         <label>Price (₱)<input type="text" inputmode="decimal" name="price" value="<?php echo admin_escape(is_string($_POST['price'] ?? null) ? $_POST['price'] : ''); ?>"></label>
         <label>Department<select id="product-department" name="department"><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $department_value => $department_label) { ?><option value="<?php echo $department_value; ?>" <?php echo $selected_department === $department_value ? 'selected' : ''; ?>><?php echo $department_label; ?></option><?php } ?></select></label>
         <label>Brand<select name="supplier_id"><option value="">Choose a brand</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo product_positive_integer($_POST['supplier_id'] ?? null) === (int)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
-        <label>Category<select id="product-category" name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { $category_group = $product_size_guide['category_groups'][strtolower(trim($category_option['name']))] ?? ''; ?><option value="<?php echo (int)$category_option['category_id']; ?>" data-size-group="<?php echo admin_escape($category_group); ?>" <?php echo $selected_category_id === (int)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
+        <label>Category<select id="product-category" name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { ?><option value="<?php echo (int)$category_option['category_id']; ?>" <?php echo $selected_category_id === (int)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
         <label class="product-field-wide">Description<textarea name="description" rows="4"><?php echo admin_escape(is_string($_POST['description'] ?? null) ? $_POST['description'] : ''); ?></textarea></label>
       </div>
     </section>
@@ -497,38 +487,34 @@ include("../includes/header.php");
       </div>
       <div class="product-color-list" id="product-color-list">
         <?php $color_row_number = 0; foreach ($form_colors as $posted_color) { $posted_color = is_array($posted_color) ? $posted_color : []; $color_index = $color_row_number++; $color_name_value = is_string($posted_color['name'] ?? null) ? $posted_color['name'] : ''; $selected_sizes = is_array($posted_color['sizes'] ?? null) ? $posted_color['sizes'] : []; $selected_stocks = is_array($posted_color['stocks'] ?? null) ? $posted_color['stocks'] : []; ?>
-          <div class="product-color-row" data-color-row data-color-index="<?php echo $color_index; ?>">
-            <div class="product-color-row-heading"><strong>Color option</strong><button class="manage-small-button is-danger product-color-remove" type="button" aria-label="Remove color">Remove</button></div>
-            <label>Color name<input data-color-name name="colors[<?php echo $color_index; ?>][name]" placeholder="e.g. Navy" value="<?php echo admin_escape($color_name_value); ?>"></label>
+          <div class="product-color-row">
+            <div class="product-color-row-heading"><strong>Color option</strong></div>
+            <label>Color name<input name="colors[<?php echo $color_index; ?>][name]" placeholder="e.g. Navy" value="<?php echo admin_escape($color_name_value); ?>"></label>
             <div class="product-color-controls">
               <div class="product-size-stock">
-                <details class="product-size-picker">
-                  <summary data-size-summary>Choose sizes</summary>
-                  <div class="product-size-options" role="group" aria-label="Available sizes">
+                <fieldset class="product-size-options">
+                  <legend>Select sizes and starting stock</legend>
                     <?php foreach ($all_size_options as $size_option) { ?>
                       <?php
-                      $raw_posted_stock = $selected_stocks[$size_option] ?? 0;
-                      $posted_stock = is_string($raw_posted_stock) || is_int($raw_posted_stock)
+                        $raw_posted_stock = $selected_stocks[$size_option] ?? 0;
+                        $posted_stock = is_string($raw_posted_stock) || is_int($raw_posted_stock)
                           ? filter_var($raw_posted_stock, FILTER_VALIDATE_INT)
                           : false;
-                      $stock_value = $posted_stock !== false && $posted_stock >= 0 && $posted_stock <= 1000 ? $posted_stock : 0;
-                      ?>
-                      <label data-size-label <?php echo in_array($size_option, $selected_size_options, true) ? '' : 'hidden'; ?>><input type="checkbox" data-size-option data-stock="<?php echo $stock_value; ?>" name="colors[<?php echo $color_index; ?>][sizes][]" value="<?php echo admin_escape($size_option); ?>" <?php echo in_array($size_option, $selected_sizes, true) && in_array($size_option, $selected_size_options, true) ? 'checked' : ''; ?>><span><?php echo admin_escape($size_option); ?></span></label>
-                    <?php } ?>
-                  </div>
-                </details>
-                <button class="manage-small-button product-stock-toggle" type="button" data-stock-toggle aria-expanded="false">Add stock</button>
-                <div class="product-stock-panel" data-stock-panel hidden>
-                  <div class="product-stock-list" data-stock-list></div>
-                </div>
+                        $stock_value = $posted_stock !== false && $posted_stock >= 0 && $posted_stock <= 1000 ? $posted_stock : 0;
+                        ?>
+                        <div class="product-stock-row">
+                          <label><input type="checkbox" name="colors[<?php echo $color_index; ?>][sizes][]" value="<?php echo admin_escape($size_option); ?>" <?php echo in_array($size_option, $selected_sizes, true) ? 'checked' : ''; ?>> <?php echo admin_escape($size_option); ?></label>
+                          <label>Starting stock<input type="number" min="0" max="1000" name="colors[<?php echo $color_index; ?>][stocks][<?php echo admin_escape($size_option); ?>]" value="<?php echo $stock_value; ?>"></label>
+                        </div>
+                      <?php } ?>
+                </fieldset>
               </div>
               <div class="product-color-image">
-                <div class="product-image-preview" data-product-image-preview><span>Image preview</span><div class="product-image-preview-list" data-product-image-list></div></div>
+                <div class="product-image-preview"><span>Image preview</span></div>
                 <div class="product-image-picker-actions">
-                  <input class="product-image-input" data-color-image id="color-image-<?php echo $color_index; ?>" type="file" name="color_images[<?php echo $color_index; ?>][]" accept="image/jpeg,image/png,image/webp" multiple>
+                  <input class="product-image-input" id="color-image-<?php echo $color_index; ?>" type="file" name="color_images[<?php echo $color_index; ?>][]" accept="image/jpeg,image/png,image/webp" multiple>
                   <label class="admin-button admin-button-light product-image-choose" for="color-image-<?php echo $color_index; ?>">Choose images</label>
-                  <small class="manage-secondary" data-product-image-name>No images selected</small>
-                  <small class="manage-secondary">Up to 10 JPEG, PNG, or WebP images · 5 MB each. Choose more than once to add files.</small>
+                  <small class="manage-secondary">Select up to 10 JPEG, PNG, or WebP images at once · 5 MB each.</small>
                 </div>
               </div>
             </div>
@@ -536,238 +522,13 @@ include("../includes/header.php");
         <?php } ?>
       </div>
       <div class="product-options-actions">
-        <button class="manage-small-button" id="product-add-color" type="button">Add new color</button>
         <button class="admin-button" type="submit">Create product</button>
       </div>
     </section>
   </form>
-  <script type="application/json" id="product-size-guide-data"><?php
-  echo json_encode($product_size_guide['sizes'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-  ?></script>
-  <script>
-    (function () {
-      var colorList = document.getElementById('product-color-list');
-      var addColorButton = document.getElementById('product-add-color');
-      var departmentSelect = document.getElementById('product-department');
-      var categorySelect = document.getElementById('product-category');
-      var sizeGuideSizes = JSON.parse(document.getElementById('product-size-guide-data').textContent);
-      var nextColorIndex = colorList.children.length;
-      var previewUrls = new WeakMap();
-      var selectedImageFiles = new WeakMap();
-
-      function updateAvailableSizes() {
-        var selectedCategory = categorySelect.options[categorySelect.selectedIndex];
-        var categoryGroup = selectedCategory ? selectedCategory.dataset.sizeGroup : '';
-        var departmentSizes = sizeGuideSizes[departmentSelect.value] || {};
-        var availableSizes = categoryGroup && departmentSizes[categoryGroup]
-          ? departmentSizes[categoryGroup]
-          : [].concat(departmentSizes.top || [], departmentSizes.bottom || []);
-
-        colorList.querySelectorAll('[data-size-label]').forEach(function (label) {
-          var checkbox = label.querySelector('[data-size-option]');
-          var available = availableSizes.includes(checkbox.value);
-          label.hidden = !available;
-          if (!available) checkbox.checked = false;
-        });
-        colorList.querySelectorAll('[data-color-row]').forEach(function (row) {
-          updateSizeSummary(row);
-          updateStockPanel(row);
-        });
-      }
-
-      function updateRemoveButtons() {
-        var rows = colorList.querySelectorAll('[data-color-row]');
-        rows.forEach(function (row) {
-          row.querySelector('.product-color-remove').disabled = rows.length === 1;
-        });
-        addColorButton.disabled = rows.length >= 20;
-      }
-
-      function updateSizeSummary(row) {
-        var selected = row.querySelectorAll('[data-size-option]:checked').length;
-        row.querySelector('[data-size-summary]').textContent = selected
-          ? selected + ' size' + (selected === 1 ? '' : 's') + ' selected'
-          : 'Choose sizes';
-      }
-
-      function updateStockPanel(row) {
-        var stockList = row.querySelector('[data-stock-list]');
-        var selectedCheckboxes = row.querySelectorAll('[data-size-option]:checked');
-        stockList.replaceChildren();
-
-        if (!selectedCheckboxes.length) {
-          var emptyMessage = document.createElement('p');
-          emptyMessage.className = 'manage-secondary';
-          emptyMessage.textContent = 'Select sizes first to set stock for each size.';
-          stockList.appendChild(emptyMessage);
-          return;
-        }
-
-        selectedCheckboxes.forEach(function (checkbox) {
-          var stockRow = document.createElement('label');
-          stockRow.className = 'product-stock-row';
-          var sizeName = document.createElement('span');
-          sizeName.textContent = checkbox.value;
-          var stockInput = document.createElement('input');
-          stockInput.type = 'text';
-          stockInput.inputMode = 'numeric';
-          stockInput.value = checkbox.dataset.stock || '0';
-          stockInput.name = 'colors[' + row.dataset.colorIndex + '][stocks][' + checkbox.value + ']';
-          stockInput.setAttribute('aria-label', 'Stock for size ' + checkbox.value);
-          stockInput.addEventListener('input', function () {
-            checkbox.dataset.stock = stockInput.value;
-          });
-          stockRow.append(sizeName, stockInput);
-          stockList.appendChild(stockRow);
-        });
-
-        setStockPanelPlacement(row);
-      }
-
-      function setStockPanelPlacement(row) {
-        var toggle = row.querySelector('[data-stock-toggle]');
-        var panel = row.querySelector('[data-stock-panel]');
-        panel.classList.remove('is-right', 'is-below');
-        panel.style.removeProperty('width');
-        if (panel.hidden || toggle.getAttribute('aria-expanded') !== 'true') return;
-
-        var controls = row.querySelector('.product-color-controls');
-        var sizeStock = row.querySelector('.product-size-stock');
-        var availableRight = controls.getBoundingClientRect().right
-          - sizeStock.getBoundingClientRect().right - 12;
-        if (availableRight >= 250 && window.matchMedia('(min-width: 601px)').matches) {
-          panel.classList.add('is-right');
-          panel.style.width = Math.min(360, availableRight) + 'px';
-        } else {
-          panel.classList.add('is-below');
-        }
-      }
-
-      colorList.addEventListener('change', function (event) {
-        var row = event.target.closest('[data-color-row]');
-        if (!row) return;
-
-        if (event.target.matches('[data-size-option]')) {
-          updateSizeSummary(row);
-          updateStockPanel(row);
-        } else if (event.target.matches('[data-color-image]')) {
-          var preview = row.querySelector('[data-product-image-preview]');
-          var imageList = preview.querySelector('[data-product-image-list]');
-          var placeholder = preview.querySelector('span');
-          var filename = row.querySelector('[data-product-image-name]');
-          (previewUrls.get(event.target) || []).forEach(URL.revokeObjectURL);
-          imageList.replaceChildren();
-          var previousFiles = selectedImageFiles.get(event.target) || [];
-          var files = previousFiles.slice();
-          var exceededLimit = false;
-          Array.prototype.forEach.call(event.target.files || [], function (file) {
-            var alreadySelected = files.some(function (selectedFile) {
-              return selectedFile.name === file.name
-                && selectedFile.size === file.size
-                && selectedFile.lastModified === file.lastModified;
-            });
-            if (!alreadySelected) files.push(file);
-          });
-          if (files.length > 10) {
-            files = previousFiles;
-            exceededLimit = true;
-            filename.textContent = 'Choose up to 10 images; previous selection kept';
-          }
-          var dataTransfer = new DataTransfer();
-          files.forEach(function (file) { dataTransfer.items.add(file); });
-          event.target.files = dataTransfer.files;
-          if (!files.length) {
-            previewUrls.delete(event.target);
-            selectedImageFiles.delete(event.target);
-            placeholder.hidden = false;
-            if (!exceededLimit) filename.textContent = 'No images selected';
-            return;
-          }
-
-          var objectUrls = [];
-          files.forEach(function (file) {
-            var previewUrl = URL.createObjectURL(file);
-            objectUrls.push(previewUrl);
-            var image = document.createElement('img');
-            image.src = previewUrl;
-            image.alt = '';
-            imageList.appendChild(image);
-          });
-          previewUrls.set(event.target, objectUrls);
-          selectedImageFiles.set(event.target, files);
-          placeholder.hidden = true;
-          if (!exceededLimit) {
-            filename.textContent = files.length + (files.length === 1 ? ' image selected' : ' images selected');
-          }
-        }
-      });
-
-      addColorButton.addEventListener('click', function () {
-        var row = colorList.querySelector('[data-color-row]').cloneNode(true);
-        row.dataset.colorIndex = nextColorIndex;
-        row.querySelector('[data-color-name]').name = 'colors[' + nextColorIndex + '][name]';
-        row.querySelectorAll('[data-size-option]').forEach(function (checkbox) {
-          checkbox.checked = false;
-          checkbox.dataset.stock = '0';
-          checkbox.name = 'colors[' + nextColorIndex + '][sizes][]';
-        });
-        var imageInput = row.querySelector('[data-color-image]');
-        var imageId = 'color-image-' + nextColorIndex++;
-        imageInput.name = 'color_images[' + (nextColorIndex - 1) + '][]';
-        imageInput.id = imageId;
-        row.querySelector('.product-image-choose').htmlFor = imageId;
-        row.querySelector('[data-color-name]').value = '';
-        row.querySelector('[data-size-summary]').textContent = 'Choose sizes';
-        row.querySelector('[data-stock-toggle]').setAttribute('aria-expanded', 'false');
-        row.querySelector('[data-stock-panel]').hidden = true;
-        row.querySelector('[data-product-image-name]').textContent = 'No images selected';
-        row.querySelector('[data-product-image-preview] [data-product-image-list]').replaceChildren();
-        row.querySelector('[data-product-image-preview] span').hidden = false;
-        row.querySelector('.product-size-picker').open = false;
-        imageInput.value = '';
-        selectedImageFiles.delete(imageInput);
-        previewUrls.delete(imageInput);
-        colorList.appendChild(row);
-        updateRemoveButtons();
-        updateAvailableSizes();
-      });
-
-      departmentSelect.addEventListener('change', updateAvailableSizes);
-      categorySelect.addEventListener('change', updateAvailableSizes);
-      window.addEventListener('resize', function () {
-        colorList.querySelectorAll('[data-color-row]').forEach(setStockPanelPlacement);
-      });
-
-      colorList.addEventListener('click', function (event) {
-        var stockToggle = event.target.closest('[data-stock-toggle]');
-        if (stockToggle) {
-          var stockRow = stockToggle.closest('[data-color-row]');
-          var stockPanel = stockRow.querySelector('[data-stock-panel]');
-          var isExpanded = stockToggle.getAttribute('aria-expanded') === 'true';
-          stockToggle.setAttribute('aria-expanded', String(!isExpanded));
-          stockPanel.hidden = isExpanded;
-          setStockPanelPlacement(stockRow);
-          return;
-        }
-
-        var removeButton = event.target.closest('.product-color-remove');
-        if (!removeButton || removeButton.disabled) return;
-        var row = removeButton.closest('[data-color-row]');
-        var imageInput = row.querySelector('[data-color-image]');
-        (previewUrls.get(imageInput) || []).forEach(URL.revokeObjectURL);
-        previewUrls.delete(imageInput);
-        selectedImageFiles.delete(imageInput);
-        row.remove();
-        updateRemoveButtons();
-      });
-
-      colorList.querySelectorAll('[data-color-row]').forEach(updateSizeSummary);
-      updateRemoveButtons();
-      updateAvailableSizes();
-    })();
-  </script>
 <?php } ?>
-</dialog>
+</div>
+</details>
 
 <section class="manage-panel manage-list-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT CATALOG</p><h2>Products <span class="manage-count"><?php echo $product_total; ?></span></h2></div></div>
@@ -785,7 +546,7 @@ include("../includes/header.php");
           <td><div class="manage-row-actions">
             <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-products/edit.php?id=<?php echo (int)$product['product_id']; ?>">Edit</a>
             <?php if ((int)$product['order_count'] === 0) { ?>
-              <form method="post" novalidate onsubmit="return confirm('Delete this product? Products included in orders cannot be deleted.');">
+              <form method="post" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="product_id" value="<?php echo (int)$product['product_id']; ?>">

@@ -181,7 +181,7 @@ include("../includes/header.php");
               <button class="manage-small-button" type="submit"><?php echo $customer['status'] === 'active' ? 'Deactivate' : 'Reactivate'; ?></button>
             </form>
             <?php if ((int)$customer['order_count'] === 0) { ?>
-              <form method="post" onsubmit="return confirm('Permanently delete this customer account? Their cart will also be removed.');">
+              <form method="post">
                 <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="user_id" value="<?php echo (int)$customer['user_id']; ?>">

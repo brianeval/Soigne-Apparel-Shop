@@ -248,12 +248,12 @@ include("../includes/header.php");
   <div class="manage-row-actions manage-order-status-actions">
     <?php if ($order['fulfillment_status'] === 'pending' && $order['payment_status'] === 'unpaid') { ?>
       <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button" type="submit" name="action" value="mark_shipped">Mark as Shipped</button></form>
-      <form method="post" onsubmit="return confirm('Cancel this pending order and return its reserved items to stock?');"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button is-danger" type="submit" name="action" value="cancel">Mark as Cancelled</button></form>
+      <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button is-danger" type="submit" name="action" value="cancel">Mark as Cancelled</button></form>
     <?php } elseif ($order['fulfillment_status'] === 'shipped' && $order['payment_status'] === 'unpaid') { ?>
       <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button" type="submit" name="action" value="mark_delivered">Mark as Delivered</button></form>
-      <form method="post" onsubmit="return confirm('Confirm delivery failed and the returned items back in stock?');"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button is-danger" type="submit" name="action" value="mark_failed_delivery">Mark Failed Delivery</button></form>
+      <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button is-danger" type="submit" name="action" value="mark_failed_delivery">Mark Failed Delivery</button></form>
     <?php } elseif ($order['fulfillment_status'] === 'delivered' && $order['payment_status'] === 'unpaid') { ?>
-      <form method="post" onsubmit="return confirm('Confirm payment was collected for this delivered COD order?');"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button" type="submit" name="action" value="mark_paid">Mark as Paid</button></form>
+      <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button" type="submit" name="action" value="mark_paid">Mark as Paid</button></form>
     <?php } elseif ($order['fulfillment_status'] === 'failed_delivery') { ?>
       <p class="manage-order-final">Failed delivery is final. Returned items have been restored to stock.</p>
     <?php } elseif ($order['fulfillment_status'] === 'cancelled') { ?>

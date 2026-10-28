@@ -255,6 +255,5 @@ $admin_name = $_SESSION['username'] ?? 'Administrator';
       </div>
     </main>
   </div>
-  <script src="<?php echo BASE_URL; ?>admin/admin.js?v=<?php echo filemtime(APP_ROOT . '/admin/admin.js'); ?>" defer></script>
 </body>
 </html>

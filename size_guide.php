@@ -307,58 +307,23 @@ include_once('includes/header.php');
 
 <main class="size-guide-page">
   <header class="size-guide-heading">
-    <h1 id="guide-department-title">Men</h1>
+    <h1>Size Guide</h1>
   </header>
 
-  <div class="department-guide-tabs" role="tablist" aria-label="Size guide department">
-    <button type="button" class="department-guide-tab is-selected" id="men-size-tab" role="tab" aria-selected="true" aria-controls="men-size-guide" data-department-tab="men">Men</button>
-    <button type="button" class="department-guide-tab" id="women-size-tab" role="tab" aria-selected="false" aria-controls="women-size-guide" data-department-tab="women">Women</button>
-    <button type="button" class="department-guide-tab" id="kids-size-tab" role="tab" aria-selected="false" aria-controls="kids-size-guide" data-department-tab="kids">Kids</button>
-  </div>
+  <nav class="department-guide-tabs" aria-label="Size guide departments">
+    <a href="#men-size-guide">Men</a>
+    <a href="#women-size-guide">Women</a>
+    <a href="#kids-size-guide">Kids</a>
+  </nav>
 
-  <section class="size-guide-card" id="men-size-guide" role="tabpanel" aria-labelledby="men-size-tab" aria-label="Men's size guide" data-department-panel="men">
-    <div class="guide-type-tabs" role="tablist" aria-label="Men's size guide type">
-      <button type="button" class="guide-type-tab is-active" id="top-tab" role="tab" aria-selected="true" aria-controls="top-guide" data-guide-type="top">
-        Top
-      </button>
-      <button type="button" class="guide-type-tab" id="bottom-tab" role="tab" aria-selected="false" aria-controls="bottom-guide" data-guide-type="bottom">
-        Bottom
-      </button>
-    </div>
+  <section class="size-guide-card" id="men-size-guide" aria-label="Men's size guide">
 
-    <div class="top-guide bottom-guide" id="top-guide" role="tabpanel" aria-labelledby="top-tab" data-guide-panel="top">
-      <h2 id="top-guide-title">Top</h2>
-
-      <div class="top-fit-tabs" role="tablist" aria-label="Top fit">
-        <?php foreach ($top_ranges as $fit_key => $fit) { ?>
-          <button
-            type="button"
-            class="top-fit-tab<?php echo $fit_key === 'regular' ? ' is-selected' : ''; ?>"
-            role="tab"
-            aria-selected="<?php echo $fit_key === 'regular' ? 'true' : 'false'; ?>"
-            data-top-fit="<?php echo htmlspecialchars($fit_key); ?>">
-            <?php echo htmlspecialchars($fit['label']); ?>
-          </button>
-        <?php } ?>
-      </div>
+    <div class="top-guide bottom-guide" id="top-guide">
+      <h2>Men's tops</h2>
 
       <?php foreach ($top_ranges as $fit_key => $fit) { ?>
-        <section class="top-fit-panel" data-top-fit-panel="<?php echo htmlspecialchars($fit_key); ?>"<?php echo $fit_key === 'regular' ? '' : ' hidden'; ?>>
-          <fieldset class="size-range-fieldset">
-            <legend>Select size range</legend>
-            <div class="size-range-options">
-              <?php foreach ($fit['groups'] as $group_key => $group) { ?>
-                <button
-                  type="button"
-                  class="size-range-option<?php echo $group_key === array_key_first($fit['groups']) ? ' is-selected' : ''; ?>"
-                  data-top-range="<?php echo htmlspecialchars($fit_key . ':' . $group_key); ?>"
-                  aria-pressed="<?php echo $group_key === array_key_first($fit['groups']) ? 'true' : 'false'; ?>">
-                  <?php echo htmlspecialchars($group['label']); ?>
-                </button>
-              <?php } ?>
-            </div>
-          </fieldset>
-
+        <section class="top-fit-panel">
+          <h3><?php echo htmlspecialchars($fit['label']); ?> fit</h3>
           <div class="measurement-accordions">
             <?php
             $top_measurements = [
@@ -371,17 +336,16 @@ include_once('includes/header.php');
             <?php foreach ($top_measurements as $measurement_key => $measurement_label) { ?>
               <?php $panel_id = 'top-' . $fit_key . '-' . str_replace('_', '-', $measurement_key) . '-panel'; ?>
               <section class="measurement-section">
-                <h3>
-                  <button type="button" class="measurement-toggle top-measurement-toggle" aria-expanded="<?php echo $measurement_key === 'chest' ? 'true' : 'false'; ?>" aria-controls="<?php echo $panel_id; ?>">
-                    <?php echo htmlspecialchars($measurement_label); ?> <span class="toggle-mark" aria-hidden="true"></span>
-                  </button>
-                </h3>
-                <div class="measurement-panel" id="<?php echo $panel_id; ?>"<?php echo $measurement_key === 'chest' ? '' : ' hidden'; ?>>
+                <h4><?php echo htmlspecialchars($measurement_label); ?></h4>
+                <div class="measurement-panel" id="<?php echo $panel_id; ?>">
                   <div class="measurement-table-wrap">
-                    <table class="measurement-table top-measurement-table" data-top-measurement="<?php echo htmlspecialchars($measurement_key); ?>">
-                      <caption class="visually-hidden"><?php echo htmlspecialchars($measurement_label); ?> measurements by clothing size</caption>
-                      <thead></thead><tbody></tbody>
-                    </table>
+                    <?php foreach ($fit['groups'] as $group) { ?>
+                      <table class="measurement-table">
+                        <caption><?php echo htmlspecialchars($measurement_label . ' · ' . $group['label']); ?></caption>
+                        <thead><tr><th scope="col">Size</th><?php foreach ($group['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
+                        <tbody><tr><th scope="row"><?php echo htmlspecialchars($measurement_label); ?> (cm)</th><?php foreach ($group['measurements'][$measurement_key] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
+                      </table>
+                    <?php } ?>
                   </div>
                 </div>
               </section>
@@ -391,69 +355,51 @@ include_once('includes/header.php');
       <?php } ?>
     </div>
 
-    <div class="bottom-guide" id="bottom-guide" role="tabpanel" aria-labelledby="bottom-tab" data-guide-panel="bottom" hidden>
-      <h2 id="bottom-guide-title">Bottom</h2>
-
-      <fieldset class="size-range-fieldset">
-        <legend>Select size range</legend>
-        <div class="size-range-options">
-          <?php foreach (array_keys($size_ranges) as $index => $range) { ?>
-            <button
-              type="button"
-              class="size-range-option<?php echo $index === 0 ? ' is-selected' : ''; ?>"
-              data-size-range="<?php echo htmlspecialchars($range); ?>"
-              aria-pressed="<?php echo $index === 0 ? 'true' : 'false'; ?>">
-              <?php echo htmlspecialchars($size_ranges[$range]['label']); ?>
-            </button>
-          <?php } ?>
-        </div>
-      </fieldset>
+    <div class="bottom-guide" id="bottom-guide">
+      <h2>Men's bottoms</h2>
 
       <div class="measurement-accordions">
         <section class="measurement-section">
-          <h3>
-            <button type="button" class="measurement-toggle" aria-expanded="true" aria-controls="waist-panel">
-              Waist <span class="toggle-mark" aria-hidden="true"></span>
-            </button>
-          </h3>
+          <h3>Waist</h3>
           <div class="measurement-panel" id="waist-panel">
             <div class="measurement-table-wrap">
-              <table class="measurement-table" data-measurement="waist">
+              <?php foreach ($size_ranges as $range) { ?>
+              <table class="measurement-table">
                 <caption class="visually-hidden">Waist measurements in centimeters by alpha clothing size</caption>
-                <thead></thead><tbody></tbody>
+                <thead><tr><th scope="col"><?php echo htmlspecialchars($range['label']); ?> · Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
+                <tbody><tr><th scope="row">Waist (cm)</th><?php foreach ($range['waist'] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
               </table>
+              <?php } ?>
             </div>
           </div>
         </section>
 
         <section class="measurement-section">
-          <h3>
-            <button type="button" class="measurement-toggle" aria-expanded="false" aria-controls="low-hip-panel">
-              Low hip <span class="toggle-mark" aria-hidden="true"></span>
-            </button>
-          </h3>
-          <div class="measurement-panel" id="low-hip-panel" hidden>
+          <h3>Low hip</h3>
+          <div class="measurement-panel" id="low-hip-panel">
             <div class="measurement-table-wrap">
-              <table class="measurement-table" data-measurement="low_hip">
+              <?php foreach ($size_ranges as $range) { ?>
+              <table class="measurement-table">
                 <caption class="visually-hidden">Low hip measurements in centimeters by alpha clothing size</caption>
-                <thead></thead><tbody></tbody>
+                <thead><tr><th scope="col"><?php echo htmlspecialchars($range['label']); ?> · Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
+                <tbody><tr><th scope="row">Low hip (cm)</th><?php foreach ($range['low_hip'] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
               </table>
+              <?php } ?>
             </div>
           </div>
         </section>
 
         <section class="measurement-section">
-          <h3>
-            <button type="button" class="measurement-toggle" aria-expanded="false" aria-controls="inside-leg-panel">
-              Inside leg length <span class="toggle-mark" aria-hidden="true"></span>
-            </button>
-          </h3>
-          <div class="measurement-panel" id="inside-leg-panel" hidden>
+          <h3>Inside leg length</h3>
+          <div class="measurement-panel" id="inside-leg-panel">
             <div class="measurement-table-wrap">
-              <table class="measurement-table" data-measurement="inside_leg">
+              <?php foreach ($size_ranges as $range) { ?>
+              <table class="measurement-table">
                 <caption class="visually-hidden">Inside leg length measurements in centimeters by alpha clothing size</caption>
-                <thead></thead><tbody></tbody>
+                <thead><tr><th scope="col"><?php echo htmlspecialchars($range['label']); ?> · Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
+                <tbody><?php foreach ($range['inside_leg'] as $measurement_row) { ?><tr><th scope="row"><?php echo htmlspecialchars($measurement_row['label']); ?></th><?php foreach ($measurement_row['values'] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr><?php } ?></tbody>
               </table>
+              <?php } ?>
             </div>
           </div>
         </section>
@@ -461,46 +407,27 @@ include_once('includes/header.php');
     </div>
   </section>
 
-  <section class="size-guide-card women-size-guide" id="women-size-guide" role="tabpanel" aria-labelledby="women-size-tab" aria-label="Women's size guide" data-department-panel="women" hidden>
-    <div class="guide-type-tabs" role="tablist" aria-label="Women's size guide type">
-      <button type="button" class="guide-type-tab is-active" id="women-top-tab" role="tab" aria-selected="true" aria-controls="women-top-guide" data-women-guide-type="top">Top</button>
-      <button type="button" class="guide-type-tab" id="women-bottom-tab" role="tab" aria-selected="false" aria-controls="women-bottom-guide" data-women-guide-type="bottom">Bottom</button>
-    </div>
-
-    <div class="bottom-guide" id="women-top-guide" role="tabpanel" aria-labelledby="women-top-tab" data-women-guide-panel="top">
-      <h2>Top</h2>
+  <section class="size-guide-card women-size-guide" id="women-size-guide" aria-label="Women's size guide">
+    <div class="bottom-guide" id="women-top-guide">
+      <h2>Women's tops</h2>
       <p class="women-fit-label">Regular</p>
-
-      <fieldset class="size-range-fieldset">
-        <legend>Select size range</legend>
-        <div class="size-range-options">
-          <?php foreach ($women_top_ranges as $range_key => $range) { ?>
-            <button
-              type="button"
-              class="size-range-option<?php echo $range_key === array_key_first($women_top_ranges) ? ' is-selected' : ''; ?>"
-              data-women-range="<?php echo htmlspecialchars($range_key); ?>"
-              aria-pressed="<?php echo $range_key === array_key_first($women_top_ranges) ? 'true' : 'false'; ?>">
-              <?php echo htmlspecialchars($range['label']); ?>
-            </button>
-          <?php } ?>
-        </div>
-      </fieldset>
 
       <div class="measurement-accordions">
         <?php foreach ($women_top_measurements as $measurement_key => $measurement_label) { ?>
           <?php $panel_id = 'women-' . str_replace('_', '-', $measurement_key) . '-panel'; ?>
           <section class="measurement-section">
             <h3>
-              <button type="button" class="measurement-toggle women-measurement-toggle" aria-expanded="<?php echo $measurement_key === 'chest' ? 'true' : 'false'; ?>" aria-controls="<?php echo $panel_id; ?>">
-                <?php echo htmlspecialchars($measurement_label); ?> <span class="toggle-mark" aria-hidden="true"></span>
-              </button>
+              <?php echo htmlspecialchars($measurement_label); ?>
             </h3>
-            <div class="measurement-panel" id="<?php echo $panel_id; ?>"<?php echo $measurement_key === 'chest' ? '' : ' hidden'; ?>>
+            <div class="measurement-panel" id="<?php echo $panel_id; ?>">
               <div class="measurement-table-wrap">
-                <table class="measurement-table women-measurement-table" data-women-measurement="<?php echo htmlspecialchars($measurement_key); ?>">
-                  <caption class="visually-hidden"><?php echo htmlspecialchars($measurement_label); ?> measurements by clothing size</caption>
-                  <thead></thead><tbody></tbody>
-                </table>
+                <?php foreach ($women_top_ranges as $range) { ?>
+                  <table class="measurement-table">
+                    <caption><?php echo htmlspecialchars($measurement_label . ' · ' . $range['label']); ?></caption>
+                    <thead><tr><th scope="col">Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
+                    <tbody><tr><th scope="row"><?php echo htmlspecialchars($measurement_label); ?> (cm)</th><?php foreach ($range['measurements'][$measurement_key] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
+                  </table>
+                <?php } ?>
               </div>
             </div>
           </section>
@@ -508,24 +435,9 @@ include_once('includes/header.php');
       </div>
     </div>
 
-    <div class="bottom-guide" id="women-bottom-guide" role="tabpanel" aria-labelledby="women-bottom-tab" data-women-guide-panel="bottom" hidden>
-      <h2>Bottom</h2>
+    <div class="bottom-guide" id="women-bottom-guide">
+      <h2>Women's bottoms</h2>
       <p class="women-fit-label">Regular</p>
-
-      <fieldset class="size-range-fieldset">
-        <legend>Select size range</legend>
-        <div class="size-range-options women-bottom-range-options">
-          <?php foreach ($women_bottom_ranges as $range_key => $range) { ?>
-            <button
-              type="button"
-              class="size-range-option<?php echo $range_key === array_key_first($women_bottom_ranges) ? ' is-selected' : ''; ?>"
-              data-women-bottom-range="<?php echo htmlspecialchars($range_key); ?>"
-              aria-pressed="<?php echo $range_key === array_key_first($women_bottom_ranges) ? 'true' : 'false'; ?>">
-              <?php echo htmlspecialchars($range['label']); ?>
-            </button>
-          <?php } ?>
-        </div>
-      </fieldset>
 
       <div class="measurement-accordions">
         <?php
@@ -539,16 +451,17 @@ include_once('includes/header.php');
           <?php $panel_id = 'women-bottom-' . str_replace('_', '-', $measurement_key) . '-panel'; ?>
           <section class="measurement-section">
             <h3>
-              <button type="button" class="measurement-toggle women-bottom-measurement-toggle" aria-expanded="<?php echo $measurement_key === 'waist' ? 'true' : 'false'; ?>" aria-controls="<?php echo $panel_id; ?>">
-                <?php echo htmlspecialchars($measurement_label); ?> <span class="toggle-mark" aria-hidden="true"></span>
-              </button>
+              <?php echo htmlspecialchars($measurement_label); ?>
             </h3>
-            <div class="measurement-panel" id="<?php echo $panel_id; ?>"<?php echo $measurement_key === 'waist' ? '' : ' hidden'; ?>>
+            <div class="measurement-panel" id="<?php echo $panel_id; ?>">
               <div class="measurement-table-wrap">
-                <table class="measurement-table women-bottom-measurement-table" data-women-bottom-measurement="<?php echo htmlspecialchars($measurement_key); ?>">
-                  <caption class="visually-hidden"><?php echo htmlspecialchars($measurement_label); ?> measurements by European and US size</caption>
-                  <thead></thead><tbody></tbody>
-                </table>
+                <?php foreach ($women_bottom_ranges as $range) { ?>
+                  <table class="measurement-table">
+                    <caption><?php echo htmlspecialchars($measurement_label . ' · ' . $range['label']); ?></caption>
+                    <thead><tr><th scope="col">Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
+                    <tbody><tr><th scope="row"><?php echo htmlspecialchars($measurement_label); ?><?php echo $measurement_key === 'inside_leg' ? ' (cm)' : ' (cm)'; ?></th><?php foreach ($range['measurements'][$measurement_key] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
+                  </table>
+                <?php } ?>
               </div>
             </div>
           </section>
@@ -557,30 +470,17 @@ include_once('includes/header.php');
     </div>
   </section>
 
-  <section class="size-guide-card kids-size-guide" id="kids-size-guide" role="tabpanel" aria-labelledby="kids-size-tab" aria-label="Kids' size guide" data-department-panel="kids" hidden>
+  <section class="size-guide-card kids-size-guide" id="kids-size-guide" aria-label="Kids' size guide">
     <div class="bottom-guide">
       <h2>Top</h2>
-      <fieldset class="size-range-fieldset">
-        <legend>Size range</legend>
-        <div class="size-range-options">
-          <?php foreach ($kids_top_guide['size_ranges'] as $range_key => $range) { ?>
-            <button
-              type="button"
-              class="size-range-option<?php echo $range_key === array_key_first($kids_top_guide['size_ranges']) ? ' is-selected' : ''; ?>"
-              data-kids-range="<?php echo htmlspecialchars($range_key); ?>"
-              aria-pressed="<?php echo $range_key === array_key_first($kids_top_guide['size_ranges']) ? 'true' : 'false'; ?>">
-              <?php echo htmlspecialchars($range['label']); ?>
-            </button>
-          <?php } ?>
-        </div>
-      </fieldset>
       <div class="measurement-table-wrap kids-basic-table-wrap">
+        <?php foreach ($kids_top_guide['size_ranges'] as $range) { ?>
         <table class="measurement-table kids-basic-table">
-          <caption class="visually-hidden">Kids' top sizes and measurements</caption>
+          <caption>Kids' top sizes and measurements · <?php echo htmlspecialchars($range['label']); ?></caption>
           <thead>
             <tr>
               <th class="measurement-label" scope="col">Measurement</th>
-              <?php foreach ($kids_top_guide['size_ranges']['xxs-s']['indexes'] as $size_index) { ?>
+              <?php foreach ($range['indexes'] as $size_index) { ?>
                 <th scope="col"><?php echo htmlspecialchars($kids_top_guide['sizes'][$size_index]); ?></th>
               <?php } ?>
             </tr>
@@ -589,390 +489,17 @@ include_once('includes/header.php');
             <?php foreach ($kids_top_guide['measurements'] as $measurement) { ?>
               <tr>
                 <th class="measurement-label" scope="row"><?php echo htmlspecialchars($measurement['label']); ?></th>
-                <?php foreach ($kids_top_guide['size_ranges']['xxs-s']['indexes'] as $size_index) { ?>
+                <?php foreach ($range['indexes'] as $size_index) { ?>
                   <td><?php echo htmlspecialchars($measurement['values'][$size_index]); ?></td>
                 <?php } ?>
               </tr>
             <?php } ?>
           </tbody>
         </table>
+        <?php } ?>
       </div>
     </div>
   </section>
 </main>
-
-<script type="application/json" id="size-guide-data"><?php
-echo json_encode($size_ranges, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-?></script>
-<script type="application/json" id="top-guide-data"><?php
-echo json_encode($top_ranges, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-?></script>
-<script type="application/json" id="women-top-guide-data"><?php
-echo json_encode($women_top_ranges, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-?></script>
-<script type="application/json" id="women-bottom-guide-data"><?php
-echo json_encode($women_bottom_ranges, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-?></script>
-<script type="application/json" id="kids-top-guide-data"><?php
-echo json_encode($kids_top_guide, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-?></script>
-<script>
-(function () {
-  var guideData = JSON.parse(document.getElementById('size-guide-data').textContent);
-  var topGuideData = JSON.parse(document.getElementById('top-guide-data').textContent);
-  var womenTopGuideData = JSON.parse(document.getElementById('women-top-guide-data').textContent);
-  var womenBottomGuideData = JSON.parse(document.getElementById('women-bottom-guide-data').textContent);
-  var kidsTopGuideData = JSON.parse(document.getElementById('kids-top-guide-data').textContent);
-  var rangeButtons = document.querySelectorAll('[data-size-range]');
-  var tables = document.querySelectorAll('#bottom-guide .measurement-table');
-  var selectedTopRanges = {
-    regular: Object.keys(topGuideData.regular.groups)[0],
-    long: Object.keys(topGuideData.long.groups)[0]
-  };
-  function addCell(row, text, tagName, className) {
-    var cell = document.createElement(tagName);
-    cell.textContent = text;
-    if (className) cell.className = className;
-    row.appendChild(cell);
-  }
-
-  function renderTable(table, rangeData, measurement) {
-    var head = table.querySelector('thead');
-    var body = table.querySelector('tbody');
-    var headerRow = document.createElement('tr');
-    var title = measurement === 'inside_leg' ? 'Inside leg length' : 'Sizes in inches';
-
-    head.replaceChildren();
-    body.replaceChildren();
-    addCell(headerRow, title, 'th', 'measurement-label');
-    headerRow.firstChild.scope = 'col';
-    rangeData.sizes.forEach(function (size) {
-      var cell = document.createElement('th');
-      cell.scope = 'col';
-      cell.textContent = size + '"';
-      headerRow.appendChild(cell);
-    });
-    head.appendChild(headerRow);
-
-    if (measurement === 'inside_leg') {
-      rangeData.inside_leg.forEach(function (measurementRow) {
-        var row = document.createElement('tr');
-        addCell(row, measurementRow.label, 'th', 'measurement-label');
-        row.firstChild.scope = 'row';
-        measurementRow.values.forEach(function (value) {
-          addCell(row, value, 'td');
-        });
-        body.appendChild(row);
-      });
-      return;
-    }
-
-    var row = document.createElement('tr');
-    var label = measurement === 'waist' ? 'Waist cm' : 'Low hip cm';
-    addCell(row, label, 'th', 'measurement-label');
-    row.firstChild.scope = 'row';
-    rangeData[measurement].forEach(function (value) {
-      addCell(row, value, 'td');
-    });
-    body.appendChild(row);
-  }
-
-  function selectRange(button) {
-    var rangeData = guideData[button.getAttribute('data-size-range')];
-    rangeButtons.forEach(function (rangeButton) {
-      var selected = rangeButton === button;
-      rangeButton.classList.toggle('is-selected', selected);
-      rangeButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
-    });
-    tables.forEach(function (table) {
-      renderTable(table, rangeData, table.getAttribute('data-measurement'));
-    });
-  }
-
-  function renderTopTable(table, groupData, measurement) {
-    var head = table.querySelector('thead');
-    var body = table.querySelector('tbody');
-    var headerRow = document.createElement('tr');
-    var title = measurement.replace('_', ' ');
-    var measurementRow = document.createElement('tr');
-
-    head.replaceChildren();
-    body.replaceChildren();
-    addCell(headerRow, '', 'th', 'measurement-label');
-    headerRow.firstChild.scope = 'col';
-    groupData.sizes.forEach(function (size) {
-      var cell = document.createElement('th');
-      cell.scope = 'col';
-      cell.textContent = size;
-      headerRow.appendChild(cell);
-    });
-    head.appendChild(headerRow);
-
-    var label = measurement === 'arm_length' ? 'Arm length cm' :
-      measurement === 'neckline' ? 'Neckline cm' :
-      measurement.charAt(0).toUpperCase() + measurement.slice(1) + ' cm';
-    addCell(measurementRow, label, 'th', 'measurement-label');
-    measurementRow.firstChild.scope = 'row';
-    groupData.measurements[measurement].forEach(function (value) {
-      addCell(measurementRow, value, 'td');
-    });
-    body.appendChild(measurementRow);
-  }
-
-  function renderTopRange(fitKey, groupKey) {
-    var groupData = topGuideData[fitKey].groups[groupKey];
-    var panel = document.querySelector('[data-top-fit-panel="' + fitKey + '"]');
-    panel.querySelectorAll('.top-measurement-table').forEach(function (table) {
-      renderTopTable(table, groupData, table.getAttribute('data-top-measurement'));
-    });
-  }
-
-  function renderWomenRange(groupKey) {
-    var groupData = womenTopGuideData[groupKey];
-    document.querySelectorAll('.women-measurement-table').forEach(function (table) {
-      var head = table.querySelector('thead');
-      var body = table.querySelector('tbody');
-      var headerRow = document.createElement('tr');
-      var measurement = table.getAttribute('data-women-measurement');
-      var label = measurement === 'arm_length' ? 'Arm length cm' :
-        measurement.replace('_', ' ').replace(/(^|\s)\S/g, function (letter) {
-          return letter.toUpperCase();
-        }) + ' cm';
-      var measurementRow = document.createElement('tr');
-
-      head.replaceChildren();
-      body.replaceChildren();
-      addCell(headerRow, '', 'th', 'measurement-label');
-      headerRow.firstChild.scope = 'col';
-      groupData.sizes.forEach(function (size) {
-        var cell = document.createElement('th');
-        cell.scope = 'col';
-        cell.textContent = size;
-        headerRow.appendChild(cell);
-      });
-      head.appendChild(headerRow);
-
-      addCell(measurementRow, label, 'th', 'measurement-label');
-      measurementRow.firstChild.scope = 'row';
-      groupData.measurements[measurement].forEach(function (value) {
-        addCell(measurementRow, value, 'td');
-      });
-      body.appendChild(measurementRow);
-    });
-  }
-
-  function renderWomenBottomRange(rangeKey) {
-    var rangeData = womenBottomGuideData[rangeKey];
-    document.querySelectorAll('.women-bottom-measurement-table').forEach(function (table) {
-      var head = table.querySelector('thead');
-      var body = table.querySelector('tbody');
-      var headerRow = document.createElement('tr');
-      var measurement = table.getAttribute('data-women-bottom-measurement');
-      var label = measurement === 'inside_leg' ? 'Inside leg length cm' :
-        measurement.replace('_', ' ').replace(/(^|\s)\S/g, function (letter) {
-          return letter.toUpperCase();
-        }) + ' cm';
-      var measurementRow = document.createElement('tr');
-
-      head.replaceChildren();
-      body.replaceChildren();
-      addCell(headerRow, '', 'th', 'measurement-label');
-      headerRow.firstChild.scope = 'col';
-      rangeData.sizes.forEach(function (size) {
-        var cell = document.createElement('th');
-        cell.scope = 'col';
-        cell.textContent = size;
-        headerRow.appendChild(cell);
-      });
-      head.appendChild(headerRow);
-
-      addCell(measurementRow, label, 'th', 'measurement-label');
-      measurementRow.firstChild.scope = 'row';
-      rangeData.measurements[measurement].forEach(function (value) {
-        addCell(measurementRow, value, 'td');
-      });
-      body.appendChild(measurementRow);
-    });
-  }
-
-  rangeButtons.forEach(function (button) {
-    button.addEventListener('click', function () {
-      selectRange(button);
-    });
-  });
-
-  function renderKidsRange(rangeKey) {
-    var indexes = kidsTopGuideData.size_ranges[rangeKey].indexes;
-    var table = document.querySelector('.kids-basic-table');
-    var head = table.querySelector('thead');
-    var body = table.querySelector('tbody');
-    var headerRow = document.createElement('tr');
-    var sizesHeader = document.createElement('th');
-    sizesHeader.className = 'measurement-label';
-    sizesHeader.scope = 'col';
-    sizesHeader.textContent = 'Measurement';
-    headerRow.appendChild(sizesHeader);
-    indexes.forEach(function (sizeIndex) {
-      addCell(headerRow, kidsTopGuideData.sizes[sizeIndex], 'th');
-      headerRow.lastChild.scope = 'col';
-    });
-    head.replaceChildren(headerRow);
-
-    var rows = kidsTopGuideData.measurements.map(function (measurement) {
-      var row = document.createElement('tr');
-      addCell(row, measurement.label, 'th', 'measurement-label');
-      row.firstChild.scope = 'row';
-      indexes.forEach(function (sizeIndex) {
-        addCell(row, measurement.values[sizeIndex], 'td');
-      });
-      return row;
-    });
-    body.replaceChildren.apply(body, rows);
-  }
-
-  document.querySelectorAll('[data-kids-range]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var rangeKey = button.getAttribute('data-kids-range');
-      document.querySelectorAll('[data-kids-range]').forEach(function (rangeButton) {
-        var selected = rangeButton === button;
-        rangeButton.classList.toggle('is-selected', selected);
-        rangeButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      });
-      renderKidsRange(rangeKey);
-    });
-  });
-
-  document.querySelectorAll('[data-top-fit]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var fitKey = button.getAttribute('data-top-fit');
-      document.querySelectorAll('[data-top-fit]').forEach(function (fitButton) {
-        var selected = fitButton === button;
-        fitButton.classList.toggle('is-selected', selected);
-        fitButton.setAttribute('aria-selected', selected ? 'true' : 'false');
-      });
-      document.querySelectorAll('[data-top-fit-panel]').forEach(function (panel) {
-        panel.hidden = panel.getAttribute('data-top-fit-panel') !== fitKey;
-      });
-      renderTopRange(fitKey, selectedTopRanges[fitKey]);
-    });
-  });
-
-  document.querySelectorAll('[data-top-range]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var selection = button.getAttribute('data-top-range').split(':');
-      var fitKey = selection[0];
-      var groupKey = selection[1];
-      selectedTopRanges[fitKey] = groupKey;
-      document.querySelectorAll('[data-top-fit-panel="' + fitKey + '"] [data-top-range]').forEach(function (rangeButton) {
-        var selected = rangeButton === button;
-        rangeButton.classList.toggle('is-selected', selected);
-        rangeButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      });
-      renderTopRange(fitKey, groupKey);
-    });
-  });
-
-  document.querySelectorAll('[data-guide-type]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var type = button.getAttribute('data-guide-type');
-      document.querySelectorAll('[data-guide-type]').forEach(function (tab) {
-        var selected = tab === button;
-        tab.classList.toggle('is-active', selected);
-        tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-      });
-      document.querySelectorAll('[data-guide-panel]').forEach(function (panel) {
-        panel.hidden = panel.getAttribute('data-guide-panel') !== type;
-      });
-    });
-  });
-
-  document.querySelectorAll('[data-department-tab]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var department = button.getAttribute('data-department-tab');
-      var isWomen = department === 'women';
-      var isKids = department === 'kids';
-      document.querySelectorAll('[data-department-tab]').forEach(function (tab) {
-        var selected = tab === button;
-        tab.classList.toggle('is-selected', selected);
-        tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-      });
-      document.querySelectorAll('[data-department-panel]').forEach(function (panel) {
-        panel.hidden = panel.getAttribute('data-department-panel') !== department;
-      });
-      document.getElementById('guide-department-title').textContent = isWomen ? 'Women' : 'Men';
-      if (isKids) {
-        document.getElementById('guide-department-title').textContent = 'Kids';
-      }
-      document.title = (isWomen ? "Women's" : isKids ? "Kids'" : "Men's") + ' Size Guide | Soigné';
-    });
-  });
-
-  document.querySelectorAll('[data-women-range]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var rangeKey = button.getAttribute('data-women-range');
-      document.querySelectorAll('[data-women-range]').forEach(function (rangeButton) {
-        var selected = rangeButton === button;
-        rangeButton.classList.toggle('is-selected', selected);
-        rangeButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      });
-      renderWomenRange(rangeKey);
-    });
-  });
-
-  document.querySelectorAll('[data-women-guide-type]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var type = button.getAttribute('data-women-guide-type');
-      document.querySelectorAll('[data-women-guide-type]').forEach(function (tab) {
-        var selected = tab === button;
-        tab.classList.toggle('is-active', selected);
-        tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-      });
-      document.querySelectorAll('[data-women-guide-panel]').forEach(function (panel) {
-        panel.hidden = panel.getAttribute('data-women-guide-panel') !== type;
-      });
-    });
-  });
-
-  document.querySelectorAll('[data-women-bottom-range]').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var rangeKey = button.getAttribute('data-women-bottom-range');
-      document.querySelectorAll('[data-women-bottom-range]').forEach(function (rangeButton) {
-        var selected = rangeButton === button;
-        rangeButton.classList.toggle('is-selected', selected);
-        rangeButton.setAttribute('aria-pressed', selected ? 'true' : 'false');
-      });
-      renderWomenBottomRange(rangeKey);
-    });
-  });
-
-  document.querySelectorAll('.measurement-toggle').forEach(function (toggle) {
-    toggle.addEventListener('click', function () {
-      var expanded = toggle.getAttribute('aria-expanded') === 'true';
-      var panel = document.getElementById(toggle.getAttribute('aria-controls'));
-      toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-      panel.hidden = expanded;
-    });
-  });
-
-  var params = new URLSearchParams(window.location.search);
-  var requestedDepartment = params.get('dept');
-  var requestedType = params.get('type');
-  if (['men', 'women', 'kids'].indexOf(requestedDepartment) !== -1) {
-    document.querySelector('[data-department-tab="' + requestedDepartment + '"]').click();
-    if (requestedDepartment === 'men' && ['top', 'bottom'].indexOf(requestedType) !== -1) {
-      document.querySelector('[data-guide-type="' + requestedType + '"]').click();
-    } else if (requestedDepartment === 'women' && ['top', 'bottom'].indexOf(requestedType) !== -1) {
-      document.querySelector('[data-women-guide-type="' + requestedType + '"]').click();
-    }
-  }
-
-  if (rangeButtons.length) selectRange(rangeButtons[0]);
-  renderTopRange('regular', selectedTopRanges.regular);
-  renderTopRange('long', selectedTopRanges.long);
-  renderWomenRange(Object.keys(womenTopGuideData)[0]);
-  renderWomenBottomRange(document.querySelector('[data-women-bottom-range]').getAttribute('data-women-bottom-range'));
-  renderKidsRange(Object.keys(kidsTopGuideData.size_ranges)[0]);
-})();
-</script>
 
 <?php include_once('includes/footer.php'); ?>

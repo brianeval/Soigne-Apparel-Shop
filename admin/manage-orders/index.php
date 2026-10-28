@@ -239,7 +239,7 @@ include("../includes/header.php");
       <td><div class="manage-row-actions">
         <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/edit.php?id=<?php echo (int)$order['order_id']; ?>">View / Edit</a>
         <?php if (in_array($order['fulfillment_status'], ['pending', 'cancelled'], true)) { ?>
-          <form method="post" onsubmit="return confirm('Permanently delete order #<?php echo (int)$order['order_id']; ?>?<?php echo $order['fulfillment_status'] === 'pending' ? ' Its reserved stock will be returned.' : ''; ?>');">
+          <form method="post">
             <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
@@ -269,7 +269,7 @@ include("../includes/header.php");
           <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/receipt.php?id=<?php echo (int)$order['order_id']; ?>" target="_blank" rel="noopener">View receipt</a>
         <?php } ?>
         <?php if (in_array($order['fulfillment_status'], ['cancelled', 'failed_delivery'], true)) { ?>
-          <form method="post" onsubmit="return confirm('Permanently delete this <?php echo $order['fulfillment_status'] === 'failed_delivery' ? 'failed-delivery' : 'cancelled'; ?> order #<?php echo (int)$order['order_id']; ?>?');">
+          <form method="post">
             <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">

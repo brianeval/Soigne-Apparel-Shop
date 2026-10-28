@@ -108,7 +108,7 @@ include("../includes/header.php");
             <?php if ($payment['status'] === 'pending') { ?>
               <div class="manage-row-actions">
                 <?php foreach (['approve' => 'Approve and activate VIP', 'reject' => 'Reject'] as $action => $label) { ?>
-                  <form method="post" onsubmit="return confirm('<?php echo $action === 'approve' ? 'Approve this GCash payment and activate VIP?' : 'Reject this GCash payment receipt?'; ?>');">
+                  <form method="post">
                     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                     <input type="hidden" name="payment_id" value="<?php echo (int)$payment['payment_id']; ?>">
                     <button class="manage-small-button<?php echo $action === 'reject' ? ' is-danger' : ''; ?>" type="submit" name="action" value="<?php echo admin_escape($action); ?>"><?php echo admin_escape($label); ?></button>

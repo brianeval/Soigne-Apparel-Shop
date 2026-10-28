@@ -314,19 +314,18 @@ include_once("../includes/header.php");
         <h1 id="orders-title">My Orders</h1>
       </div>
 
-      <div class="orders-tabs" role="tablist" aria-label="Order status">
-        <?php foreach ($order_tabs as $tab_index => $tab) { ?>
-          <button class="orders-tab" type="button" role="tab"
+      <nav class="orders-tabs" aria-label="Order status">
+        <?php foreach ($order_tabs as $tab) { ?>
+          <a class="orders-tab"
+                  href="#orders-panel-<?php echo htmlspecialchars($tab['id']); ?>"
                   id="orders-tab-<?php echo htmlspecialchars($tab['id']); ?>"
-                  aria-controls="orders-panel-<?php echo htmlspecialchars($tab['id']); ?>"
-                  aria-selected="<?php echo $tab_index === 0 ? 'true' : 'false'; ?>"
-                  tabindex="<?php echo $tab_index === 0 ? '0' : '-1'; ?>">
+                  >
             <?php echo htmlspecialchars($tab['label']); ?>
-          </button>
+          </a>
         <?php } ?>
-      </div>
+      </nav>
 
-      <?php foreach ($order_tabs as $tab_index => $tab) { ?>
+      <?php foreach ($order_tabs as $tab) { ?>
         <?php
           $tab_orders = array_filter($orders, function ($order) use ($tab) {
               $fulfillment_status = strtolower((string)($order['fulfillment_status'] ?? 'pending'));
@@ -343,8 +342,7 @@ include_once("../includes/header.php");
         <section class="orders-tab-panel" role="tabpanel"
                  id="orders-panel-<?php echo htmlspecialchars($tab['id']); ?>"
                  aria-labelledby="orders-tab-<?php echo htmlspecialchars($tab['id']); ?>"
-                 tabindex="0"
-                 <?php echo $tab_index === 0 ? '' : 'hidden'; ?>>
+                 tabindex="0">
           <?php if (!$tab_orders) { ?>
             <div class="orders-empty">
               <p><?php echo htmlspecialchars(!$orders ? 'You have not placed any orders yet.' : $tab['empty_message']); ?></p>
@@ -437,26 +435,49 @@ include_once("../includes/header.php");
                         <?php } ?>
                       </div>
                       <?php if ($payment_status === 'paid') { ?>
-                        <?php if (in_array(($item['review_status'] ?? ''), ['pending', 'published'], true)) { ?>
-                          <button class="rate-product-button" type="button"
-                                  data-review-action="update"
-                                  data-review-id="<?php echo (int)$item['review_id']; ?>"
-                                  data-rating="<?php echo (int)$item['review_rating']; ?>"
-                                  data-review-text="<?php echo htmlspecialchars((string)$item['review_text'], ENT_QUOTES, 'UTF-8'); ?>"
-                                  data-order-id="<?php echo (int)$order['order_id']; ?>"
-                                  data-order-item-id="<?php echo (int)$item['order_item_id']; ?>"
-                                  data-product-id="<?php echo (int)$item['product_id']; ?>"
-                                  data-product-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                  data-quantity="<?php echo (int)$item['quantity']; ?>">Edit review</button>
-                        <?php } else { ?>
-                          <button class="rate-product-button" type="button"
-                                  data-review-action="create"
-                                  data-order-id="<?php echo (int)$order['order_id']; ?>"
-                                  data-order-item-id="<?php echo (int)$item['order_item_id']; ?>"
-                                  data-product-id="<?php echo (int)$item['product_id']; ?>"
-                                  data-product-name="<?php echo htmlspecialchars($item['product_name'], ENT_QUOTES, 'UTF-8'); ?>"
-                                  data-quantity="<?php echo (int)$item['quantity']; ?>">Rate</button>
-                        <?php } ?>
+                        <?php $has_review = in_array(($item['review_status'] ?? ''), ['pending', 'published'], true); ?>
+                        <details class="rate-review-disclosure">
+                          <summary><?php echo $has_review ? 'Edit review' : 'Rate this product'; ?></summary>
+                          <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php" class="rate-review-form">
+                            <p class="rate-review-eyebrow">YOUR PURCHASE</p>
+                            <h3><?php echo htmlspecialchars($item['product_name']); ?></h3>
+                            <p>Quantity bought: <?php echo (int)$item['quantity']; ?></p>
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
+                            <input type="hidden" name="order_item_id" value="<?php echo (int)$item['order_item_id']; ?>">
+                            <input type="hidden" name="product_id" value="<?php echo (int)$item['product_id']; ?>">
+                            <?php if ($has_review) { ?>
+                              <input type="hidden" name="review_id" value="<?php echo (int)$item['review_id']; ?>">
+                            <?php } ?>
+                            <input type="hidden" name="action" value="<?php echo $has_review ? 'update' : 'create'; ?>">
+                            <fieldset class="rate-review-stars">
+                              <legend>Your rating</legend>
+                              <?php for ($star = 1; $star <= 5; $star++) { ?>
+                                <label>
+                                  <input type="radio" name="rating" value="<?php echo $star; ?>" <?php echo $has_review && (int)$item['review_rating'] === $star ? 'checked' : ''; ?> required>
+                                  <span aria-hidden="true">&#9733;</span>
+                                  <span class="rate-review-sr-only"><?php echo $star; ?> stars</span>
+                                </label>
+                              <?php } ?>
+                            </fieldset>
+                            <label class="rate-review-comment-label">Your comment
+                              <textarea name="review_text" rows="5" maxlength="1000" placeholder="Share your experience with this product" required><?php echo $has_review ? htmlspecialchars((string)$item['review_text'], ENT_QUOTES, 'UTF-8') : ''; ?></textarea>
+                            </label>
+                            <p class="rate-review-hint">Please keep your review respectful and helpful.</p>
+                            <button class="btn rate-review-submit" type="submit"><?php echo $has_review ? 'Save changes' : 'Submit review'; ?></button>
+                          </form>
+                          <?php if ($has_review) { ?>
+                            <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php">
+                              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
+                              <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
+                              <input type="hidden" name="order_item_id" value="<?php echo (int)$item['order_item_id']; ?>">
+                              <input type="hidden" name="product_id" value="<?php echo (int)$item['product_id']; ?>">
+                              <input type="hidden" name="review_id" value="<?php echo (int)$item['review_id']; ?>">
+                              <input type="hidden" name="action" value="delete">
+                              <button class="rate-product-button" type="submit">Delete review</button>
+                            </form>
+                          <?php } ?>
+                        </details>
                       <?php } ?>
                     </div>
                   <?php } ?>
@@ -467,8 +488,7 @@ include_once("../includes/header.php");
                     </div>
                   </form>
                   <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
-                        class="order-cancel-form order-cancel-form-expanded"
-                        onsubmit="return confirm('Cancel this order?');">
+                        class="order-cancel-form order-cancel-form-expanded">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                     <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                     <input type="hidden" name="action" value="cancel_order">
@@ -479,8 +499,7 @@ include_once("../includes/header.php");
             </details>
             <?php if ($status === 'pending') { ?>
               <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
-                    class="order-cancel-form order-cancel-form-collapsed"
-                    onsubmit="return confirm('Cancel this order?');">
+                    class="order-cancel-form order-cancel-form-collapsed">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                 <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                 <input type="hidden" name="action" value="cancel_order">
@@ -497,160 +516,6 @@ include_once("../includes/header.php");
     </section>
   </div>
 
-  <dialog class="rate-review-dialog" id="rate-review-dialog" aria-labelledby="rate-review-title">
-    <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php" class="rate-review-form">
-      <button class="rate-review-close" type="button" aria-label="Close review panel">&times;</button>
-      <p class="rate-review-eyebrow">YOUR PURCHASE</p>
-      <h2 id="rate-review-title">Rate this product</h2>
-      <p class="rate-review-product" id="rate-review-product-name"></p>
-      <p class="rate-review-quantity" id="rate-review-quantity"></p>
-      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
-      <input type="hidden" name="order_id" id="rate-review-order-id">
-      <input type="hidden" name="order_item_id" id="rate-review-order-item-id">
-      <input type="hidden" name="product_id" id="rate-review-product-id">
-      <input type="hidden" name="review_id" id="rate-review-review-id">
-      <input type="hidden" name="action" id="rate-review-action">
-      <fieldset class="rate-review-stars">
-        <legend>Your rating</legend>
-        <?php for ($star = 1; $star <= 5; $star++) { ?>
-          <label>
-            <input type="radio" name="rating" value="<?php echo $star; ?>" required>
-            <span aria-hidden="true">&#9733;</span>
-            <span class="rate-review-sr-only"><?php echo $star; ?> stars</span>
-          </label>
-        <?php } ?>
-      </fieldset>
-      <label class="rate-review-comment-label" for="rate-review-comment">Your comment</label>
-      <textarea id="rate-review-comment" name="review_text" rows="5" maxlength="1000" placeholder="Share your experience with this product" required></textarea>
-      <p class="rate-review-warning" id="rate-review-warning" role="alert" hidden>Your review contains inappropriate word/s, would you still want to publish?</p>
-      <p class="rate-review-hint">Please keep your review respectful and helpful.</p>
-      <div class="rate-review-actions">
-        <button class="btn rate-review-submit" type="submit" id="rate-review-submit">Submit review</button>
-        <button class="btn rate-review-delete" type="submit" id="rate-review-delete" formnovalidate hidden>Delete review</button>
-      </div>
-    </form>
-  </dialog>
 </main>
-
-<script>
-(function () {
-  var orderTabs = Array.prototype.slice.call(document.querySelectorAll('.orders-tab'));
-
-  function activateOrderTab(tab, shouldFocus) {
-    orderTabs.forEach(function (currentTab) {
-      var isSelected = currentTab === tab;
-      currentTab.setAttribute('aria-selected', isSelected ? 'true' : 'false');
-      currentTab.tabIndex = isSelected ? 0 : -1;
-      document.getElementById(currentTab.getAttribute('aria-controls')).hidden = !isSelected;
-    });
-    if (shouldFocus) tab.focus();
-  }
-
-  orderTabs.forEach(function (tab, index) {
-    tab.addEventListener('click', function () {
-      activateOrderTab(tab, false);
-    });
-    tab.addEventListener('keydown', function (event) {
-      var nextIndex = index;
-      if (event.key === 'ArrowRight') {
-        nextIndex = (index + 1) % orderTabs.length;
-      } else if (event.key === 'ArrowLeft') {
-        nextIndex = (index - 1 + orderTabs.length) % orderTabs.length;
-      } else if (event.key === 'Home') {
-        nextIndex = 0;
-      } else if (event.key === 'End') {
-        nextIndex = orderTabs.length - 1;
-      } else {
-        return;
-      }
-      event.preventDefault();
-      activateOrderTab(orderTabs[nextIndex], true);
-    });
-  });
-
-  var dialog = document.getElementById('rate-review-dialog');
-  var form = dialog.querySelector('form');
-  var ratingInputs = form.querySelectorAll('input[name="rating"]');
-  var comment = document.getElementById('rate-review-comment');
-  var vulgarWarning = document.getElementById('rate-review-warning');
-  var actionInput = document.getElementById('rate-review-action');
-  var submitButton = document.getElementById('rate-review-submit');
-  var deleteButton = document.getElementById('rate-review-delete');
-  var vulgarPattern = /(?:putang\s*ina|tangina|tanga|gago|gaga|puta|fuck(?:er|ing|ed|s)?|shit(?:ty|ting|s)?|bitch(?:es|y)?|ass(?:hole)?s?|arse(?:hole)?s?|bastard(?:s)?|cunt(?:s)?|dick(?:s)?|cock(?:s|head)?|piss(?:ed|ing)?|damn(?:ed|ing)?|dammit|crap(?:py)?|twat(?:s)?|wanker(?:s)?|whore(?:s)?|slut(?:s)?|prick(?:s)?|douche(?:bag)?s?|bullshit|motherfucker(?:s)?)/gi;
-  var tagalogVulgarPattern = /\b(?:ulol|bobo|kupal|tarantado|bwisit|bwesit|leche|lintik|punyeta|punyemas|pakshet|pakshit|pakyu|taena|teena|putragis|ogag|hinayupak)\b/gi;
-  var confirmedVulgarReview = null;
-
-  function containsVulgarLanguage(text) {
-    vulgarPattern.lastIndex = 0;
-    tagalogVulgarPattern.lastIndex = 0;
-    var normalizedText = text.toLowerCase().replace(/[013457@$]/g, function (character) {
-      return { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's' }[character];
-    });
-    var containsVulgar = vulgarPattern.test(normalizedText) || tagalogVulgarPattern.test(normalizedText);
-    vulgarPattern.lastIndex = 0;
-    tagalogVulgarPattern.lastIndex = 0;
-    return containsVulgar;
-  }
-
-  function paintRating(rating) {
-    ratingInputs.forEach(function (input) {
-      input.closest('label').classList.toggle('is-selected', Number(input.value) <= Number(rating));
-    });
-  }
-
-  ratingInputs.forEach(function (input) {
-    input.addEventListener('change', function () {
-      paintRating(input.value);
-    });
-  });
-
-  document.querySelectorAll('.rate-product-button').forEach(function (button) {
-    button.addEventListener('click', function () {
-      var isUpdate = button.dataset.reviewAction === 'update';
-      document.getElementById('rate-review-product-name').textContent = button.dataset.productName;
-      document.getElementById('rate-review-quantity').textContent = 'Quantity bought: ' + button.dataset.quantity;
-      document.getElementById('rate-review-order-id').value = button.dataset.orderId;
-      document.getElementById('rate-review-order-item-id').value = button.dataset.orderItemId;
-      document.getElementById('rate-review-product-id').value = button.dataset.productId;
-      document.getElementById('rate-review-review-id').value = button.dataset.reviewId || '';
-      actionInput.value = button.dataset.reviewAction;
-      submitButton.textContent = isUpdate ? 'Save changes' : 'Submit review';
-      deleteButton.hidden = !isUpdate;
-      comment.value = button.dataset.reviewText || '';
-      confirmedVulgarReview = null;
-      vulgarWarning.hidden = true;
-      ratingInputs.forEach(function (input) {
-        input.checked = input.value === (button.dataset.rating || '');
-      });
-      paintRating(button.dataset.rating || 0);
-      dialog.showModal();
-    });
-  });
-
-  dialog.querySelector('.rate-review-close').addEventListener('click', function () {
-    dialog.close();
-  });
-  dialog.addEventListener('click', function (event) {
-    if (event.target === dialog) dialog.close();
-  });
-  deleteButton.addEventListener('click', function () {
-    actionInput.value = 'delete';
-    vulgarWarning.hidden = true;
-  });
-  comment.addEventListener('input', function () {
-    confirmedVulgarReview = null;
-    vulgarWarning.hidden = true;
-  });
-  form.addEventListener('submit', function (event) {
-    if (actionInput.value === 'delete') return;
-
-    if (containsVulgarLanguage(comment.value) && confirmedVulgarReview !== comment.value) {
-      event.preventDefault();
-      confirmedVulgarReview = comment.value;
-      vulgarWarning.hidden = false;
-    }
-  });
-})();
-</script>
 
 <?php include_once("../includes/footer.php"); ?>

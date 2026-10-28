@@ -11,33 +11,5 @@
         <p class="copy">© 2026 Soigné Apparel Shop. All rights reserved.</p>
     </footer>
 
-    <dialog class="product-image-viewer" id="product-image-viewer" aria-label="Product image preview">
-        <button type="button" class="product-image-viewer-close" aria-label="Close image preview">&times;</button>
-        <img id="product-image-viewer-image" src="" alt="">
-    </dialog>
-    <script>
-    (function () {
-      var viewer = document.getElementById('product-image-viewer');
-      var viewerImage = document.getElementById('product-image-viewer-image');
-      if (!viewer || !viewerImage) return;
-
-      document.addEventListener('click', function (event) {
-        var trigger = event.target.closest('[data-image-viewer]');
-        if (trigger) {
-          viewerImage.src = trigger.dataset.imageSrc || '';
-          viewerImage.alt = trigger.dataset.imageAlt || '';
-          viewer.showModal();
-        }
-
-        if (event.target === viewer || event.target.closest('.product-image-viewer-close')) {
-          viewer.close();
-          viewerImage.removeAttribute('src');
-        }
-      });
-      viewer.addEventListener('close', function () {
-        viewerImage.removeAttribute('src');
-      });
-    })();
-    </script>
 </body>
 </html>
