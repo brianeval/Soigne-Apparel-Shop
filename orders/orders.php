@@ -392,7 +392,7 @@ include_once("../includes/header.php");
               <div class="order-details-content">
                 <?php if ($status === 'pending') { ?>
                   <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
-                        class="order-edit-form" id="edit-order-<?php echo (int)$order['order_id']; ?>">
+                        class="order-edit-form" id="edit-order-<?php echo (int)$order['order_id']; ?>" novalidate>
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                     <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                     <input type="hidden" name="action" value="edit_order">
@@ -427,7 +427,7 @@ include_once("../includes/header.php");
                           <label class="order-edit-field order-quantity-field">
                             <span>Quantity</span>
                             <input type="number" name="items[<?php echo (int)$item['order_item_id']; ?>][quantity]"
-                                   value="<?php echo (int)$item['quantity']; ?>" min="1" max="1000" required>
+                                   value="<?php echo (int)$item['quantity']; ?>">
                           </label>
                         <?php } else { ?>
                           <p><?php echo htmlspecialchars($item['color']); ?> · Size <?php echo htmlspecialchars($item['size']); ?></p>
@@ -438,7 +438,7 @@ include_once("../includes/header.php");
                         <?php $has_review = in_array(($item['review_status'] ?? ''), ['pending', 'published'], true); ?>
                         <details class="rate-review-disclosure">
                           <summary><?php echo $has_review ? 'Edit review' : 'Rate this product'; ?></summary>
-                          <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php" class="rate-review-form">
+                          <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php" class="rate-review-form" novalidate>
                             <p class="rate-review-eyebrow">YOUR PURCHASE</p>
                             <h3><?php echo htmlspecialchars($item['product_name']); ?></h3>
                             <p>Quantity bought: <?php echo (int)$item['quantity']; ?></p>
@@ -454,14 +454,14 @@ include_once("../includes/header.php");
                               <legend>Your rating</legend>
                               <?php for ($star = 1; $star <= 5; $star++) { ?>
                                 <label>
-                                  <input type="radio" name="rating" value="<?php echo $star; ?>" <?php echo $has_review && (int)$item['review_rating'] === $star ? 'checked' : ''; ?> required>
+                                  <input type="radio" name="rating" value="<?php echo $star; ?>" <?php echo $has_review && (int)$item['review_rating'] === $star ? 'checked' : ''; ?>>
                                   <span aria-hidden="true">&#9733;</span>
                                   <span class="rate-review-sr-only"><?php echo $star; ?> stars</span>
                                 </label>
                               <?php } ?>
                             </fieldset>
                             <label class="rate-review-comment-label">Your comment
-                              <textarea name="review_text" rows="5" maxlength="1000" placeholder="Share your experience with this product" required><?php echo $has_review ? htmlspecialchars((string)$item['review_text'], ENT_QUOTES, 'UTF-8') : ''; ?></textarea>
+                              <textarea name="review_text" rows="5" placeholder="Share your experience with this product"><?php echo $has_review ? htmlspecialchars((string)$item['review_text'], ENT_QUOTES, 'UTF-8') : ''; ?></textarea>
                             </label>
                             <p class="rate-review-hint">Please keep your review respectful and helpful.</p>
                             <button class="btn rate-review-submit" type="submit"><?php echo $has_review ? 'Save changes' : 'Submit review'; ?></button>

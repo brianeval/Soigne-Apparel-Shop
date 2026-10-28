@@ -2,6 +2,12 @@
 require_once("../includes/bootstrap.php");
 
 $errors = [];
+$requested_order_view = is_string($_POST['order_view'] ?? null)
+    ? $_POST['order_view']
+    : (is_string($_GET['order_view'] ?? null) ? $_GET['order_view'] : '');
+$order_view = in_array($requested_order_view, ['ongoing', 'history'], true)
+    ? $requested_order_view
+    : (($_POST['action'] ?? '') === 'delete' && is_string($_POST['order_view'] ?? null) ? $_POST['order_view'] : 'ongoing');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Refresh the page and try again.';
@@ -165,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 mysqli_commit($conn);
                 admin_set_flash('success', 'Order deleted.');
-                header('Location: ' . BASE_URL . 'admin/manage-orders/');
+                header('Location: ' . BASE_URL . 'admin/manage-orders/?order_view=' . $order_view);
                 exit;
             } catch (RuntimeException $exception) {
                 mysqli_rollback($conn);
@@ -225,7 +231,13 @@ include("../includes/header.php");
 <?php if ($errors) { ?><div class="manage-alert is-error" role="alert"><ul><?php foreach ($errors as $error) { ?><li><?php echo admin_escape($error); ?></li><?php } ?></ul></div><?php } ?>
 <?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
 
-<section class="manage-panel manage-list-panel">
+<div class="admin-panel-tabs" role="radiogroup" aria-label="Order panels">
+  <input type="radio" name="order_view" id="order-view-ongoing" value="ongoing" <?php echo $order_view === 'ongoing' ? 'checked' : ''; ?>>
+  <label for="order-view-ongoing">Ongoing Orders</label>
+  <input type="radio" name="order_view" id="order-view-history" value="history" <?php echo $order_view === 'history' ? 'checked' : ''; ?>>
+  <label for="order-view-history">Order History</label>
+
+<section class="manage-panel manage-list-panel order-ongoing-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">ACTIVE FULFILLMENT</p><h2>Ongoing orders <span class="manage-count"><?php echo $ongoing_order_count; ?></span></h2></div></div>
   <?php if ($ongoing_orders) { ?><div class="admin-table-wrap"><table class="admin-table">
     <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
@@ -241,6 +253,7 @@ include("../includes/header.php");
         <?php if (in_array($order['fulfillment_status'], ['pending', 'cancelled'], true)) { ?>
           <form method="post">
             <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+            <input type="hidden" name="order_view" value="ongoing">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
             <button class="manage-small-button is-danger" type="submit">Delete</button>
@@ -249,10 +262,10 @@ include("../includes/header.php");
       </div></td>
     </tr><?php } ?></tbody>
   </table></div><?php } else { ?><p class="manage-empty">No ongoing orders.</p><?php } ?>
-  <?php if ($ongoing_orders) { admin_render_pagination($ongoing_pagination['page'], $ongoing_pagination['total_pages'], 'ongoing_page'); } ?>
+  <?php if ($ongoing_orders) { admin_render_pagination($ongoing_pagination['page'], $ongoing_pagination['total_pages'], 'ongoing_page', ['order_view' => 'ongoing']); } ?>
 </section>
 
-<section class="manage-panel manage-list-panel">
+<section class="manage-panel manage-list-panel order-history-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">COMPLETED &amp; CANCELLED</p><h2>Order history <span class="manage-count"><?php echo $history_order_count; ?></span></h2></div></div>
   <?php if ($history_orders) { ?><div class="admin-table-wrap"><table class="admin-table">
     <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
@@ -271,6 +284,7 @@ include("../includes/header.php");
         <?php if (in_array($order['fulfillment_status'], ['cancelled', 'failed_delivery'], true)) { ?>
           <form method="post">
             <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+            <input type="hidden" name="order_view" value="history">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
             <button class="manage-small-button is-danger" type="submit">Delete</button>
@@ -279,6 +293,7 @@ include("../includes/header.php");
       </div></td>
     </tr><?php } ?></tbody>
   </table></div><?php } else { ?><p class="manage-empty">No orders in history.</p><?php } ?>
-  <?php if ($history_orders) { admin_render_pagination($history_pagination['page'], $history_pagination['total_pages'], 'history_page'); } ?>
+  <?php if ($history_orders) { admin_render_pagination($history_pagination['page'], $history_pagination['total_pages'], 'history_page', ['order_view' => 'history']); } ?>
 </section>
+</div>
 <?php include("../includes/footer.php"); ?>

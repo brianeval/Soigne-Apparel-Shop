@@ -36,11 +36,18 @@ function inventory_sorted_option_names(array $option_set): array
 }
 
 $errors = [];
-$post_action = $_POST['action'] ?? '';
+$post_action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
+$requested_inventory_view = is_string($_POST['inventory_view'] ?? null)
+    ? $_POST['inventory_view']
+    : (is_string($_GET['inventory_view'] ?? null) ? $_GET['inventory_view'] : '');
+$inventory_view = in_array($requested_inventory_view, ['stock', 'history', 'restock'], true)
+    ? $requested_inventory_view
+    : (in_array($post_action, ['load_variants', 'add_line', 'create'], true) || isset($_POST['remove_line']) ? 'restock' : 'stock');
 $posted_supplier_id = is_string($_POST['supplier_id'] ?? null) ? $_POST['supplier_id'] : '';
 $posted_variant_ids = is_array($_POST['variant_ids'] ?? null) ? array_values($_POST['variant_ids']) : [];
 $posted_quantities = is_array($_POST['quantities'] ?? null) ? array_values($_POST['quantities']) : [];
 $posted_unit_costs = is_array($_POST['unit_costs'] ?? null) ? array_values($_POST['unit_costs']) : [];
+$variant_supplier_id = is_string($_POST['variant_supplier_id'] ?? null) ? $_POST['variant_supplier_id'] : '';
 
 if (!isset($_SESSION['inventory_restock_tokens']) || !is_array($_SESSION['inventory_restock_tokens'])) {
     $_SESSION['inventory_restock_tokens'] = [];
@@ -52,156 +59,48 @@ foreach ($_SESSION['inventory_restock_tokens'] as $token => $issued_at) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    } elseif ($post_action !== 'create') {
-        $errors[] = 'That inventory action is not valid.';
-    } else {
-        $supplier_id = filter_var($_POST['supplier_id'] ?? null, FILTER_VALIDATE_INT);
-        $restock_token = $_POST['restock_token'] ?? null;
-        if ($supplier_id === false || $supplier_id < 1) {
-            $errors[] = 'Choose a supplier for this restock.';
-        }
-        if (!is_string($restock_token)
-            || !isset($_SESSION['inventory_restock_tokens'][$restock_token])) {
-            $errors[] = 'This restock form was already submitted or expired. Refresh the page and try again.';
-        }
-        if (!$posted_variant_ids || count($posted_variant_ids) > 50
-            || count($posted_variant_ids) !== count($posted_quantities)
-            || count($posted_variant_ids) !== count($posted_unit_costs)) {
-            $errors[] = 'Add between 1 and 50 complete variant lines.';
-        }
-        if (($_POST['confirmed'] ?? '') !== '1') {
-            $errors[] = 'Review and confirm the restock before saving it.';
-        }
+    $supplier_id = $_POST['supplier_id'];
 
-        $restock_lines = [];
-        $seen_variants = [];
-        $total_cents = 0;
-        if (!$errors) {
-            foreach ($posted_variant_ids as $index => $raw_variant_id) {
-                $variant_id = filter_var($raw_variant_id, FILTER_VALIDATE_INT);
-                $quantity = filter_var($posted_quantities[$index] ?? null, FILTER_VALIDATE_INT);
-                $unit_cost_cents = inventory_cost_to_cents($posted_unit_costs[$index] ?? null);
-                if ($variant_id === false || $variant_id < 1) {
-                    $errors[] = 'Choose a valid product variant for every line.';
-                    break;
-                }
-                if ($quantity === false || $quantity < 1 || $quantity > INVENTORY_MAX_STOCK) {
-                    $errors[] = 'Each received quantity must be a positive whole number.';
-                    break;
-                }
-                if ($unit_cost_cents === null || $unit_cost_cents < 1) {
-                    $errors[] = 'Enter a valid unit purchase cost greater than ₱0.00 for every line.';
-                    break;
-                }
-                if (isset($seen_variants[$variant_id])) {
-                    $errors[] = 'Each variant can only appear once in a restock. Combine its quantity into one line.';
-                    break;
-                }
-                if ($unit_cost_cents > intdiv(INVENTORY_MAX_TOTAL_CENTS, $quantity)) {
-                    $errors[] = 'A restock line total is too large to calculate safely.';
-                    break;
-                }
+    mysqli_begin_transaction($conn);
 
-                $line_total_cents = $unit_cost_cents * $quantity;
-                if ($total_cents > INVENTORY_MAX_TOTAL_CENTS - $line_total_cents) {
-                    $errors[] = 'The restock total is too large to calculate safely.';
-                    break;
-                }
-                $seen_variants[$variant_id] = true;
-                $total_cents += $line_total_cents;
-                $restock_lines[] = [
-                    'variant_id' => $variant_id,
-                    'quantity' => $quantity,
-                    'unit_cost' => intdiv($unit_cost_cents, 100) . '.' . str_pad((string)($unit_cost_cents % 100), 2, '0', STR_PAD_LEFT),
-                ];
-            }
-        }
+    // 1. Create the restock record
+    $restock_date = date('Y-m-d');
+    $restock_stmt = mysqli_prepare($conn,
+        'INSERT INTO restocks (batch_number, supplier_id, restock_date) VALUES (NULL, ?, ?)'
+    );
+    mysqli_stmt_bind_param($restock_stmt, 'is', $supplier_id, $restock_date);
+    mysqli_stmt_execute($restock_stmt);
+    $restock_id = mysqli_insert_id($conn);
 
-        if (!$errors) {
-            unset($_SESSION['inventory_restock_tokens'][$restock_token]);
-            mysqli_begin_transaction($conn);
-            try {
-                $supplier_stmt = mysqli_prepare($conn, 'SELECT supplier_id FROM suppliers WHERE supplier_id = ? FOR UPDATE');
-                mysqli_stmt_bind_param($supplier_stmt, 'i', $supplier_id);
-                mysqli_stmt_execute($supplier_stmt);
-                if (!mysqli_fetch_assoc(mysqli_stmt_get_result($supplier_stmt))) {
-                    throw new RuntimeException('The selected supplier could not be found.');
-                }
+    // 2. Generate the batch number
+    $batch_number = sprintf('RS-%s-%05d', substr($restock_date, 0, 4), $restock_id);
+    $batch_stmt = mysqli_prepare($conn, 'UPDATE restocks SET batch_number = ? WHERE restock_id = ?');
+    mysqli_stmt_bind_param($batch_stmt, 'si', $batch_number, $restock_id);
+    mysqli_stmt_execute($batch_stmt);
 
-                usort($restock_lines, static function (array $left, array $right): int {
-                    return $left['variant_id'] <=> $right['variant_id'];
-                });
-                $variant_stmt = mysqli_prepare($conn,
-                    'SELECT v.stock, p.supplier_id
-                     FROM product_variants v
-                     JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                     JOIN products p ON p.product_id = pc.product_id
-                     WHERE v.variant_id = ?
-                     FOR UPDATE'
-                );
-                $locked_lines = [];
-                foreach ($restock_lines as $line) {
-                    $variant_id = $line['variant_id'];
-                    mysqli_stmt_bind_param($variant_stmt, 'i', $variant_id);
-                    mysqli_stmt_execute($variant_stmt);
-                    $variant = mysqli_fetch_assoc(mysqli_stmt_get_result($variant_stmt));
-                    if (!$variant || (int)$variant['supplier_id'] !== $supplier_id) {
-                        throw new RuntimeException('Every selected variant must belong to the chosen supplier.');
-                    }
-                    if ((int)$variant['stock'] > INVENTORY_MAX_STOCK - $line['quantity']) {
-                        throw new RuntimeException('The received quantity would exceed the maximum stock value for a variant.');
-                    }
-                    $locked_lines[] = $line;
-                }
+    // 3. Save each line and add to stock
+    $item_stmt = mysqli_prepare($conn,
+        'INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost) VALUES (?, ?, ?, ?)'
+    );
+    $stock_stmt = mysqli_prepare($conn,
+        'UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?'
+    );
 
-                $restock_date = date('Y-m-d');
-                $restock_stmt = mysqli_prepare($conn,
-                    'INSERT INTO restocks (batch_number, supplier_id, restock_date) VALUES (NULL, ?, ?)'
-                );
-                mysqli_stmt_bind_param($restock_stmt, 'is', $supplier_id, $restock_date);
-                mysqli_stmt_execute($restock_stmt);
-                $restock_id = mysqli_insert_id($conn);
-                $batch_number = sprintf('RS-%s-%05d', substr($restock_date, 0, 4), $restock_id);
-                $batch_stmt = mysqli_prepare($conn, 'UPDATE restocks SET batch_number = ? WHERE restock_id = ?');
-                mysqli_stmt_bind_param($batch_stmt, 'si', $batch_number, $restock_id);
-                mysqli_stmt_execute($batch_stmt);
+    foreach ($posted_variant_ids as $index => $variant_id) {
+        $quantity  = $posted_quantities[$index];
+        $unit_cost = $posted_unit_costs[$index];
 
-                $item_stmt = mysqli_prepare($conn,
-                    'INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost) VALUES (?, ?, ?, ?)'
-                );
-                $stock_stmt = mysqli_prepare($conn,
-                    'UPDATE product_variants SET stock = stock + ? WHERE variant_id = ? AND stock <= ?'
-                );
-                foreach ($locked_lines as $line) {
-                    $variant_id = $line['variant_id'];
-                    $quantity = $line['quantity'];
-                    $unit_cost = $line['unit_cost'];
-                    mysqli_stmt_bind_param($item_stmt, 'iiis', $restock_id, $variant_id, $quantity, $unit_cost);
-                    mysqli_stmt_execute($item_stmt);
+        mysqli_stmt_bind_param($item_stmt, 'iiis', $restock_id, $variant_id, $quantity, $unit_cost);
+        mysqli_stmt_execute($item_stmt);
 
-                    $maximum_previous_stock = INVENTORY_MAX_STOCK - $quantity;
-                    mysqli_stmt_bind_param($stock_stmt, 'iii', $quantity, $variant_id, $maximum_previous_stock);
-                    mysqli_stmt_execute($stock_stmt);
-                    if (mysqli_stmt_affected_rows($stock_stmt) !== 1) {
-                        throw new RuntimeException('Stock changed before the restock could be completed.');
-                    }
-                }
-
-                mysqli_commit($conn);
-                admin_set_flash('success', 'Restock ' . $batch_number . ' saved and stock updated.');
-                header('Location: ' . BASE_URL . 'admin/manage-inventory/');
-                exit;
-            } catch (RuntimeException $exception) {
-                mysqli_rollback($conn);
-                $errors[] = $exception->getMessage();
-            } catch (mysqli_sql_exception $exception) {
-                mysqli_rollback($conn);
-                $errors[] = 'Could not save this restock. No stock changes were kept. Please try again.';
-            }
-        }
+        mysqli_stmt_bind_param($stock_stmt, 'ii', $quantity, $variant_id);
+        mysqli_stmt_execute($stock_stmt);
     }
+
+    mysqli_commit($conn);
+    admin_set_flash('success', 'Restock ' . $batch_number . ' saved and stock updated.');
+    header('Location: ' . BASE_URL . 'admin/manage-inventory/');
+    exit;
 }
 
 $restock_token = is_string($_POST['restock_token'] ?? null)
@@ -225,9 +124,11 @@ $variant_options_result = mysqli_query($conn,
      ORDER BY s.name, p.name, pc.color, v.size'
 );
 $variant_options = mysqli_fetch_all($variant_options_result, MYSQLI_ASSOC);
+$supplier_variant_ids = [];
 $color_options_by_department = ['men' => [], 'women' => [], 'kids' => []];
 $size_options_by_department = ['men' => [], 'women' => [], 'kids' => []];
 foreach ($variant_options as $variant_option) {
+    $supplier_variant_ids[(int)$variant_option['supplier_id']] = true;
     $color_options_by_department[$variant_option['department']][$variant_option['color']] = true;
     $size_options_by_department[$variant_option['department']][$variant_option['size']] = true;
 }
@@ -379,30 +280,25 @@ include("../includes/header.php");
 <div class="inventory-page">
   <section class="admin-page-heading">
     <div><p class="admin-eyebrow">STOCK MANAGEMENT</p><h1>Manage Inventory</h1><p>Review variant stock levels and record supplier deliveries.</p></div>
-    <a class="admin-button" href="#restock-panel">Restock Products</a>
   </section>
 
   <?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
   <?php if ($errors) { ?><div class="manage-alert is-error" role="alert"><ul><?php foreach ($errors as $error) { ?><li><?php echo admin_escape($error); ?></li><?php } ?></ul></div><?php } ?>
 
-  <section class="admin-stat-grid inventory-stat-grid" aria-label="Inventory summary">
-    <article class="admin-stat-card">
-      <div class="stat-top"><span>Total Stock Units</span><span class="stat-icon icon-blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16v13H4zM8 7V4h8v3M8 11h8M8 15h5"></path></svg></span></div>
-      <p class="stat-value"><?php echo number_format((int)$summary['total_stock']); ?></p>
-      <p class="stat-foot">Units across all product variants</p>
-    </article>
-    <article class="admin-stat-card">
-      <div class="stat-top"><span>Restock Expenses</span><span class="stat-icon icon-amber" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18M17 7.5c0-1.7-1.8-3-4.5-3S8 5.8 8 7.5 9.7 10 12.5 10s4.5 1.3 4.5 3-1.8 3.5-4.5 3.5S8 15 8 13"></path></svg></span></div>
-      <p class="stat-value"><?php echo peso((float)$summary['restock_expenses']); ?></p>
-      <p class="stat-foot">Recorded purchase costs to date</p>
-    </article>
-  </section>
+  <div class="admin-panel-tabs inventory-tabs" role="radiogroup" aria-label="Inventory panels">
+    <input type="radio" name="inventory_view" id="inventory-view-stock" value="stock" <?php echo $inventory_view === 'stock' ? 'checked' : ''; ?>>
+    <label for="inventory-view-stock">Current Stock</label>
+    <input type="radio" name="inventory_view" id="inventory-view-history" value="history" <?php echo $inventory_view === 'history' ? 'checked' : ''; ?>>
+    <label for="inventory-view-history">Restock History</label>
+    <input type="radio" name="inventory_view" id="inventory-view-restock" value="restock" <?php echo $inventory_view === 'restock' ? 'checked' : ''; ?>>
+    <label for="inventory-view-restock">Restock Products</label>
 
-  <section class="manage-panel inventory-stock-panel">
+  <section class="manage-panel inventory-stock-panel" id="inventory-stock">
     <div class="manage-panel-heading">
       <div><p class="admin-eyebrow">CURRENT STOCK</p><h2>Product variants <span class="manage-count"><?php echo number_format($inventory_total); ?></span></h2></div>
     </div>
     <form method="get" class="inventory-filters" aria-label="Filter inventory">
+      <input type="hidden" name="inventory_view" value="stock">
       <label class="inventory-search">Product name<input type="search" name="search" value="<?php echo admin_escape($search); ?>" placeholder="Search product name"></label>
       <label>Department<select name="department"><option value="">All departments</option><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $department_value => $department_label) { ?><option value="<?php echo $department_value; ?>" <?php echo $filter_department === $department_value ? 'selected' : ''; ?>><?php echo $department_label; ?></option><?php } ?></select></label>
       <label>Brand<select name="supplier_id"><option value="">All brands</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo $filter_supplier === (int)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
@@ -428,7 +324,7 @@ include("../includes/header.php");
           </tr>
         <?php } ?></tbody>
       </table></div>
-      <?php admin_render_pagination($inventory_pagination['page'], $inventory_pagination['total_pages'], 'inventory_page'); ?>
+      <?php admin_render_pagination($inventory_pagination['page'], $inventory_pagination['total_pages'], 'inventory_page', ['inventory_view' => 'stock']); ?>
     <?php } else { ?><p class="manage-empty">No product variants match these filters.</p><?php } ?>
   </section>
 
@@ -436,6 +332,7 @@ include("../includes/header.php");
     <div class="manage-panel-heading">
       <div><p class="admin-eyebrow">SUPPLIER DELIVERIES</p><h2>Restock History <span class="manage-count"><?php echo number_format($history_total); ?></span></h2></div>
       <form method="get" class="inventory-history-search">
+        <input type="hidden" name="inventory_view" value="history">
         <label class="visually-hidden" for="history-search">Search batch number or supplier</label>
         <input id="history-search" type="search" name="history_search" value="<?php echo admin_escape($history_search); ?>" placeholder="Search batch or supplier">
         <button class="admin-button admin-button-light" type="submit">Search</button>
@@ -456,47 +353,57 @@ include("../includes/header.php");
           </tr>
         <?php } ?></tbody>
       </table></div>
-      <?php admin_render_pagination($history_pagination['page'], $history_pagination['total_pages'], 'history_page'); ?>
+      <?php admin_render_pagination($history_pagination['page'], $history_pagination['total_pages'], 'history_page', ['inventory_view' => 'history']); ?>
     <?php } else { ?><p class="manage-empty"><?php echo $history_search !== '' ? 'No restocks match this search.' : 'No restocks have been recorded.'; ?></p><?php } ?>
   </section>
-</div>
 
-<details class="manage-panel inventory-restock-panel" id="restock-panel"<?php echo $errors && $post_action === 'create' ? ' open' : ''; ?>>
-  <summary class="admin-button">Restock Products</summary>
-  <div class="inventory-restock-content">
-  <div class="catalog-dialog-heading">
-    <div><p class="admin-eyebrow">SUPPLIER DELIVERY</p><h2 id="restock-dialog-title">Record a supplier delivery</h2></div>
-  </div>
-  <form method="post" class="manage-form inventory-restock-form" novalidate>
+  <section class="manage-panel inventory-restock-panel" aria-labelledby="restock-panel-title">
+    <div class="manage-panel-heading">
+      <div><p class="admin-eyebrow">SUPPLIER DELIVERY</p><h2 id="restock-panel-title">Restock Products</h2></div>
+    </div>
+    <form id="inventory-restock-form" method="post" class="manage-form inventory-restock-form" novalidate>
+    <input type="hidden" name="inventory_view" value="restock">
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="restock_token" value="<?php echo admin_escape($restock_token); ?>">
-    <input type="hidden" name="action" value="create">
-    <label>Supplier<select name="supplier_id" required><option value="">Choose a supplier</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo $posted_supplier_id === (string)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
+    <input type="hidden" name="variant_supplier_id" value="<?php echo admin_escape($variant_supplier_id); ?>">
+    <div class="inventory-restock-supplier">
+      <label>Supplier<select name="supplier_id"><option value="">Choose a supplier</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo $posted_supplier_id === (string)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
+      <button class="manage-small-button inventory-load-variants" type="submit" name="action" value="load_variants">Load supplier variants</button>
+    </div>
     <div class="inventory-restock-lines">
+      <?php if ($variant_supplier_id !== '' && !isset($supplier_variant_ids[(int)$variant_supplier_id])) { ?>
+        <p class="manage-secondary">This supplier has no product variants available to restock.</p>
+      <?php } ?>
       <?php
-      $selected_variant_id = (string)($posted_variant_ids[0] ?? '');
-      $line_quantity = (string)($posted_quantities[0] ?? '');
-      $line_cost = (string)($posted_unit_costs[0] ?? '');
+      $line_count = max(1, min(50, count($posted_variant_ids)));
+      for ($line_index = 0; $line_index < $line_count; $line_index++) {
+        $selected_variant_id = is_string($posted_variant_ids[$line_index] ?? null) ? $posted_variant_ids[$line_index] : '';
+        $line_quantity = is_string($posted_quantities[$line_index] ?? null) ? $posted_quantities[$line_index] : '1';
+        $line_cost = is_string($posted_unit_costs[$line_index] ?? null) ? $posted_unit_costs[$line_index] : '';
       ?>
       <div class="inventory-restock-line">
-        <label>Product variant<select name="variant_ids[]" required>
+        <label>Product variant<select name="variant_ids[]" <?php echo $variant_supplier_id === '' ? 'disabled' : ''; ?>>
           <option value="">Choose a variant</option>
           <?php foreach ($variant_options as $variant_option) { ?>
+            <?php if ((string)$variant_option['supplier_id'] !== $variant_supplier_id) { continue; } ?>
             <option value="<?php echo (int)$variant_option['variant_id']; ?>" <?php echo $selected_variant_id === (string)$variant_option['variant_id'] ? 'selected' : ''; ?>><?php echo admin_escape($variant_option['supplier_name'] . ' · ' . $variant_option['product_name'] . ' · ' . $variant_option['color'] . ' · ' . $variant_option['size'] . ' · Current stock: ' . number_format((int)$variant_option['stock'])); ?></option>
           <?php } ?>
         </select></label>
-        <label>Quantity received<input type="number" name="quantities[]" min="1" max="<?php echo INVENTORY_MAX_STOCK; ?>" step="1" required value="<?php echo admin_escape($line_quantity); ?>"></label>
-        <label>Unit purchase cost (₱)<input type="number" name="unit_costs[]" min="0.01" max="99999999.99" step="0.01" required value="<?php echo admin_escape($line_cost); ?>"></label>
+        <label>Quantity received<input type="number" name="quantities[]" value="<?php echo admin_escape($line_quantity); ?>"></label>
+        <label>Unit purchase cost (₱)<input type="text" inputmode="decimal" name="unit_costs[]" value="<?php echo admin_escape($line_cost); ?>"></label>
+        <button class="inventory-restock-line-remove" type="submit" name="remove_line" value="<?php echo $line_index; ?>" aria-label="Remove product variant line <?php echo $line_index + 1; ?>" title="Remove product variant">×</button>
       </div>
+      <?php } ?>
     </div>
+    <button class="manage-small-button" type="submit" name="action" value="add_line" <?php echo $variant_supplier_id === '' ? 'disabled' : ''; ?>>Add another product variant</button>
     <label class="inventory-restock-confirm">
-      <input type="checkbox" name="confirmed" value="1" required <?php echo ($_POST['confirmed'] ?? '') === '1' ? 'checked' : ''; ?>>
+      <input type="checkbox" name="confirmed" value="1" <?php echo ($_POST['confirmed'] ?? '') === '1' ? 'checked' : ''; ?>>
       I have reviewed the selected variant, received quantity, and unit cost.
     </label>
     <div class="manage-form-buttons">
-      <button class="admin-button" type="submit">Confirm and save restock</button>
+      <button class="admin-button" type="submit" name="action" value="create">Confirm and save restock</button>
     </div>
-  </form>
+    </form>
+  </section>
 </div>
-</details>
 <?php include("../includes/footer.php"); ?>

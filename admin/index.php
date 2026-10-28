@@ -100,6 +100,7 @@ $admin_name = $_SESSION['username'] ?? 'Administrator';
 </head>
 <body class="admin-dashboard-body">
   <div class="admin-app">
+    <input class="admin-sidebar-toggle-input visually-hidden" type="checkbox" id="admin-sidebar-toggle" aria-label="Collapse sidebar">
     <aside class="admin-sidebar" id="admin-sidebar">
       <a class="admin-brand" href="<?php echo BASE_URL; ?>admin/index.php">
         <span class="admin-brand-mark">S</span>
@@ -137,9 +138,9 @@ $admin_name = $_SESSION['username'] ?? 'Administrator';
     <main class="admin-main">
       <header class="admin-topbar">
         <div class="admin-topbar-start">
-          <button class="admin-sidebar-toggle" type="button" aria-label="Collapse sidebar" aria-controls="admin-sidebar" aria-expanded="true">
+          <label class="admin-sidebar-toggle" for="admin-sidebar-toggle" aria-label="Toggle sidebar">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
-          </button>
+          </label>
           <div class="admin-breadcrumb">Workspace <span>/</span> Overview</div>
         </div>
         <div class="admin-user">

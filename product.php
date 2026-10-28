@@ -230,7 +230,7 @@ include_once('includes/header.php');
     </div>
 
     <!-- Sizes and cart action -->
-    <form method="post" action="<?php echo $editing_cart_item ? 'cart/cart_update.php' : 'cart/cart_add.php'; ?>">
+    <form method="post" action="<?php echo $editing_cart_item ? 'cart/cart_update.php' : 'cart/cart_add.php'; ?>" novalidate>
       <?php if ($editing_cart_item) { ?>
         <input type="hidden" name="cart_id" value="<?php echo (int)$edit_cart_id; ?>">
       <?php } ?>
@@ -242,7 +242,7 @@ include_once('includes/header.php');
         <?php foreach ($variants as $v) { ?>
           <?php if ($v['stock'] > 0) { ?>
             <label>
-              <input type="radio" name="variant_id" value="<?php echo (int)$v['variant_id']; ?>" <?php echo ((int)$v['variant_id'] === $selected_variant_id) ? 'checked' : ''; ?> required>
+              <input type="radio" name="variant_id" value="<?php echo (int)$v['variant_id']; ?>" <?php echo ((int)$v['variant_id'] === $selected_variant_id) ? 'checked' : ''; ?>>
               <?php echo htmlspecialchars($v['size']); ?>
             </label>
           <?php } else { ?>
@@ -254,7 +254,7 @@ include_once('includes/header.php');
         <?php } ?>
       </div>
 
-      <p class="qty">Quantity: <input type="number" id="product-quantity" name="quantity" value="<?php echo $selected_quantity; ?>" min="1" <?php echo $selected_variant_id ? 'max="' . max(1, $selected_stock) . '"' : ''; ?> required></p>
+      <p class="qty">Quantity: <input type="number" id="product-quantity" name="quantity" value="<?php echo $selected_quantity; ?>"></p>
       <?php if ($editing_cart_item) { ?>
         <div class="product-actions">
           <button class="btn" type="submit">Update item</button>

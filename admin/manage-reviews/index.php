@@ -2,15 +2,31 @@
 require_once("../includes/bootstrap.php");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $review_id = $_POST['review_id'];
+    $review_id = filter_var($_POST['review_id'] ?? null, FILTER_VALIDATE_INT);
+    $action = $_POST['action'] ?? '';
 
-    $stmt = mysqli_prepare($conn,
-        "UPDATE product_reviews SET status = 'deleted' WHERE review_id = ?"
-    );
-    mysqli_stmt_bind_param($stmt, 'i', $review_id);
-    mysqli_stmt_execute($stmt);
+    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
+        admin_set_flash('error', 'Your session expired. Please try again.');
+    } elseif ($review_id === false || $review_id < 1 || $action !== 'delete') {
+        admin_set_flash('error', 'That review action is invalid.');
+    } else {
+        $review_update_statement = mysqli_prepare($conn,
+            "UPDATE product_reviews
+             SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
+             WHERE review_id = ? AND status IN ('pending', 'published')"
+        );
+        mysqli_stmt_bind_param($review_update_statement, 'i', $review_id);
+        mysqli_stmt_execute($review_update_statement);
+        if (mysqli_stmt_affected_rows($review_update_statement) !== 1) {
+            admin_set_flash('error', 'The review could not be deleted.');
+        } else {
+            admin_set_flash('success', 'Review deleted.');
+        }
+    }
 
-    header('Location: ' . BASE_URL . 'admin/manage-reviews/');
+    $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
+    $page = $page === false ? 1 : max(1, $page);
+    header('Location: ' . BASE_URL . 'admin/manage-reviews/?page=' . $page);
     exit;
 }
 

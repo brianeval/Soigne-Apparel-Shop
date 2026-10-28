@@ -2,6 +2,12 @@
 require_once("../includes/bootstrap.php");
 
 $errors = [];
+$requested_customer_view = is_string($_POST['customer_view'] ?? null)
+    ? $_POST['customer_view']
+    : (is_string($_GET['customer_view'] ?? null) ? $_GET['customer_view'] : '');
+$customer_view = in_array($requested_customer_view, ['directory', 'create'], true)
+    ? $requested_customer_view
+    : (($_POST['action'] ?? '') === 'create' ? 'create' : 'directory');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Refresh the page and try again.';
@@ -141,22 +147,29 @@ include("../includes/header.php");
 <?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
 <?php if ($errors) { ?><div class="manage-alert is-error" role="alert"><ul><?php foreach ($errors as $error) { ?><li><?php echo admin_escape($error); ?></li><?php } ?></ul></div><?php } ?>
 
-<section class="manage-panel">
+<div class="admin-panel-tabs" role="radiogroup" aria-label="Customer panels">
+  <input type="radio" name="customer_view" id="customer-view-directory" value="directory" <?php echo $customer_view === 'directory' ? 'checked' : ''; ?>>
+  <label for="customer-view-directory">Customer Directory</label>
+  <input type="radio" name="customer_view" id="customer-view-create" value="create" <?php echo $customer_view === 'create' ? 'checked' : ''; ?>>
+  <label for="customer-view-create">Create Customer</label>
+
+<section class="manage-panel customer-create-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">NEW ACCOUNT</p><h2>Create a customer</h2></div></div>
-  <form method="post" class="manage-form manage-product-create">
+  <form method="post" class="manage-form manage-product-create" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+    <input type="hidden" name="customer_view" value="create">
     <input type="hidden" name="action" value="create">
-    <label>Customer name<input name="customer_name" maxlength="120" required value="<?php echo admin_escape($_POST['customer_name'] ?? ''); ?>"></label>
-    <label>Username<input name="username" maxlength="50" required value="<?php echo admin_escape($_POST['username'] ?? ''); ?>"></label>
-    <label>Email<input type="email" name="email" maxlength="120" required value="<?php echo admin_escape($_POST['email'] ?? ''); ?>"></label>
-    <label>Phone<input name="phone" maxlength="30" value="<?php echo admin_escape($_POST['phone'] ?? ''); ?>"></label>
-    <label>Temporary password<input type="password" name="password" minlength="8" maxlength="72" required autocomplete="new-password"></label>
-    <label>Address<input name="address" maxlength="255" value="<?php echo admin_escape($_POST['address'] ?? ''); ?>"></label>
+    <label>Customer name<input name="customer_name" value="<?php echo admin_escape($_POST['customer_name'] ?? ''); ?>"></label>
+    <label>Username<input name="username" value="<?php echo admin_escape($_POST['username'] ?? ''); ?>"></label>
+    <label>Email<input type="text" name="email" value="<?php echo admin_escape($_POST['email'] ?? ''); ?>"></label>
+    <label>Phone<input name="phone" value="<?php echo admin_escape($_POST['phone'] ?? ''); ?>"></label>
+    <label>Temporary password<input type="password" name="password" autocomplete="new-password"></label>
+    <label>Address<input name="address" value="<?php echo admin_escape($_POST['address'] ?? ''); ?>"></label>
     <div class="manage-form-wide"><button class="admin-button" type="submit">Create customer</button></div>
   </form>
 </section>
 
-<section class="manage-panel manage-list-panel">
+<section class="manage-panel manage-list-panel customer-directory-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">CUSTOMER DIRECTORY</p><h2>Customers <span class="manage-count"><?php echo $customer_total; ?></span></h2></div></div>
   <?php if ($customers) { ?>
     <div class="admin-table-wrap"><table class="admin-table">
@@ -175,6 +188,7 @@ include("../includes/header.php");
             <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-customers/edit.php?id=<?php echo (int)$customer['user_id']; ?>">Edit</a>
             <form method="post">
               <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+              <input type="hidden" name="customer_view" value="directory">
               <input type="hidden" name="action" value="toggle_status">
               <input type="hidden" name="user_id" value="<?php echo (int)$customer['user_id']; ?>">
               <input type="hidden" name="new_status" value="<?php echo $customer['status'] === 'active' ? 'inactive' : 'active'; ?>">
@@ -183,6 +197,7 @@ include("../includes/header.php");
             <?php if ((int)$customer['order_count'] === 0) { ?>
               <form method="post">
                 <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+                <input type="hidden" name="customer_view" value="directory">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="user_id" value="<?php echo (int)$customer['user_id']; ?>">
                 <button class="manage-small-button is-danger" type="submit">Delete</button>
@@ -192,7 +207,8 @@ include("../includes/header.php");
         </tr>
       <?php } ?></tbody>
     </table></div>
-    <?php admin_render_pagination($customer_pagination['page'], $customer_pagination['total_pages']); ?>
+    <?php admin_render_pagination($customer_pagination['page'], $customer_pagination['total_pages'], 'page', ['customer_view' => 'directory']); ?>
   <?php } else { ?><p class="manage-empty">No customer accounts found.</p><?php } ?>
 </section>
+</div>
 <?php include("../includes/footer.php"); ?>

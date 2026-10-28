@@ -73,13 +73,13 @@ function admin_pagination_page(int $totalItems, int $pageSize = 10, string $page
     ];
 }
 
-function admin_render_pagination(int $currentPage, int $totalPages, string $pageKey = 'page'): void
+function admin_render_pagination(int $currentPage, int $totalPages, string $pageKey = 'page', array $extraQuery = []): void
 {
     if ($totalPages <= 1) {
         return;
     }
 
-    $query = $_GET;
+    $query = array_merge($_GET, $extraQuery);
     unset($query[$pageKey]);
     $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
     $baseUrl = is_string($path) ? $path : '';

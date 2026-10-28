@@ -118,10 +118,10 @@ include("../includes/header.php");
 <?php if ($errors) { ?><div class="manage-alert is-error" role="alert"><ul><?php foreach ($errors as $error) { ?><li><?php echo admin_escape($error); ?></li><?php } ?></ul></div><?php } ?>
 <section class="manage-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">ACCOUNT #<?php echo (int)$user_id; ?></p><h2><?php echo admin_escape($customer['customer_name'] ?? $customer['username']); ?></h2></div></div>
-  <form method="post" class="manage-form manage-product-create">
+  <form method="post" class="manage-form manage-product-create" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <label>Role
-      <select name="role" required>
+      <select name="role">
         <?php
         $selected_role = $_POST['role'] ?? $customer['role'];
         foreach (['customer' => 'Customer', 'vip' => 'VIP'] as $role_value => $role_label) {
@@ -135,12 +135,12 @@ include("../includes/header.php");
     <?php if ($customer['role'] === 'vip') { ?>
       <label class="manage-checkbox-label"><span><input type="checkbox" name="renew_vip" value="1" <?php echo ($_POST['renew_vip'] ?? '') === '1' ? 'checked' : ''; ?>> Renew VIP for one month (confirm new purchase)</span></label>
     <?php } ?>
-    <label>Customer name<input name="customer_name" maxlength="120" required value="<?php echo admin_escape($_POST['customer_name'] ?? $customer['customer_name']); ?>"></label>
-    <label>Username<input name="username" maxlength="50" required value="<?php echo admin_escape($_POST['username'] ?? $customer['username']); ?>"></label>
-    <label>Email<input type="email" name="email" maxlength="120" required value="<?php echo admin_escape($_POST['email'] ?? $customer['email']); ?>"></label>
-    <label>Phone<input name="phone" maxlength="30" value="<?php echo admin_escape($_POST['phone'] ?? $customer['phone']); ?>"></label>
-    <label>New password<input type="password" name="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Leave blank to keep current password"></label>
-    <label>Address<input name="address" maxlength="255" value="<?php echo admin_escape($_POST['address'] ?? $customer['address']); ?>"></label>
+    <label>Customer name<input name="customer_name" value="<?php echo admin_escape($_POST['customer_name'] ?? $customer['customer_name']); ?>"></label>
+    <label>Username<input name="username" value="<?php echo admin_escape($_POST['username'] ?? $customer['username']); ?>"></label>
+    <label>Email<input type="text" name="email" value="<?php echo admin_escape($_POST['email'] ?? $customer['email']); ?>"></label>
+    <label>Phone<input name="phone" value="<?php echo admin_escape($_POST['phone'] ?? $customer['phone']); ?>"></label>
+    <label>New password<input type="password" name="password" autocomplete="new-password" placeholder="Leave blank to keep current password"></label>
+    <label>Address<input name="address" value="<?php echo admin_escape($_POST['address'] ?? $customer['address']); ?>"></label>
     <div class="manage-form-wide manage-form-buttons"><button class="admin-button" type="submit">Save customer</button><a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-customers/">Cancel</a></div>
   </form>
 </section>

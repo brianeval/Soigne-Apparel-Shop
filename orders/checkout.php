@@ -297,20 +297,20 @@ include_once('../includes/header.php');
         <p class="checkout-subtotal"><span>Subtotal</span><strong><?php echo peso($subtotal); ?></strong></p>
       </section>
 
-      <form class="checkout-confirmation" method="post" action="<?php echo BASE_URL; ?>orders/checkout.php">
+      <form class="checkout-confirmation" method="post" action="<?php echo BASE_URL; ?>orders/checkout.php" novalidate>
         <h2>Confirm your order</h2>
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['checkout_csrf']); ?>">
 
         <label for="customer_name">Name</label>
-        <input type="text" id="customer_name" name="customer_name" maxlength="120"
-               value="<?php echo htmlspecialchars($customer_name); ?>" required>
+        <input type="text" id="customer_name" name="customer_name"
+               value="<?php echo htmlspecialchars($customer_name); ?>">
 
         <label for="address">Shipping address</label>
-        <textarea id="address" name="address" maxlength="255" required><?php echo htmlspecialchars($address); ?></textarea>
+        <textarea id="address" name="address"><?php echo htmlspecialchars($address); ?></textarea>
 
         <label for="phone">Phone number</label>
-        <input type="tel" id="phone" name="phone" maxlength="30"
-               value="<?php echo htmlspecialchars($phone); ?>" required>
+        <input type="tel" id="phone" name="phone"
+               value="<?php echo htmlspecialchars($phone); ?>">
 
         <div class="checkout-payment">
           <span>Payment method</span>

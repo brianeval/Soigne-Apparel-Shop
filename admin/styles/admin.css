@@ -78,6 +78,16 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .admin-sidebar-toggle { width: 36px; height: 36px; display: grid; place-items: center; padding: 0; border: 1px solid var(--admin-line); border-radius: 8px; background: #fff; color: var(--admin-ink); cursor: pointer; }
 .admin-sidebar-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-width: 1.7; }
 .admin-sidebar-toggle:hover { border-color: var(--admin-accent); color: var(--admin-accent); }
+.admin-sidebar-toggle-input:checked ~ .admin-sidebar { width: 76px; padding-right: 10px; padding-left: 10px; }
+.admin-sidebar-toggle-input:checked ~ .admin-main { margin-left: 76px; }
+.admin-sidebar-toggle-input:checked ~ .admin-sidebar .admin-brand { justify-content: center; padding-right: 0; padding-left: 0; }
+.admin-sidebar-toggle-input:checked ~ .admin-sidebar .admin-brand-copy,
+.admin-sidebar-toggle-input:checked ~ .admin-sidebar .admin-nav-label { display: none; }
+.admin-sidebar-toggle-input:checked ~ .admin-sidebar .admin-nav a,
+.admin-sidebar-toggle-input:checked ~ .admin-sidebar .admin-sidebar-bottom a { justify-content: center; gap: 0; padding-right: 0; padding-left: 0; }
+.admin-sidebar-toggle-input:checked ~ .admin-sidebar .nav-label-text { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.admin-sidebar-toggle-input:checked ~ .admin-sidebar .nav-icon { width: 24px; }
+.admin-sidebar-toggle-input:focus-visible ~ .admin-main .admin-sidebar-toggle { outline: 2px solid var(--admin-ink); outline-offset: 2px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .admin-breadcrumb { color: #878c84; font-size: 13px; }
 .admin-breadcrumb span { padding: 0 8px; color: #c1c5bf; }
@@ -166,6 +176,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
   .admin-user { margin-left: auto; }
 }
 @media (max-width: 700px) {
+  .admin-sidebar-toggle-input { display: none; }
   .admin-login-layout { grid-template-columns: 1fr; }
   .admin-login-brand { min-height: 280px; padding: 25px 28px; }
   .admin-login-message { padding: 38px 0 30px; }
@@ -173,6 +184,11 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
   .admin-login-footnote { margin-bottom: 0; }
   .admin-login-panel { padding: 42px 24px; }
   .admin-sidebar { position: static; width: 100%; height: auto; padding: 14px 16px; border-right: 0; border-bottom: 1px solid var(--admin-line); }
+  .admin-sidebar-toggle-input:checked ~ .admin-sidebar { width: 100%; padding: 14px 14px 12px; }
+  .admin-sidebar-toggle-input:checked ~ .admin-main { margin-left: 0; }
+  .admin-sidebar-toggle-input:checked ~ .admin-sidebar .admin-brand-copy { display: inline; }
+  .admin-sidebar-toggle-input:checked ~ .admin-sidebar .admin-nav a { justify-content: flex-start; gap: 5px; padding: 0 9px; }
+  .admin-sidebar-toggle-input:checked ~ .admin-sidebar .nav-label-text { position: static; width: auto; height: auto; padding: 0; margin: 0; overflow: visible; clip: auto; white-space: normal; border: 0; }
   .admin-app.is-sidebar-collapsed .admin-sidebar { width: 100%; padding: 14px 16px; }
   .admin-sidebar .admin-brand { padding: 0 4px 12px; }
   .admin-app.is-sidebar-collapsed .admin-sidebar .admin-brand-copy { display: inline; }

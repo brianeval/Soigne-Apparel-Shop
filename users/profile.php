@@ -201,7 +201,7 @@ include_once('../includes/header.php');
         <div class="profile-panel-heading">
           <h2 id="profile-picture-title">Profile picture</h2>
         </div>
-        <form method="post" action="<?php echo BASE_URL; ?>users/profile.php" enctype="multipart/form-data">
+        <form method="post" action="<?php echo BASE_URL; ?>users/profile.php" enctype="multipart/form-data" novalidate>
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['profile_csrf']); ?>">
           <input type="hidden" name="form_action" value="update_photo">
           <img class="profile-photo-preview" id="profile-photo-preview"
@@ -212,7 +212,7 @@ include_once('../includes/header.php');
             <div class="profile-file-picker">
               <label class="profile-file-button" for="profile_photo">Choose file</label>
               <span class="profile-file-name" id="profile-file-name">No file chosen</span>
-              <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" required>
+              <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp">
             </div>
             <small>JPEG, PNG, or WebP; max 5 MB.</small>
           </div>
@@ -226,48 +226,48 @@ include_once('../includes/header.php');
         <div class="profile-panel-heading">
           <h2 id="profile-details-title">Personal information</h2>
         </div>
-        <form method="post" action="<?php echo BASE_URL; ?>users/profile.php" id="profile-form">
+        <form method="post" action="<?php echo BASE_URL; ?>users/profile.php" id="profile-form" novalidate>
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['profile_csrf']); ?>">
           <input type="hidden" name="form_action" value="update_details">
           <div class="profile-field">
             <label for="customer_name">Name</label>
-            <input type="text" id="customer_name" name="customer_name" maxlength="120"
-                   value="<?php echo htmlspecialchars($name); ?>" required>
+            <input type="text" id="customer_name" name="customer_name"
+                   value="<?php echo htmlspecialchars($name); ?>">
           </div>
 
           <div class="profile-field">
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" maxlength="50"
-                   value="<?php echo htmlspecialchars($username); ?>" required>
+            <input type="text" id="username" name="username"
+                   value="<?php echo htmlspecialchars($username); ?>">
           </div>
 
           <div class="profile-field">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" maxlength="120"
-                   value="<?php echo htmlspecialchars($email); ?>" required>
+            <input type="text" id="email" name="email"
+                   value="<?php echo htmlspecialchars($email); ?>">
           </div>
 
           <div class="profile-field">
             <label for="phone">Phone number</label>
-            <input type="tel" id="phone" name="phone" maxlength="30"
+            <input type="tel" id="phone" name="phone"
                    value="<?php echo htmlspecialchars($phone); ?>">
           </div>
 
           <div class="profile-field">
             <label for="address">Address</label>
-            <textarea id="address" name="address" maxlength="255"><?php echo htmlspecialchars($address); ?></textarea>
+            <textarea id="address" name="address"><?php echo htmlspecialchars($address); ?></textarea>
           </div>
 
           <div class="profile-password-fields">
             <p>Leave these blank if you don't want to change your password.</p>
             <div class="profile-field">
               <label for="new_password">New password</label>
-              <input type="password" id="new_password" name="new_password" minlength="8" maxlength="72"
+              <input type="password" id="new_password" name="new_password"
                      autocomplete="new-password">
             </div>
             <div class="profile-field">
               <label for="confirm_password">Confirm new password</label>
-              <input type="password" id="confirm_password" name="confirm_password" minlength="8" maxlength="72"
+              <input type="password" id="confirm_password" name="confirm_password"
                      autocomplete="new-password">
             </div>
           </div>

@@ -446,6 +446,27 @@ include("../includes/header.php");
 <section class="manage-panel manage-list-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT OPTIONS</p><h2>Colors, sizes &amp; stock</h2></div></div>
   <div class="manage-color-gallery-action">
+    <details class="catalog-disclosure catalog-image-disclosure">
+      <summary class="admin-button admin-button-light"><span class="summary-open-label">View All Images</span><span class="summary-close-label">Close</span></summary>
+      <div class="catalog-modal">
+        <section class="catalog-dialog catalog-product-dialog" role="dialog" aria-modal="true" aria-labelledby="product-images-title">
+          <div class="catalog-dialog-heading">
+            <div><p class="admin-eyebrow">PRODUCT GALLERY</p><h2 id="product-images-title">All images — <?php echo admin_escape($product['name']); ?></h2></div>
+          </div>
+          <?php $has_product_images = false; foreach ($colors as $color) { $images_for_color = $color_images[(int)$color['product_color_id']] ?? []; if ($images_for_color) { $has_product_images = true; ?>
+            <section class="product-admin-image-group">
+              <h3><?php echo admin_escape($color['color']); ?></h3>
+              <div class="product-admin-image-grid">
+                <?php foreach ($images_for_color as $image_path) { ?>
+                  <figure><img src="<?php echo BASE_URL; ?>images/<?php echo admin_escape($image_path); ?>" alt="<?php echo admin_escape($product['name'] . ' - ' . $color['color']); ?>" loading="lazy"></figure>
+                <?php } ?>
+              </div>
+            </section>
+          <?php } } ?>
+          <?php if (!$has_product_images) { ?><p class="manage-empty">No images have been added to this product yet.</p><?php } ?>
+        </section>
+      </div>
+    </details>
   </div>
   <form method="post" class="manage-form manage-add-color" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
@@ -521,21 +542,4 @@ include("../includes/header.php");
     </div>
   <?php } ?>
 </section>
-<details class="catalog-disclosure catalog-image-disclosure">
-  <summary class="admin-button admin-button-light">View All Images</summary>
-  <div class="catalog-dialog-heading">
-    <div><p class="admin-eyebrow">PRODUCT GALLERY</p><h2 id="product-images-title">All images — <?php echo admin_escape($product['name']); ?></h2></div>
-  </div>
-  <?php $has_product_images = false; foreach ($colors as $color) { $images_for_color = $color_images[(int)$color['product_color_id']] ?? []; if ($images_for_color) { $has_product_images = true; ?>
-    <section class="product-admin-image-group">
-      <h3><?php echo admin_escape($color['color']); ?></h3>
-      <div class="product-admin-image-grid">
-        <?php foreach ($images_for_color as $image_path) { ?>
-          <figure><img src="<?php echo BASE_URL; ?>images/<?php echo admin_escape($image_path); ?>" alt="<?php echo admin_escape($product['name'] . ' - ' . $color['color']); ?>" loading="lazy"></figure>
-        <?php } ?>
-      </div>
-    </section>
-  <?php } } ?>
-  <?php if (!$has_product_images) { ?><p class="manage-empty">No images have been added to this product yet.</p><?php } ?>
-</details>
 <?php include("../includes/footer.php"); ?>

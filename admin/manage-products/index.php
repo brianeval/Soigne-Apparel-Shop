@@ -4,6 +4,16 @@ require_once("../../includes/product_images.php");
 require_once("../../includes/product_validation.php");
 
 $errors = [];
+$posted_catalog_view = is_string($_POST['catalog_view'] ?? null)
+    ? $_POST['catalog_view']
+    : (is_string($_GET['catalog_view'] ?? null) ? $_GET['catalog_view'] : '');
+$catalog_view = in_array($posted_catalog_view, ['products', 'create', 'category', 'brand'], true)
+    ? $posted_catalog_view
+    : (($_POST['action'] ?? '') === 'add_category'
+        ? 'category'
+        : ((($_POST['action'] ?? '') === 'add_brand')
+            ? 'brand'
+            : (in_array($_POST['action'] ?? '', ['create', 'refresh_size_options'], true) || isset($_POST['remove_color']) ? 'create' : 'products')));
 $product_size_guide = require("../../includes/product_size_guide.php");
 
 function product_size_options(array $guide, string $department, ?string $category): array
@@ -71,6 +81,16 @@ foreach ($categories as $category_row) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
         $errors[] = 'Your session expired. Refresh the page and try again.';
+    } elseif (isset($_POST['remove_color'])) {
+        $posted_colors = $_POST['colors'] ?? null;
+        $remove_color_index = product_nonnegative_integer($_POST['remove_color']);
+        if (!is_array($posted_colors) || $remove_color_index === null || !array_key_exists($remove_color_index, $posted_colors)) {
+            $errors[] = 'Choose a valid color option to remove.';
+        } else {
+            $posted_colors = array_values($posted_colors);
+            array_splice($posted_colors, $remove_color_index, 1);
+            $_POST['colors'] = $posted_colors ?: [['name' => '', 'sizes' => []]];
+        }
     } elseif (($_POST['action'] ?? '') === 'add_category') {
         $category_name = trim(is_string($_POST['category_name'] ?? null) ? $_POST['category_name'] : '');
         if ($category_name === '' || mb_strlen($category_name) > 50) {
@@ -120,6 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+    } elseif (($_POST['action'] ?? '') === 'refresh_size_options') {
+        // The form is re-rendered with size options for the submitted department and category.
     } elseif (($_POST['action'] ?? '') === 'create') {
         $supplier_id = product_positive_integer($_POST['supplier_id'] ?? null);
         $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
@@ -179,7 +201,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $color_name = trim(is_string($posted_color['name'] ?? null) ? $posted_color['name'] : '');
                 $selected_sizes = $posted_color['sizes'] ?? [];
-                $posted_stocks = is_array($posted_color['stocks'] ?? null) ? $posted_color['stocks'] : [];
                 $upload = is_array($_FILES['color_images'] ?? null) ? $_FILES['color_images'] : [];
                 $color_uploads = product_color_uploads($upload, (int)$color_index);
                 $has_image = (bool)$color_uploads;
@@ -206,7 +227,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $valid_sizes = [];
-                $size_stocks = [];
                 $invalid_size = false;
                 foreach ($selected_sizes as $size) {
                     if (!is_string($size) || !in_array($size, $allowed_sizes, true)) {
@@ -215,14 +235,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         break;
                     }
                     $valid_sizes[] = $size;
-                    $raw_stock = $posted_stocks[$size] ?? null;
-                    $stock_input = product_nonnegative_integer($raw_stock);
-                    if ($stock_input === null || $stock_input > 1000) {
-                        $errors[] = 'Enter a valid stock amount between 0 and 1,000 for each selected size.';
-                        $invalid_size = true;
-                        break;
-                    }
-                    $size_stocks[$size] = $stock_input;
                 }
                 $valid_sizes = array_values(array_unique($valid_sizes));
                 if ($invalid_size) {
@@ -236,7 +248,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $colors_to_create[] = [
                     'name' => $color_name,
                     'sizes' => $valid_sizes,
-                    'stocks' => $size_stocks,
                     'uploads' => $valid_uploads,
                 ];
             }
@@ -283,7 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $color_stmt = mysqli_prepare($conn, "INSERT INTO product_colors (product_id, color) VALUES (?, ?)");
                 $image_stmt = mysqli_prepare($conn, "INSERT INTO product_color_images (product_color_id, image_path, sort_order) VALUES (?, ?, ?)");
-                $variant_stmt = mysqli_prepare($conn, "INSERT INTO product_variants (product_color_id, size, stock) VALUES (?, ?, ?)");
+                $variant_stmt = mysqli_prepare($conn, "INSERT INTO product_variants (product_color_id, size, stock) VALUES (?, ?, 0)");
                 foreach ($colors_to_create as $color) {
                     mysqli_stmt_bind_param($color_stmt, 'is', $new_product_id, $color['name']);
                     mysqli_stmt_execute($color_stmt);
@@ -294,8 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         mysqli_stmt_execute($image_stmt);
                     }
                     foreach ($color['sizes'] as $size) {
-                        $stock = $color['stocks'][$size];
-                        mysqli_stmt_bind_param($variant_stmt, 'isi', $new_color_id, $size, $stock);
+                        mysqli_stmt_bind_param($variant_stmt, 'is', $new_color_id, $size);
                         mysqli_stmt_execute($variant_stmt);
                     }
                 }
@@ -408,67 +418,73 @@ include("../includes/header.php");
 <?php if ($flash) { ?><p class="manage-alert is-<?php echo admin_escape($flash['type']); ?>" role="status"><?php echo admin_escape($flash['message']); ?></p><?php } ?>
 <?php if ($errors) { ?><div class="manage-alert is-error" role="alert"><ul><?php foreach ($errors as $error) { ?><li><?php echo admin_escape($error); ?></li><?php } ?></ul></div><?php } ?>
 
-<details class="catalog-disclosure catalog-form-dialog"<?php echo $errors && ($_POST['action'] ?? '') === 'add_category' ? ' open' : ''; ?>>
-  <summary class="admin-button admin-button-light">Add Category</summary>
-  <div class="catalog-dialog-heading">
-    <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-category-title">Add Category</h2></div>
-  </div>
-  <form method="post" class="manage-form catalog-simple-form" novalidate>
-    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
-    <input type="hidden" name="action" value="add_category">
-    <label>Category name<input name="category_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_category' && is_string($_POST['category_name'] ?? null) ? $_POST['category_name'] : ''); ?>"></label>
-    <div class="manage-form-buttons">
-      <button class="admin-button" type="submit">Add Category</button>
-    </div>
-  </form>
-</details>
+<div class="admin-panel-tabs catalog-tabs" role="radiogroup" aria-label="Product panels">
+  <input type="radio" name="catalog_view" id="catalog-view-products" value="products" <?php echo $catalog_view === 'products' ? 'checked' : ''; ?>>
+  <label for="catalog-view-products">Product Catalog</label>
+  <input type="radio" name="catalog_view" id="catalog-view-create" value="create" <?php echo $catalog_view === 'create' ? 'checked' : ''; ?>>
+  <label for="catalog-view-create">Add Product</label>
+  <input type="radio" name="catalog_view" id="catalog-view-category" value="category" <?php echo $catalog_view === 'category' ? 'checked' : ''; ?>>
+  <label for="catalog-view-category">Add Category</label>
+  <input type="radio" name="catalog_view" id="catalog-view-brand" value="brand" <?php echo $catalog_view === 'brand' ? 'checked' : ''; ?>>
+  <label for="catalog-view-brand">Add Brand</label>
 
-<details class="catalog-disclosure catalog-form-dialog"<?php echo $errors && ($_POST['action'] ?? '') === 'add_brand' ? ' open' : ''; ?>>
-  <summary class="admin-button admin-button-light">Add Brand</summary>
-  <div class="catalog-dialog-heading">
-    <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-brand-title">Add Brand</h2></div>
-  </div>
-  <form method="post" enctype="multipart/form-data" class="manage-form catalog-simple-form" novalidate>
-    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
-    <input type="hidden" name="action" value="add_brand">
-    <label>Brand name<input name="brand_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_brand' && is_string($_POST['brand_name'] ?? null) ? $_POST['brand_name'] : ''); ?>"></label>
-    <label>Brand logo (optional)<input type="file" name="brand_logo" accept="image/jpeg,image/png,image/webp"><small class="manage-secondary">JPEG, PNG, or WebP · 5 MB max</small></label>
-    <div class="manage-form-buttons">
-      <button class="admin-button" type="submit">Add Brand</button>
-    </div>
-  </form>
-</details>
+  <section class="manage-panel catalog-category-panel">
+    <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2>Add Category</h2></div></div>
+    <form method="post" class="manage-form catalog-simple-form" novalidate>
+      <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+      <input type="hidden" name="catalog_view" value="category">
+      <input type="hidden" name="action" value="add_category">
+      <label>Category name<input name="category_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_category' && is_string($_POST['category_name'] ?? null) ? $_POST['category_name'] : ''); ?>"></label>
+      <div class="manage-form-buttons"><button class="admin-button" type="submit">Add Category</button></div>
+    </form>
+  </section>
 
-<details class="catalog-disclosure catalog-product-disclosure"<?php echo $errors && ($_POST['action'] ?? '') === 'create' ? ' open' : ''; ?>>
-  <summary class="admin-button">Add Product</summary>
-  <div class="catalog-dialog-heading">
-    <div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-product-title">Create a product</h2></div>
-  </div>
+  <section class="manage-panel catalog-brand-panel">
+    <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2>Add Brand</h2></div></div>
+    <form method="post" enctype="multipart/form-data" class="manage-form catalog-simple-form" novalidate>
+      <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+      <input type="hidden" name="catalog_view" value="brand">
+      <input type="hidden" name="action" value="add_brand">
+      <label>Brand name<input name="brand_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_brand' && is_string($_POST['brand_name'] ?? null) ? $_POST['brand_name'] : ''); ?>"></label>
+      <label>Brand logo (optional)<input type="file" name="brand_logo" accept="image/jpeg,image/png,image/webp"><small class="manage-secondary">JPEG, PNG, or WebP · 5 MB max</small></label>
+      <div class="manage-form-buttons"><button class="admin-button" type="submit">Add Brand</button></div>
+    </form>
+  </section>
+
+  <section class="manage-panel catalog-create-panel" aria-labelledby="add-product-title">
+    <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2 id="add-product-title">Create a product</h2></div></div>
 <?php if (!$suppliers) { ?>
   <section class="manage-panel product-create-panel">
     <p class="manage-empty">Create a brand first before adding a product.</p>
   </section>
 <?php } else { ?>
   <?php
-  $form_colors = $_POST['colors'] ?? [0 => ['name' => '', 'sizes' => [], 'stocks' => []]];
+  $form_colors = $_POST['colors'] ?? [0 => ['name' => '', 'sizes' => []]];
   if (!is_array($form_colors) || !$form_colors) {
-      $form_colors = [0 => ['name' => '', 'sizes' => [], 'stocks' => []]];
+      $form_colors = [0 => ['name' => '', 'sizes' => []]];
   }
-  $form_colors = array_slice($form_colors, 0, 1, true);
-  $all_size_options = [];
-  foreach ($product_size_guide['sizes'] as $department_sizes) {
-      foreach ($department_sizes as $group_sizes) {
-          $all_size_options = array_merge($all_size_options, $group_sizes);
+  $form_colors = array_slice(array_values($form_colors), 0, 20);
+  if (!$form_colors) {
+      $form_colors = [['name' => '', 'sizes' => []]];
+  }
+  $form_color_count = 1;
+  foreach ($form_colors as $color_index => $form_color) {
+      if (is_array($form_color)
+          && (trim(is_string($form_color['name'] ?? null) ? $form_color['name'] : '') !== ''
+              || !empty($form_color['sizes']))) {
+          $form_color_count = $color_index + 1;
       }
   }
-  $all_size_options = array_values(array_unique($all_size_options));
   $selected_department = is_string($_POST['department'] ?? null) ? $_POST['department'] : 'men';
   $selected_category_id = product_positive_integer($_POST['category_id'] ?? null);
+  $selected_category_name = $selected_category_id === null ? null : ($category_names[$selected_category_id] ?? null);
+  $visible_size_options = in_array($selected_department, ['men', 'women', 'kids'], true)
+      ? product_size_options($product_size_guide, $selected_department, $selected_category_name)
+      : [];
   ?>
   <form method="post" enctype="multipart/form-data" class="manage-form manage-product-create create-product-form" novalidate>
     <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
-    <input type="hidden" name="action" value="create">
-
+    <input type="hidden" name="catalog_view" value="create">
     <section class="manage-panel product-create-panel">
       <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2>Product details</h2></div></div>
       <div class="manage-product-fields">
@@ -484,30 +500,43 @@ include("../includes/header.php");
     <section class="manage-panel product-create-panel product-options-panel">
       <div class="manage-panel-heading">
         <div><p class="admin-eyebrow">PRODUCT OPTIONS</p><h2>Colors, images &amp; sizes</h2></div>
+        <button class="product-size-refresh-button" type="submit" name="action" value="refresh_size_options" aria-label="Refresh available sizes" title="Refresh available sizes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"></path><path d="M5.6 9a7 7 0 0 1 11.6-2L20 12M4 12l2.8 5a7 7 0 0 0 11.6-2"></path></svg>
+        </button>
       </div>
+      <p class="manage-secondary">Select department and category, then refresh sizes here. Refreshing or removing a color clears selected images, so choose images after setting up the colors.</p>
       <div class="product-color-list" id="product-color-list">
-        <?php $color_row_number = 0; foreach ($form_colors as $posted_color) { $posted_color = is_array($posted_color) ? $posted_color : []; $color_index = $color_row_number++; $color_name_value = is_string($posted_color['name'] ?? null) ? $posted_color['name'] : ''; $selected_sizes = is_array($posted_color['sizes'] ?? null) ? $posted_color['sizes'] : []; $selected_stocks = is_array($posted_color['stocks'] ?? null) ? $posted_color['stocks'] : []; ?>
+        <?php for ($color_index = 0; $color_index < 20; $color_index++) {
+          $posted_color = $form_colors[$color_index] ?? [];
+          $posted_color = is_array($posted_color) ? $posted_color : [];
+          $color_name_value = is_string($posted_color['name'] ?? null) ? $posted_color['name'] : '';
+          $selected_sizes = is_array($posted_color['sizes'] ?? null)
+              ? array_values(array_intersect(array_filter($posted_color['sizes'], 'is_string'), $visible_size_options))
+              : [];
+          if ($color_index > 0) { ?>
+            <details class="product-color-disclosure"<?php echo $color_index < $form_color_count ? ' open' : ''; ?>>
+              <summary><span class="add-color-label">Add another color</span><span class="existing-color-label">Color option <?php echo $color_index + 1; ?></span></summary>
+          <?php } ?>
           <div class="product-color-row">
-            <div class="product-color-row-heading"><strong>Color option</strong></div>
+            <div class="product-color-row-heading">
+              <strong>Color option <?php echo $color_index + 1; ?></strong>
+              <button class="product-color-remove" type="submit" name="remove_color" value="<?php echo $color_index; ?>" aria-label="Remove color option <?php echo $color_index + 1; ?>" title="Remove color option">×</button>
+            </div>
             <label>Color name<input name="colors[<?php echo $color_index; ?>][name]" placeholder="e.g. Navy" value="<?php echo admin_escape($color_name_value); ?>"></label>
             <div class="product-color-controls">
-              <div class="product-size-stock">
-                <fieldset class="product-size-options">
-                  <legend>Select sizes and starting stock</legend>
-                    <?php foreach ($all_size_options as $size_option) { ?>
-                      <?php
-                        $raw_posted_stock = $selected_stocks[$size_option] ?? 0;
-                        $posted_stock = is_string($raw_posted_stock) || is_int($raw_posted_stock)
-                          ? filter_var($raw_posted_stock, FILTER_VALIDATE_INT)
-                          : false;
-                        $stock_value = $posted_stock !== false && $posted_stock >= 0 && $posted_stock <= 1000 ? $posted_stock : 0;
-                        ?>
-                        <div class="product-stock-row">
-                          <label><input type="checkbox" name="colors[<?php echo $color_index; ?>][sizes][]" value="<?php echo admin_escape($size_option); ?>" <?php echo in_array($size_option, $selected_sizes, true) ? 'checked' : ''; ?>> <?php echo admin_escape($size_option); ?></label>
-                          <label>Starting stock<input type="number" min="0" max="1000" name="colors[<?php echo $color_index; ?>][stocks][<?php echo admin_escape($size_option); ?>]" value="<?php echo $stock_value; ?>"></label>
-                        </div>
-                      <?php } ?>
-                </fieldset>
+              <div class="product-size-picker">
+                <details>
+                  <summary>Select sizes</summary>
+                  <fieldset class="product-size-options">
+                    <legend>Sizes for <?php echo admin_escape($selected_department); ?> / <?php echo admin_escape($selected_category_name ?? 'uncategorized'); ?></legend>
+                  <?php if (!$visible_size_options) { ?>
+                    <p class="manage-secondary">No sizes available for this department and category.</p>
+                  <?php } ?>
+                  <?php foreach ($visible_size_options as $size_option) { ?>
+                    <label><input type="checkbox" name="colors[<?php echo $color_index; ?>][sizes][]" value="<?php echo admin_escape($size_option); ?>" <?php echo in_array($size_option, $selected_sizes, true) ? 'checked' : ''; ?>> <?php echo admin_escape($size_option); ?></label>
+                  <?php } ?>
+                  </fieldset>
+                </details>
               </div>
               <div class="product-color-image">
                 <div class="product-image-preview"><span>Image preview</span></div>
@@ -520,17 +549,18 @@ include("../includes/header.php");
             </div>
           </div>
         <?php } ?>
+        <?php for ($close_color_index = 1; $close_color_index < 20; $close_color_index++) { ?></details><?php } ?>
       </div>
+      <p class="manage-secondary" id="product-size-help">Choose one or more sizes from the dropdown for each color.</p>
       <div class="product-options-actions">
-        <button class="admin-button" type="submit">Create product</button>
+        <button class="admin-button" type="submit" name="action" value="create">Create product</button>
       </div>
     </section>
   </form>
 <?php } ?>
-</div>
-</details>
+  </section>
 
-<section class="manage-panel manage-list-panel">
+<section class="manage-panel manage-list-panel catalog-products-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT CATALOG</p><h2>Products <span class="manage-count"><?php echo $product_total; ?></span></h2></div></div>
   <?php if ($products) { ?>
     <div class="admin-table-wrap"><table class="admin-table">
@@ -548,6 +578,7 @@ include("../includes/header.php");
             <?php if ((int)$product['order_count'] === 0) { ?>
               <form method="post" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+                <input type="hidden" name="catalog_view" value="products">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="product_id" value="<?php echo (int)$product['product_id']; ?>">
                 <button class="manage-small-button is-danger" type="submit">Delete</button>
@@ -559,7 +590,8 @@ include("../includes/header.php");
         </tr>
       <?php } ?></tbody>
     </table></div>
-    <?php admin_render_pagination($product_pagination['page'], $product_pagination['total_pages']); ?>
-  <?php } else { ?><p class="manage-empty">No products yet. Use Add Product above to add your first product.</p><?php } ?>
+    <?php admin_render_pagination($product_pagination['page'], $product_pagination['total_pages'], 'page', ['catalog_view' => 'products']); ?>
+  <?php } else { ?><p class="manage-empty">No products yet. Use the Add Product panel to add your first product.</p><?php } ?>
 </section>
+</div>
 <?php include("../includes/footer.php"); ?>

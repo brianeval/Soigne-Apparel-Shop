@@ -155,17 +155,17 @@ include_once('../includes/header.php');
       </div>
     <?php } ?>
 
-    <form method="post" action="register.php" enctype="multipart/form-data">
+    <form method="post" action="register.php" enctype="multipart/form-data" novalidate>
       <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect); ?>">
 
       <label for="customer_name">Full name</label>
-      <input type="text" id="customer_name" name="customer_name" value="<?php echo htmlspecialchars($name); ?>" required autofocus>
+      <input type="text" id="customer_name" name="customer_name" value="<?php echo htmlspecialchars($name); ?>" autofocus>
 
       <label for="username">Username</label>
-      <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>" required>
+      <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($username); ?>">
 
       <label for="email">Email</label>
-      <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" required>
+      <input type="text" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>">
 
       <label for="phone">Phone number</label>
       <input type="tel" id="phone" name="phone">
@@ -178,10 +178,10 @@ include_once('../includes/header.php');
       <small id="profile-photo-help" class="register-photo-help">JPEG, PNG, or WebP - 5 MB max</small>
 
       <label for="password">Password (at least 8 characters)</label>
-      <input type="password" id="password" name="password" required minlength="8">
+      <input type="password" id="password" name="password">
 
       <label for="confirm_password">Confirm password</label>
-      <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+      <input type="password" id="confirm_password" name="confirm_password">
 
       <button class="btn" type="submit">Create account</button>
     </form>

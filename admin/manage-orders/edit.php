@@ -263,10 +263,10 @@ include("../includes/header.php");
     <?php } ?>
   </div>
   <?php if ($order['fulfillment_status'] === 'pending') { ?>
-    <form method="post" class="manage-form">
+    <form method="post" class="manage-form" novalidate>
       <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
       <input type="hidden" name="action" value="update_address">
-      <label>Shipping address<textarea name="shipping_address" maxlength="255" rows="3" required><?php echo admin_escape($_POST['shipping_address'] ?? $order['shipping_address']); ?></textarea></label>
+      <label>Shipping address<textarea name="shipping_address" rows="3"><?php echo admin_escape($_POST['shipping_address'] ?? $order['shipping_address']); ?></textarea></label>
       <div class="manage-form-buttons"><button class="admin-button" type="submit">Save shipping address</button></div>
     </form>
   <?php } ?>
