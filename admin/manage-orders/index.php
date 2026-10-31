@@ -188,12 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $ongoing_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE payment_status = 'unpaid' AND fulfillment_status IN ('pending', 'shipped')"))['total'];
 $history_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE payment_status = 'paid' OR fulfillment_status IN ('delivered', 'cancelled', 'failed_delivery')"))['total'];
-$ongoing_pagination = admin_pagination_page($ongoing_order_count, 10, 'ongoing_page');
-$history_pagination = admin_pagination_page($history_order_count, 10, 'history_page');
-$ongoing_limit = $ongoing_pagination['page_size'];
-$ongoing_offset = $ongoing_pagination['offset'];
-$history_limit = $history_pagination['page_size'];
-$history_offset = $history_pagination['offset'];
+$history_search = mb_substr(trim(is_string($_GET['history_search'] ?? null) ? $_GET['history_search'] : ''), 0, 100);
 $ongoing_orders_result = mysqli_query($conn,
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username,
             COALESCE(SUM(details.quantity), 0) AS item_count,
@@ -203,23 +198,30 @@ $ongoing_orders_result = mysqli_query($conn,
      LEFT JOIN order_transaction_details AS details ON details.order_id = o.order_id
      WHERE o.payment_status = 'unpaid' AND o.fulfillment_status IN ('pending', 'shipped')
      GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username
-     ORDER BY o.created_at DESC, o.order_id DESC
-     LIMIT $ongoing_limit OFFSET $ongoing_offset"
+     ORDER BY o.created_at DESC, o.order_id DESC"
 );
 $ongoing_orders = mysqli_fetch_all($ongoing_orders_result, MYSQLI_ASSOC);
-$history_orders_result = mysqli_query($conn,
+$history_sql =
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username,
             COALESCE(SUM(details.quantity), 0) AS item_count,
             COALESCE(SUM(details.line_subtotal), 0) AS order_total
      FROM orders o
      JOIN users u ON u.user_id = o.user_id
      LEFT JOIN order_transaction_details AS details ON details.order_id = o.order_id
-     WHERE o.payment_status = 'paid' OR o.fulfillment_status IN ('delivered', 'cancelled', 'failed_delivery')
-     GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username
-     ORDER BY o.created_at DESC, o.order_id DESC
-     LIMIT $history_limit OFFSET $history_offset"
-);
-$history_orders = mysqli_fetch_all($history_orders_result, MYSQLI_ASSOC);
+     WHERE (o.payment_status = 'paid' OR o.fulfillment_status IN ('delivered', 'cancelled', 'failed_delivery'))";
+if ($history_search !== '') {
+    $history_sql .= ' AND (u.username LIKE ? OR CAST(o.order_id AS CHAR) LIKE ?)';
+}
+$history_sql .=
+    " GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username
+     ORDER BY o.created_at DESC, o.order_id DESC";
+$history_orders_stmt = mysqli_prepare($conn, $history_sql);
+if ($history_search !== '') {
+    $history_search_value = '%' . $history_search . '%';
+    mysqli_stmt_bind_param($history_orders_stmt, 'ss', $history_search_value, $history_search_value);
+}
+mysqli_stmt_execute($history_orders_stmt);
+$history_orders = mysqli_fetch_all(mysqli_stmt_get_result($history_orders_stmt), MYSQLI_ASSOC);
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Orders';
 $admin_active_page = 'orders';
@@ -262,11 +264,18 @@ include("../includes/header.php");
       </div></td>
     </tr><?php } ?></tbody>
   </table></div><?php } else { ?><p class="manage-empty">No ongoing orders.</p><?php } ?>
-  <?php if ($ongoing_orders) { admin_render_pagination($ongoing_pagination['page'], $ongoing_pagination['total_pages'], 'ongoing_page', ['order_view' => 'ongoing']); } ?>
 </section>
 
 <section class="manage-panel manage-list-panel order-history-panel">
-  <div class="manage-panel-heading"><div><p class="admin-eyebrow">COMPLETED &amp; CANCELLED</p><h2>Order history <span class="manage-count"><?php echo $history_order_count; ?></span></h2></div></div>
+  <div class="manage-panel-heading">
+    <div><p class="admin-eyebrow">COMPLETED &amp; CANCELLED</p><h2>Order history <span class="manage-count"><?php echo $history_order_count; ?></span></h2></div>
+    <form method="get" class="inventory-history-search">
+      <input type="hidden" name="order_view" value="history">
+      <label class="visually-hidden" for="order-history-search">Search customer or order ID</label>
+      <input id="order-history-search" type="search" name="history_search" value="<?php echo admin_escape($history_search); ?>" placeholder="Search customer or order ID">
+      <button class="admin-button admin-button-light" type="submit">Search</button>
+    </form>
+  </div>
   <?php if ($history_orders) { ?><div class="admin-table-wrap"><table class="admin-table">
     <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
     <tbody><?php foreach ($history_orders as $order) { ?><tr>
@@ -293,7 +302,6 @@ include("../includes/header.php");
       </div></td>
     </tr><?php } ?></tbody>
   </table></div><?php } else { ?><p class="manage-empty">No orders in history.</p><?php } ?>
-  <?php if ($history_orders) { admin_render_pagination($history_pagination['page'], $history_pagination['total_pages'], 'history_page', ['order_view' => 'history']); } ?>
 </section>
 </div>
 <?php include("../includes/footer.php"); ?>

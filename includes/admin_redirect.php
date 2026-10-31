@@ -1,7 +1,7 @@
 <?php
 function safe_admin_return_path($destination): string
 {
-    $fallback = BASE_URL . 'admin/index.php';
+    $fallback = BASE_URL . 'admin/manage-products/';
     if (!is_string($destination) || $destination === '' || strlen($destination) > 2048) {
         return $fallback;
     }

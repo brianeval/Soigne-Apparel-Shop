@@ -8,7 +8,7 @@ $login_notice = $_SESSION['admin_login_notice'] ?? '';
 unset($_SESSION['admin_login_notice']);
 
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
-    header('Location: ' . BASE_URL . 'admin/index.php');
+    header('Location: ' . BASE_URL . 'admin/manage-products/');
     exit;
 }
 

@@ -16,13 +16,12 @@ $admin_header_name = $_SESSION['username'] ?? 'Administrator';
   <div class="admin-app">
     <input class="admin-sidebar-toggle-input visually-hidden" type="checkbox" id="admin-sidebar-toggle" aria-label="Collapse sidebar">
     <aside class="admin-sidebar" id="admin-sidebar">
-      <a class="admin-brand" href="<?php echo BASE_URL; ?>admin/index.php">
+      <a class="admin-brand" href="<?php echo BASE_URL; ?>admin/manage-products/">
         <span class="admin-brand-mark">S</span>
         <span class="admin-brand-copy">SOIGNÉ <small>ADMINISTRATION</small></span>
       </a>
       <p class="admin-nav-label">WORKSPACE</p>
       <nav class="admin-nav" aria-label="Admin navigation">
-        <a class="<?php echo $admin_active_page === 'overview' ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>admin/index.php"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><rect x="14" y="14" width="6" height="6" rx="1"></rect></svg><span class="nav-label-text">Overview</span></a>
         <a class="<?php echo $admin_active_page === 'products' ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>admin/manage-products/"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m4 8 8-4 8 4v9l-8 4-8-4z"></path><path d="m4 8 8 4 8-4M12 12v9"></path></svg><span class="nav-label-text">Manage Products</span></a>
         <a class="<?php echo $admin_active_page === 'inventory' ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>admin/manage-inventory/"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3M8 11h8M8 15h5"></path></svg><span class="nav-label-text">Manage Inventory</span></a>
         <a class="<?php echo $admin_active_page === 'orders' ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>admin/manage-orders/"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"></path><path d="M4 6h.01M4 12h.01M4 18h.01"></path></svg><span class="nav-label-text">Manage Orders</span></a>

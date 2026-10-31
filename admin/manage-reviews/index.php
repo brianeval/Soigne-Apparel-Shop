@@ -24,30 +24,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
-    $page = $page === false ? 1 : max(1, $page);
-    header('Location: ' . BASE_URL . 'admin/manage-reviews/?page=' . $page);
+    $review_filters = [
+        'product_search' => is_string($_GET['product_search'] ?? null) ? $_GET['product_search'] : '',
+        'rating' => is_string($_GET['rating'] ?? null) ? $_GET['rating'] : '',
+    ];
+    header('Location: ' . BASE_URL . 'admin/manage-reviews/?' . http_build_query($review_filters));
     exit;
 }
 
-$count_stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS total FROM product_reviews WHERE status IN ('pending', 'published')");
-mysqli_stmt_execute($count_stmt);
-$review_total = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($count_stmt))['total'];
-$pagination = admin_pagination_page($review_total, 20);
+$product_search = mb_substr(trim(is_string($_GET['product_search'] ?? null) ? $_GET['product_search'] : ''), 0, 100);
+$rating_value = is_string($_GET['rating'] ?? null) ? $_GET['rating'] : '';
+$rating = in_array($rating_value, ['1', '2', '3', '4', '5'], true) ? (int)$rating_value : null;
 
+$review_conditions = ["r.status IN ('pending', 'published')"];
+$review_filter_types = '';
+$review_filter_values = [];
+if ($product_search !== '') {
+    $review_conditions[] = 'p.name LIKE ?';
+    $review_filter_types .= 's';
+    $review_filter_values[] = '%' . $product_search . '%';
+}
+if ($rating !== null) {
+    $review_conditions[] = 'r.rating = ?';
+    $review_filter_types .= 'i';
+    $review_filter_values[] = $rating;
+}
 $review_sql =
      "SELECT r.review_id, r.rating, r.review_text, r.status, r.created_at, r.published_at,
              p.product_id, p.name AS product_name, u.username
       FROM product_reviews r
       JOIN products p ON p.product_id = r.product_id
       JOIN users u ON u.user_id = r.user_id
-      WHERE r.status IN ('pending', 'published')
-      ORDER BY (r.status = 'pending') DESC, r.created_at DESC, r.review_id DESC
-      LIMIT ? OFFSET ?";
+      WHERE " . implode(' AND ', $review_conditions) . "
+      ORDER BY (r.status = 'pending') DESC, r.created_at DESC, r.review_id DESC";
 $reviews_stmt = mysqli_prepare($conn, $review_sql);
-mysqli_stmt_bind_param($reviews_stmt, 'ii', $pagination['page_size'], $pagination['offset']);
+if ($review_filter_types !== '') {
+    $review_bindings = [$review_filter_types];
+    foreach ($review_filter_values as &$review_filter_value) {
+        $review_bindings[] = &$review_filter_value;
+    }
+    unset($review_filter_value);
+    call_user_func_array('mysqli_stmt_bind_param', array_merge([$reviews_stmt], $review_bindings));
+}
 mysqli_stmt_execute($reviews_stmt);
 $reviews = mysqli_fetch_all(mysqli_stmt_get_result($reviews_stmt), MYSQLI_ASSOC);
+$review_total = count($reviews);
 
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Reviews';
@@ -62,6 +83,18 @@ include("../includes/header.php");
 <section class="manage-panel manage-list-panel">
   <div class="manage-panel-heading">
     <div><p class="admin-eyebrow">PRODUCT REVIEWS</p><h2>Reviews <span class="manage-count"><?php echo $review_total; ?></span></h2></div>
+    <form method="get" class="inventory-history-search review-filters">
+      <label class="visually-hidden" for="review-product-search">Search product name</label>
+      <input id="review-product-search" type="search" name="product_search" value="<?php echo admin_escape($product_search); ?>" placeholder="Search product name">
+      <label class="visually-hidden" for="review-rating-filter">Filter by rating</label>
+      <select id="review-rating-filter" name="rating">
+        <option value="">All ratings</option>
+        <?php for ($star_rating = 5; $star_rating >= 1; $star_rating--) { ?>
+          <option value="<?php echo $star_rating; ?>" <?php echo $rating === $star_rating ? 'selected' : ''; ?>><?php echo $star_rating; ?> star<?php echo $star_rating === 1 ? '' : 's'; ?></option>
+        <?php } ?>
+      </select>
+      <button class="admin-button admin-button-light" type="submit">Apply</button>
+    </form>
   </div>
   <?php if ($reviews) { ?>
     <div class="admin-table-wrap">
@@ -76,18 +109,20 @@ include("../includes/header.php");
               <td><span class="review-admin-status is-<?php echo admin_escape($review['status']); ?>"><?php echo ucfirst(admin_escape($review['status'])); ?></span></td>
               <td><?php echo admin_escape(date('M j, Y', strtotime($review['created_at']))); ?></td>
               <td>
-                <form method="post">
-                  <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
-                  <input type="hidden" name="review_id" value="<?php echo (int)$review['review_id']; ?>">
-                  <button class="manage-small-button is-danger" type="submit" name="action" value="delete">Delete</button>
-                </form>
+                <div class="manage-form-buttons">
+                  <a class="manage-small-button" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$review['product_id']; ?>&amp;review_id=<?php echo (int)$review['review_id']; ?>#review-<?php echo (int)$review['review_id']; ?>">View review</a>
+                  <form method="post">
+                    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
+                    <input type="hidden" name="review_id" value="<?php echo (int)$review['review_id']; ?>">
+                    <button class="manage-small-button is-danger" type="submit" name="action" value="delete">Delete</button>
+                  </form>
+                </div>
               </td>
             </tr>
           <?php } ?>
         </tbody>
       </table>
     </div>
-    <?php admin_render_pagination($pagination['page'], $pagination['total_pages']); ?>
   <?php } else { ?>
     <p class="manage-empty">No reviews found.</p>
   <?php } ?>

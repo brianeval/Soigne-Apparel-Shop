@@ -8,22 +8,6 @@ $brand    = null;
 $brands   = [];
 $products = [];
 
-function brand_logo_filename(string $name, ?string $stored_image): ?string
-{
-    $brand_name = mb_strtolower(trim($name));
-
-    if ($brand_name === 'h&m') {
-        return 'h-m-logo.png';
-    }
-    if ($brand_name === 'nike') {
-        return 'nike-logo.jpg';
-    }
-    if ($brand_name === 'penshoppe') {
-        return 'penshoppe-logo.jpeg';
-    }
-
-    return $stored_image !== null && $stored_image !== '' ? $stored_image : null;
-}
 
 if ($brand_name !== '') {
     $brand_stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE name = ?");
@@ -72,7 +56,7 @@ if ($brand_id > 0) {
     $result = mysqli_query($conn,
         "SELECT s.supplier_id, s.name, s.image, COUNT(p.product_id) AS product_count
          FROM suppliers s
-         JOIN products p ON p.supplier_id = s.supplier_id
+         LEFT JOIN products p ON p.supplier_id = s.supplier_id
          GROUP BY s.supplier_id, s.name, s.image
          ORDER BY s.name");
     $brands = mysqli_fetch_all($result, MYSQLI_ASSOC);
@@ -92,7 +76,7 @@ include_once ('includes/header.php');
   <p class="brand-back"><a href="<?php echo BASE_URL; ?>brands.php">&larr; All brands</a></p>
 
   <div class="brand-head">
-    <?php $brand_logo = brand_logo_filename($brand['name'], $brand['image'] ?? null); ?>
+    <?php $brand_logo = $brand['image']; ?>
     <?php if ($brand_logo !== null) { ?>
       <img class="brand-head-logo"
            src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($brand_logo); ?>"
@@ -119,7 +103,7 @@ include_once ('includes/header.php');
   <?php } else { ?>
     <div class="brand-grid">
       <?php foreach ($brands as $b) { ?>
-        <?php $brand_logo = brand_logo_filename($b['name'], $b['image'] ?? null); ?>
+        <?php $brand_logo = $b['image']; ?>
         <a class="brand-card" href="<?php echo BASE_URL; ?>brands.php?id=<?php echo (int)$b['supplier_id']; ?>">
           <div class="brand-logo-box">
             <?php if ($brand_logo !== null) { ?>

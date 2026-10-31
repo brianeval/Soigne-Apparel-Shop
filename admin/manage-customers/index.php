@@ -119,22 +119,28 @@ $expire_vip_stmt = mysqli_prepare($conn,
      WHERE role = 'vip' AND vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP"
 );
 mysqli_stmt_execute($expire_vip_stmt);
-$customer_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role IN ('customer', 'vip')"))['total'];
-$customer_pagination = admin_pagination_page($customer_total);
-$customer_limit = $customer_pagination['page_size'];
-$customer_offset = $customer_pagination['offset'];
-$customer_list_result = mysqli_query($conn,
+$customer_search = mb_substr(trim(is_string($_GET['search'] ?? null) ? $_GET['search'] : ''), 0, 100);
+$customer_sql =
     "SELECT u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone,
             COUNT(DISTINCT o.order_id) AS order_count
      FROM users u
      LEFT JOIN customers c ON c.user_id = u.user_id
      LEFT JOIN orders o ON o.user_id = u.user_id
-     WHERE u.role IN ('customer', 'vip')
-     GROUP BY u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone
-     ORDER BY u.user_id DESC
-     LIMIT $customer_limit OFFSET $customer_offset"
-);
-$customers = mysqli_fetch_all($customer_list_result, MYSQLI_ASSOC);
+     WHERE u.role IN ('customer', 'vip')";
+if ($customer_search !== '') {
+    $customer_sql .= ' AND (c.customer_name LIKE ? OR u.username LIKE ? OR u.email LIKE ? OR c.phone LIKE ?)';
+}
+$customer_sql .=
+    " GROUP BY u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone
+     ORDER BY u.user_id DESC";
+$customer_stmt = mysqli_prepare($conn, $customer_sql);
+if ($customer_search !== '') {
+    $customer_search_value = '%' . $customer_search . '%';
+    mysqli_stmt_bind_param($customer_stmt, 'ssss', $customer_search_value, $customer_search_value, $customer_search_value, $customer_search_value);
+}
+mysqli_stmt_execute($customer_stmt);
+$customers = mysqli_fetch_all(mysqli_stmt_get_result($customer_stmt), MYSQLI_ASSOC);
+$customer_total = count($customers);
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Customers';
 $admin_active_page = 'customers';
@@ -170,7 +176,15 @@ include("../includes/header.php");
 </section>
 
 <section class="manage-panel manage-list-panel customer-directory-panel">
-  <div class="manage-panel-heading"><div><p class="admin-eyebrow">CUSTOMER DIRECTORY</p><h2>Customers <span class="manage-count"><?php echo $customer_total; ?></span></h2></div></div>
+  <div class="manage-panel-heading">
+    <div><p class="admin-eyebrow">CUSTOMER DIRECTORY</p><h2>Customers <span class="manage-count"><?php echo $customer_total; ?></span></h2></div>
+    <form method="get" class="inventory-history-search">
+      <input type="hidden" name="customer_view" value="directory">
+      <label class="visually-hidden" for="customer-search">Search customer</label>
+      <input id="customer-search" type="search" name="search" value="<?php echo admin_escape($customer_search); ?>" placeholder="Search customer">
+      <button class="admin-button admin-button-light" type="submit">Search</button>
+    </form>
+  </div>
   <?php if ($customers) { ?>
     <div class="admin-table-wrap"><table class="admin-table">
       <thead><tr><th>Customer</th><th>Username</th><th>Email</th><th>Orders</th><th>Role</th><th>Account</th><th>Actions</th></tr></thead>
@@ -207,7 +221,6 @@ include("../includes/header.php");
         </tr>
       <?php } ?></tbody>
     </table></div>
-    <?php admin_render_pagination($customer_pagination['page'], $customer_pagination['total_pages'], 'page', ['customer_view' => 'directory']); ?>
   <?php } else { ?><p class="manage-empty">No customer accounts found.</p><?php } ?>
 </section>
 </div>

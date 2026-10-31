@@ -12,7 +12,7 @@ $redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
 // Admin redirect
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
-    header('Location: ' . BASE_URL . 'admin/index.php');
+    header('Location: ' . BASE_URL . 'admin/manage-products/');
     exit;
 }
 

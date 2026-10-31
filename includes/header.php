@@ -50,7 +50,9 @@ if (!isset($page_title)) {
       <input type="search" name="q" value="<?php echo htmlspecialchars($_GET['q'] ?? ''); ?>" placeholder="Search products/brands" aria-label="Search products or brands">
     </form>
     <div class="icons">
-      <a href="<?php echo BASE_URL; ?>cart/cart.php">🛒 Cart (<?php echo $cart_count; ?>)</a>
+      <?php if (($_SESSION['role'] ?? '') !== 'admin') { ?>
+        <a href="<?php echo BASE_URL; ?>cart/cart.php">🛒 Cart (<?php echo $cart_count; ?>)</a>
+      <?php } ?>
 
       <details class="account-menu">
         <summary class="account-toggle">
@@ -64,10 +66,11 @@ if (!isset($page_title)) {
         <div class="account-dropdown">
           <?php if (isset($_SESSION['user_id'])) { ?>
             <p class="account-hello">Hi, <?php echo htmlspecialchars($_SESSION['username'] ?? 'there'); ?></p>
-            <a href="<?php echo BASE_URL; ?>users/profile.php">My profile</a>
-            <a href="<?php echo BASE_URL; ?>orders/orders.php">My orders</a>
             <?php if (($_SESSION['role'] ?? '') === 'admin') { ?>
-              <a href="<?php echo BASE_URL; ?>admin/index.php">Admin dashboard</a>
+              <a href="<?php echo BASE_URL; ?>admin/manage-products/">Back to admin page</a>
+            <?php } else { ?>
+              <a href="<?php echo BASE_URL; ?>users/profile.php">My profile</a>
+              <a href="<?php echo BASE_URL; ?>orders/orders.php">My orders</a>
             <?php } ?>
             <a class="account-logout" href="<?php echo BASE_URL; ?>users/logout.php">Sign out</a>
           <?php } else { ?>
@@ -91,21 +94,7 @@ if (!isset($page_title)) {
     <a href="<?php echo BASE_URL; ?>category.php?category=chinos">Chinos</a>
     <a href="<?php echo BASE_URL; ?>category.php?category=jeans">Jeans</a>
     <a href="<?php echo BASE_URL; ?>category.php?category=polos">Polos</a>
-    <details class="premium-nav-menu">
-      <summary class="premium-nav-trigger">Soigné Premium</summary>
-      <div class="premium-dialog" id="premium-dialog">
-        <p class="premium-eyebrow">SOIGNÉ PREMIUM</p>
-        <h2 id="premium-dialog-title">A little more Soigné</h2>
-        <p class="premium-price">₱1,000 <span>/ 1 month</span></p>
-        <p>Enjoy 10% off every product while your Soigné Premium VIP membership is active.</p>
-        <p class="premium-activation-note">Pay through GCash and submit your receipt. An administrator will review the payment and activate VIP after approval.</p>
-        <?php if ($customer_role === 'vip') { ?>
-          <p class="premium-active-note">Your VIP membership is active. Thank you for purchasing Soigné Premium.</p>
-        <?php } elseif (in_array($customer_role, ['customer', 'guest'], true)) { ?>
-          <a class="btn premium-buy-now" href="<?php echo BASE_URL; ?>users/premium_checkout.php">Buy Now</a>
-        <?php } ?>
-      </div>
-    </details>
+    <a href="<?php echo BASE_URL; ?>premium.php">Soigné Premium</a>
 
   
   </nav>

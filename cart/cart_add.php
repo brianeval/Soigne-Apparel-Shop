@@ -3,34 +3,30 @@ session_start();
 include_once ('../includes/config.php');
 require_once("../includes/customer_auth.php");
 
-// Resume cart addition after sign-in
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_SESSION['role'] ?? '') === 'admin') {
-    $_SESSION['pending_cart_add'] = [
-        'variant_id' => (int)($_POST['variant_id'] ?? 0),
-        'quantity' => max(1, (int)($_POST['quantity'] ?? 1)),
-    ];
-    $resume_path = BASE_URL . 'cart/cart_add.php?resume=1';
-    header('Location: ' . BASE_URL . 'users/login.php?redirect=' . urlencode($resume_path));
+    $variant_id = (int)($_POST['variant_id'] ?? 0);
+    $product_stmt = mysqli_prepare($conn,
+        'SELECT p.product_id
+         FROM product_variants v
+         JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+         JOIN products p ON p.product_id = pc.product_id
+         WHERE v.variant_id = ?'
+    );
+    mysqli_stmt_bind_param($product_stmt, 'i', $variant_id);
+    mysqli_stmt_execute($product_stmt);
+    $product = mysqli_fetch_assoc(mysqli_stmt_get_result($product_stmt));
+    $_SESSION['flash'] = ['type' => 'error', 'text' => 'Administrators cannot add products to the cart.'];
+    $location = $product
+        ? BASE_URL . 'product.php?id=' . (int)$product['product_id']
+        : BASE_URL . 'index.php';
+    header('Location: ' . $location);
     exit;
 }
 
-$is_resume = $_SERVER['REQUEST_METHOD'] === 'GET'
-    && ($_GET['resume'] ?? '') === '1'
-    && isset($_SESSION['pending_cart_add'])
-    && is_array($_SESSION['pending_cart_add']);
-$redirect_path = $is_resume
-    ? BASE_URL . 'cart/cart_add.php?resume=1'
-    : BASE_URL . 'cart/cart.php';
-
 // Customer access
-require_active_customer($conn, $redirect_path);
+require_active_customer($conn, BASE_URL . 'cart/cart.php');
 
-if ($is_resume) {
-    $pending_add = $_SESSION['pending_cart_add'];
-    unset($_SESSION['pending_cart_add']);
-    $variant_id = (int)($pending_add['variant_id'] ?? 0);
-    $quantity = max(1, (int)($pending_add['quantity'] ?? 1));
-} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $variant_id = (int)($_POST['variant_id'] ?? 0);
     $quantity = max(1, (int)($_POST['quantity'] ?? 1));
 } else {

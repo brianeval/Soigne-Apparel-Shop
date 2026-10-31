@@ -48,6 +48,21 @@ $posted_variant_ids = is_array($_POST['variant_ids'] ?? null) ? array_values($_P
 $posted_quantities = is_array($_POST['quantities'] ?? null) ? array_values($_POST['quantities']) : [];
 $posted_unit_costs = is_array($_POST['unit_costs'] ?? null) ? array_values($_POST['unit_costs']) : [];
 $variant_supplier_id = is_string($_POST['variant_supplier_id'] ?? null) ? $_POST['variant_supplier_id'] : '';
+if ($post_action === 'load_variants') {
+    $variant_supplier_id = $posted_supplier_id;
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['remove_line'])) {
+    $remove_line_index = filter_var($_POST['remove_line'], FILTER_VALIDATE_INT);
+    if ($remove_line_index === false
+        || $remove_line_index < 0
+        || $remove_line_index >= count($posted_variant_ids)) {
+        $errors[] = 'Choose a valid product variant line to remove.';
+    } else {
+        array_splice($posted_variant_ids, $remove_line_index, 1);
+        array_splice($posted_quantities, $remove_line_index, 1);
+        array_splice($posted_unit_costs, $remove_line_index, 1);
+    }
+}
 
 if (!isset($_SESSION['inventory_restock_tokens']) || !is_array($_SESSION['inventory_restock_tokens'])) {
     $_SESSION['inventory_restock_tokens'] = [];
@@ -58,49 +73,99 @@ foreach ($_SESSION['inventory_restock_tokens'] as $token => $issued_at) {
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $supplier_id = $_POST['supplier_id'];
-
-    mysqli_begin_transaction($conn);
-
-    // 1. Create the restock record
-    $restock_date = date('Y-m-d');
-    $restock_stmt = mysqli_prepare($conn,
-        'INSERT INTO restocks (batch_number, supplier_id, restock_date) VALUES (NULL, ?, ?)'
-    );
-    mysqli_stmt_bind_param($restock_stmt, 'is', $supplier_id, $restock_date);
-    mysqli_stmt_execute($restock_stmt);
-    $restock_id = mysqli_insert_id($conn);
-
-    // 2. Generate the batch number
-    $batch_number = sprintf('RS-%s-%05d', substr($restock_date, 0, 4), $restock_id);
-    $batch_stmt = mysqli_prepare($conn, 'UPDATE restocks SET batch_number = ? WHERE restock_id = ?');
-    mysqli_stmt_bind_param($batch_stmt, 'si', $batch_number, $restock_id);
-    mysqli_stmt_execute($batch_stmt);
-
-    // 3. Save each line and add to stock
-    $item_stmt = mysqli_prepare($conn,
-        'INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost) VALUES (?, ?, ?, ?)'
-    );
-    $stock_stmt = mysqli_prepare($conn,
-        'UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?'
-    );
-
-    foreach ($posted_variant_ids as $index => $variant_id) {
-        $quantity  = $posted_quantities[$index];
-        $unit_cost = $posted_unit_costs[$index];
-
-        mysqli_stmt_bind_param($item_stmt, 'iiis', $restock_id, $variant_id, $quantity, $unit_cost);
-        mysqli_stmt_execute($item_stmt);
-
-        mysqli_stmt_bind_param($stock_stmt, 'ii', $quantity, $variant_id);
-        mysqli_stmt_execute($stock_stmt);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $post_action === 'create') {
+    $supplier_id = filter_var($_POST['supplier_id'] ?? null, FILTER_VALIDATE_INT);
+    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
+        $errors[] = 'Your session expired. Refresh the page and try again.';
+    }
+    if ($supplier_id === false || $supplier_id < 1) {
+        $errors[] = 'Choose a supplier for this restock.';
+    }
+    if (($_POST['confirmed'] ?? '') !== '1') {
+        $errors[] = 'Confirm that you reviewed the restock details before saving.';
     }
 
-    mysqli_commit($conn);
-    admin_set_flash('success', 'Restock ' . $batch_number . ' saved and stock updated.');
-    header('Location: ' . BASE_URL . 'admin/manage-inventory/');
-    exit;
+    $restock_lines = [];
+    $variant_supplier_stmt = mysqli_prepare($conn,
+        'SELECT v.stock
+         FROM product_variants v
+         JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+         JOIN products p ON p.product_id = pc.product_id
+         WHERE v.variant_id = ? AND p.supplier_id = ?'
+    );
+    foreach ($posted_variant_ids as $index => $posted_variant_id) {
+        if ($posted_variant_id === '') {
+            continue;
+        }
+        $variant_id = is_string($posted_variant_id) ? filter_var($posted_variant_id, FILTER_VALIDATE_INT) : false;
+        $quantity_value = $posted_quantities[$index] ?? null;
+        $quantity = is_string($quantity_value) ? filter_var($quantity_value, FILTER_VALIDATE_INT) : false;
+        $unit_cost = $posted_unit_costs[$index] ?? null;
+        if ($variant_id === false || $variant_id < 1
+            || $quantity === false || $quantity < 1 || $quantity > INVENTORY_MAX_STOCK
+            || inventory_cost_to_cents($unit_cost) === null) {
+            $errors[] = 'Choose a valid product variant and enter a positive quantity and valid unit cost for each restock line.';
+            continue;
+        }
+
+        mysqli_stmt_bind_param($variant_supplier_stmt, 'ii', $variant_id, $supplier_id);
+        mysqli_stmt_execute($variant_supplier_stmt);
+        $variant_row = mysqli_fetch_assoc(mysqli_stmt_get_result($variant_supplier_stmt));
+        if (!$variant_row) {
+            $errors[] = 'Every selected variant must belong to the chosen supplier.';
+            continue;
+        }
+        if ((int)$variant_row['stock'] + $quantity > INVENTORY_MAX_STOCK) {
+            $errors[] = 'The received quantity would exceed the maximum stock value for a selected variant.';
+            continue;
+        }
+
+        $restock_lines[] = [
+            'variant_id' => $variant_id,
+            'quantity' => $quantity,
+            'unit_cost' => $unit_cost,
+        ];
+    }
+    if (!$restock_lines) {
+        $errors[] = 'Select at least one product variant before saving the restock.';
+    }
+
+    if (!$errors) {
+        mysqli_begin_transaction($conn);
+
+        $restock_date = date('Y-m-d');
+        $restock_stmt = mysqli_prepare($conn,
+            'INSERT INTO restocks (batch_number, supplier_id, restock_date) VALUES (NULL, ?, ?)'
+        );
+        mysqli_stmt_bind_param($restock_stmt, 'is', $supplier_id, $restock_date);
+        mysqli_stmt_execute($restock_stmt);
+        $restock_id = mysqli_insert_id($conn);
+
+        $batch_number = sprintf('RS-%s-%05d', substr($restock_date, 0, 4), $restock_id);
+        $batch_stmt = mysqli_prepare($conn, 'UPDATE restocks SET batch_number = ? WHERE restock_id = ?');
+        mysqli_stmt_bind_param($batch_stmt, 'si', $batch_number, $restock_id);
+        mysqli_stmt_execute($batch_stmt);
+
+        $item_stmt = mysqli_prepare($conn,
+            'INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost) VALUES (?, ?, ?, ?)'
+        );
+        $stock_stmt = mysqli_prepare($conn,
+            'UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?'
+        );
+
+        foreach ($restock_lines as $line) {
+            mysqli_stmt_bind_param($item_stmt, 'iiis', $restock_id, $line['variant_id'], $line['quantity'], $line['unit_cost']);
+            mysqli_stmt_execute($item_stmt);
+
+            mysqli_stmt_bind_param($stock_stmt, 'ii', $line['quantity'], $line['variant_id']);
+            mysqli_stmt_execute($stock_stmt);
+        }
+
+        mysqli_commit($conn);
+        admin_set_flash('success', 'Restock ' . $batch_number . ' saved and stock updated.');
+        header('Location: ' . BASE_URL . 'admin/manage-inventory/');
+        exit;
+    }
 }
 
 $restock_token = is_string($_POST['restock_token'] ?? null)
@@ -210,13 +275,6 @@ $inventory_count_stmt = mysqli_prepare($conn,
 inventory_bind_params($inventory_count_stmt, $inventory_types, $inventory_params);
 mysqli_stmt_execute($inventory_count_stmt);
 $inventory_total = (int)mysqli_fetch_row(mysqli_stmt_get_result($inventory_count_stmt))[0];
-$inventory_pagination = admin_pagination_page($inventory_total, 15, 'inventory_page');
-$inventory_limit = $inventory_pagination['page_size'];
-$inventory_offset = $inventory_pagination['offset'];
-$inventory_list_params = $inventory_params;
-$inventory_list_params[] = $inventory_limit;
-$inventory_list_params[] = $inventory_offset;
-$inventory_list_types = $inventory_types . 'ii';
 $inventory_stmt = mysqli_prepare($conn,
     'SELECT v.variant_id, v.stock, v.size, pc.color, p.name AS product_name, p.department,
             COALESCE(c.name, \'Uncategorized\') AS category_name, s.name AS supplier_name
@@ -225,10 +283,9 @@ $inventory_stmt = mysqli_prepare($conn,
      JOIN products p ON p.product_id = pc.product_id
      JOIN suppliers s ON s.supplier_id = p.supplier_id
      LEFT JOIN categories c ON c.category_id = p.category_id' . $inventory_where . '
-     ORDER BY p.name, s.name, pc.color, v.size
-     LIMIT ? OFFSET ?'
+     ORDER BY p.name, s.name, pc.color, v.size'
 );
-inventory_bind_params($inventory_stmt, $inventory_list_types, $inventory_list_params);
+inventory_bind_params($inventory_stmt, $inventory_types, $inventory_params);
 mysqli_stmt_execute($inventory_stmt);
 $inventory_rows = mysqli_fetch_all(mysqli_stmt_get_result($inventory_stmt), MYSQLI_ASSOC);
 
@@ -252,10 +309,6 @@ $history_count_stmt = mysqli_prepare($conn,
 inventory_bind_params($history_count_stmt, $history_types, $history_params);
 mysqli_stmt_execute($history_count_stmt);
 $history_total = (int)mysqli_fetch_row(mysqli_stmt_get_result($history_count_stmt))[0];
-$history_pagination = admin_pagination_page($history_total, 10, 'history_page');
-$history_list_params = $history_params;
-$history_list_params[] = $history_pagination['page_size'];
-$history_list_params[] = $history_pagination['offset'];
 $history_stmt = mysqli_prepare($conn,
     'SELECT r.restock_id, r.batch_number, r.restock_date, s.name AS supplier_name,
             COUNT(ri.restock_item_id) AS line_count,
@@ -265,10 +318,9 @@ $history_stmt = mysqli_prepare($conn,
      JOIN suppliers s ON s.supplier_id = r.supplier_id
      LEFT JOIN restock_items ri ON ri.restock_id = r.restock_id' . $history_where . '
      GROUP BY r.restock_id, r.batch_number, r.restock_date, s.name
-     ORDER BY r.restock_date DESC, r.restock_id DESC
-     LIMIT ? OFFSET ?'
+     ORDER BY r.restock_date DESC, r.restock_id DESC'
 );
-inventory_bind_params($history_stmt, $history_types . 'ii', $history_list_params);
+inventory_bind_params($history_stmt, $history_types, $history_params);
 mysqli_stmt_execute($history_stmt);
 $history_rows = mysqli_fetch_all(mysqli_stmt_get_result($history_stmt), MYSQLI_ASSOC);
 
@@ -324,7 +376,6 @@ include("../includes/header.php");
           </tr>
         <?php } ?></tbody>
       </table></div>
-      <?php admin_render_pagination($inventory_pagination['page'], $inventory_pagination['total_pages'], 'inventory_page', ['inventory_view' => 'stock']); ?>
     <?php } else { ?><p class="manage-empty">No product variants match these filters.</p><?php } ?>
   </section>
 
@@ -353,7 +404,6 @@ include("../includes/header.php");
           </tr>
         <?php } ?></tbody>
       </table></div>
-      <?php admin_render_pagination($history_pagination['page'], $history_pagination['total_pages'], 'history_page', ['inventory_view' => 'history']); ?>
     <?php } else { ?><p class="manage-empty"><?php echo $history_search !== '' ? 'No restocks match this search.' : 'No restocks have been recorded.'; ?></p><?php } ?>
   </section>
 
@@ -375,7 +425,7 @@ include("../includes/header.php");
         <p class="manage-secondary">This supplier has no product variants available to restock.</p>
       <?php } ?>
       <?php
-      $line_count = max(1, min(50, count($posted_variant_ids)));
+      $line_count = max(1, min(50, count($posted_variant_ids) + ($post_action === 'add_line' ? 1 : 0)));
       for ($line_index = 0; $line_index < $line_count; $line_index++) {
         $selected_variant_id = is_string($posted_variant_ids[$line_index] ?? null) ? $posted_variant_ids[$line_index] : '';
         $line_quantity = is_string($posted_quantities[$line_index] ?? null) ? $posted_quantities[$line_index] : '1';

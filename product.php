@@ -35,6 +35,25 @@ $reviews_stmt = mysqli_prepare($conn,
 mysqli_stmt_bind_param($reviews_stmt, 'i', $product_id);
 mysqli_stmt_execute($reviews_stmt);
 $published_reviews = mysqli_fetch_all(mysqli_stmt_get_result($reviews_stmt), MYSQLI_ASSOC);
+$admin_pending_review = null;
+if (($_SESSION['role'] ?? '') === 'admin' && isset($_GET['review_id'])) {
+    $admin_review_id = (int)$_GET['review_id'];
+    if ($admin_review_id > 0) {
+        $pending_review_stmt = mysqli_prepare($conn,
+            "SELECT r.review_id, r.user_id, u.username, r.rating, r.review_text, r.created_at,
+                    pc.color AS purchased_color, v.size AS purchased_size
+             FROM product_reviews r
+             JOIN users u ON u.user_id = r.user_id
+             LEFT JOIN order_items oi ON oi.order_item_id = r.order_item_id
+             LEFT JOIN product_variants v ON v.variant_id = oi.variant_id
+             LEFT JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+             WHERE r.review_id = ? AND r.product_id = ? AND r.status = 'pending'"
+        );
+        mysqli_stmt_bind_param($pending_review_stmt, 'ii', $admin_review_id, $product_id);
+        mysqli_stmt_execute($pending_review_stmt);
+        $admin_pending_review = mysqli_fetch_assoc(mysqli_stmt_get_result($pending_review_stmt)) ?: null;
+    }
+}
 $review_colors = [];
 $review_sizes = [];
 foreach ($published_reviews as $review) {
@@ -230,6 +249,9 @@ include_once('includes/header.php');
     </div>
 
     <!-- Sizes and cart action -->
+    <?php if (($_SESSION['role'] ?? '') === 'admin') { ?>
+      <p class="product-flash">Administrators can browse products but cannot add them to the cart.</p>
+    <?php } else { ?>
     <form method="post" action="<?php echo $editing_cart_item ? 'cart/cart_update.php' : 'cart/cart_add.php'; ?>" novalidate>
       <?php if ($editing_cart_item) { ?>
         <input type="hidden" name="cart_id" value="<?php echo (int)$edit_cart_id; ?>">
@@ -264,6 +286,7 @@ include_once('includes/header.php');
         <button class="btn" type="submit">Add to cart</button>
       <?php } ?>
     </form>
+    <?php } ?>
   </div>
 
 </div>
@@ -323,10 +346,10 @@ include_once('includes/header.php');
     <?php } ?>
   </div>
 
-  <?php if ($published_reviews) { ?>
+  <?php if ($published_reviews || $admin_pending_review) { ?>
     <div class="review-cards">
       <?php foreach ($published_reviews as $review) { ?>
-        <article class="review-card">
+        <article class="review-card" id="review-<?php echo (int)$review['review_id']; ?>">
           <div class="review-card-top">
             <img src="<?php echo htmlspecialchars(profile_image_url((int)$review['user_id']), ENT_QUOTES, 'UTF-8'); ?>" alt="" loading="lazy">
             <span class="review-rating" aria-label="<?php echo (int)$review['rating']; ?> out of 5 stars">
@@ -339,6 +362,23 @@ include_once('includes/header.php');
           <p class="review-copy"><?php echo nl2br(htmlspecialchars($review['review_text'], ENT_QUOTES, 'UTF-8')); ?></p>
           <p class="review-author"><?php echo htmlspecialchars($review['username'], ENT_QUOTES, 'UTF-8'); ?></p>
           <p class="review-date"><?php echo htmlspecialchars(date('M j, Y', strtotime($review['created_at'])), ENT_QUOTES, 'UTF-8'); ?></p>
+        </article>
+      <?php } ?>
+      <?php if ($admin_pending_review) { ?>
+        <article class="review-card" id="review-<?php echo (int)$admin_pending_review['review_id']; ?>">
+          <div class="review-card-top">
+            <img src="<?php echo htmlspecialchars(profile_image_url((int)$admin_pending_review['user_id']), ENT_QUOTES, 'UTF-8'); ?>" alt="" loading="lazy">
+            <span class="review-rating" aria-label="<?php echo (int)$admin_pending_review['rating']; ?> out of 5 stars">
+              <?php for ($star = 1; $star <= 5; $star++) { ?><?php echo $star <= (int)$admin_pending_review['rating'] ? '&#9733;' : '&#9734;'; ?><?php } ?>
+            </span>
+            <span class="review-variant">Pending review</span>
+            <?php if ($admin_pending_review['purchased_color'] !== null && $admin_pending_review['purchased_size'] !== null) { ?>
+              <span class="review-variant"><?php echo htmlspecialchars($admin_pending_review['purchased_color'], ENT_QUOTES, 'UTF-8'); ?> | <?php echo htmlspecialchars($admin_pending_review['purchased_size'], ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php } ?>
+          </div>
+          <p class="review-copy"><?php echo nl2br(htmlspecialchars($admin_pending_review['review_text'], ENT_QUOTES, 'UTF-8')); ?></p>
+          <p class="review-author"><?php echo htmlspecialchars($admin_pending_review['username'], ENT_QUOTES, 'UTF-8'); ?></p>
+          <p class="review-date"><?php echo htmlspecialchars(date('M j, Y', strtotime($admin_pending_review['created_at'])), ENT_QUOTES, 'UTF-8'); ?></p>
         </article>
       <?php } ?>
     </div>

@@ -73,6 +73,11 @@ function save_brand_logo_upload(array $upload): ?string
 
 $categories_result = mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name");
 $categories = mysqli_fetch_all($categories_result, MYSQLI_ASSOC);
+$product_search = mb_substr(trim(is_string($_GET['search'] ?? null) ? $_GET['search'] : ''), 0, 100);
+$product_department = is_string($_GET['department'] ?? null) && in_array($_GET['department'], ['men', 'women', 'kids'], true)
+    ? $_GET['department']
+    : '';
+$product_supplier_id = product_positive_integer($_GET['supplier_id'] ?? null);
 $category_names = [];
 foreach ($categories as $category_row) {
     $category_names[(int)$category_row['category_id']] = $category_row['name'];
@@ -384,11 +389,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $suppliers_result = mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name");
 $suppliers = mysqli_fetch_all($suppliers_result, MYSQLI_ASSOC);
-$product_total = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM products"))['total'];
-$product_pagination = admin_pagination_page($product_total);
-$product_limit = $product_pagination['page_size'];
-$product_offset = $product_pagination['offset'];
-$products_result = mysqli_query($conn,
+$product_conditions = [];
+$product_filter_types = '';
+$product_filter_values = [];
+if ($product_search !== '') {
+    $product_conditions[] = 'p.name LIKE ?';
+    $product_filter_types .= 's';
+    $product_filter_values[] = '%' . $product_search . '%';
+}
+if ($product_department !== '') {
+    $product_conditions[] = 'p.department = ?';
+    $product_filter_types .= 's';
+    $product_filter_values[] = $product_department;
+}
+if ($product_supplier_id !== null) {
+    $product_conditions[] = 'p.supplier_id = ?';
+    $product_filter_types .= 'i';
+    $product_filter_values[] = $product_supplier_id;
+}
+$product_where = $product_conditions ? ' WHERE ' . implode(' AND ', $product_conditions) : '';
+$products_stmt = mysqli_prepare($conn,
     "SELECT p.product_id, p.name, c.name AS category, p.department, p.price, s.name AS supplier_name,
             COUNT(DISTINCT pc.product_color_id) AS color_count,
             (SELECT COUNT(*)
@@ -402,11 +422,21 @@ $products_result = mysqli_query($conn,
      LEFT JOIN categories c ON c.category_id = p.category_id
      LEFT JOIN product_colors pc ON pc.product_id = p.product_id
      LEFT JOIN product_variants v ON v.product_color_id = pc.product_color_id
+     $product_where
      GROUP BY p.product_id, p.name, c.name, p.department, p.price, s.name
-     ORDER BY p.product_id DESC
-     LIMIT $product_limit OFFSET $product_offset"
+     ORDER BY p.product_id DESC"
 );
-$products = mysqli_fetch_all($products_result, MYSQLI_ASSOC);
+$product_bindings = [$product_filter_types];
+foreach ($product_filter_values as &$product_filter_value) {
+    $product_bindings[] = &$product_filter_value;
+}
+unset($product_filter_value);
+if ($product_filter_types !== '') {
+    call_user_func_array('mysqli_stmt_bind_param', array_merge([$products_stmt], $product_bindings));
+}
+mysqli_stmt_execute($products_stmt);
+$products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
+$product_total = count($products);
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Products';
 $admin_active_page = 'products';
@@ -492,7 +522,7 @@ include("../includes/header.php");
         <label>Price (₱)<input type="text" inputmode="decimal" name="price" value="<?php echo admin_escape(is_string($_POST['price'] ?? null) ? $_POST['price'] : ''); ?>"></label>
         <label>Department<select id="product-department" name="department"><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $department_value => $department_label) { ?><option value="<?php echo $department_value; ?>" <?php echo $selected_department === $department_value ? 'selected' : ''; ?>><?php echo $department_label; ?></option><?php } ?></select></label>
         <label>Brand<select name="supplier_id"><option value="">Choose a brand</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo product_positive_integer($_POST['supplier_id'] ?? null) === (int)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
-        <label>Category<select id="product-category" name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { ?><option value="<?php echo (int)$category_option['category_id']; ?>" <?php echo $selected_category_id === (int)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
+        <label>Category<select id="product-category" name="category_id"><?php foreach ($categories as $category_option) { ?><option value="<?php echo (int)$category_option['category_id']; ?>" <?php echo $selected_category_id === (int)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
         <label class="product-field-wide">Description<textarea name="description" rows="4"><?php echo admin_escape(is_string($_POST['description'] ?? null) ? $_POST['description'] : ''); ?></textarea></label>
       </div>
     </section>
@@ -539,10 +569,8 @@ include("../includes/header.php");
                 </details>
               </div>
               <div class="product-color-image">
-                <div class="product-image-preview"><span>Image preview</span></div>
                 <div class="product-image-picker-actions">
-                  <input class="product-image-input" id="color-image-<?php echo $color_index; ?>" type="file" name="color_images[<?php echo $color_index; ?>][]" accept="image/jpeg,image/png,image/webp" multiple>
-                  <label class="admin-button admin-button-light product-image-choose" for="color-image-<?php echo $color_index; ?>">Choose images</label>
+                  <label>Choose images<input id="color-image-<?php echo $color_index; ?>" type="file" name="color_images[<?php echo $color_index; ?>][]" accept="image/jpeg,image/png,image/webp" multiple></label>
                   <small class="manage-secondary">Select up to 10 JPEG, PNG, or WebP images at once · 5 MB each.</small>
                 </div>
               </div>
@@ -562,6 +590,14 @@ include("../includes/header.php");
 
 <section class="manage-panel manage-list-panel catalog-products-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT CATALOG</p><h2>Products <span class="manage-count"><?php echo $product_total; ?></span></h2></div></div>
+  <form method="get" class="inventory-filters product-catalog-filters" aria-label="Filter product catalog">
+    <input type="hidden" name="catalog_view" value="products">
+    <label class="inventory-search">Product name<input type="search" name="search" value="<?php echo admin_escape($product_search); ?>" placeholder="Search product name"></label>
+    <label>Department<select name="department"><option value="">All departments</option><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $department_value => $department_label) { ?><option value="<?php echo $department_value; ?>" <?php echo $product_department === $department_value ? 'selected' : ''; ?>><?php echo $department_label; ?></option><?php } ?></select></label>
+    <label>Brand<select name="supplier_id"><option value="">All brands</option><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo $product_supplier_id === (int)$supplier['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
+    <button class="admin-button" type="submit">Apply filters</button>
+    <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-products/?catalog_view=products">Clear</a>
+  </form>
   <?php if ($products) { ?>
     <div class="admin-table-wrap"><table class="admin-table">
       <thead><tr><th>Product</th><th>Brand</th><th>Department</th><th>Price</th><th>Colors</th><th>Stock</th><th>Actions</th></tr></thead>
@@ -590,7 +626,6 @@ include("../includes/header.php");
         </tr>
       <?php } ?></tbody>
     </table></div>
-    <?php admin_render_pagination($product_pagination['page'], $product_pagination['total_pages'], 'page', ['catalog_view' => 'products']); ?>
   <?php } else { ?><p class="manage-empty">No products yet. Use the Add Product panel to add your first product.</p><?php } ?>
 </section>
 </div>
