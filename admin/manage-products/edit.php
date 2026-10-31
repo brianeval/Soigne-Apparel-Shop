@@ -25,11 +25,8 @@ if (!$product) {
 
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    } else {
-        $action = $_POST['action'] ?? '';
-        if ($action === 'add_images') {
+    $action = $_POST['action'] ?? '';
+    if ($action === 'add_images') {
             $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
             $uploads = product_file_uploads(is_array($_FILES['images'] ?? null) ? $_FILES['images'] : []);
             $saved_images = [];
@@ -106,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                         $errors[] = 'Could not add product images. Please try again.';
                     }
-                }
             }
+        }
         } elseif ($action === 'remove_images') {
             $posted_image_ids = $_POST['image_ids'] ?? [];
             $image_ids = [];
@@ -412,7 +409,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $errors[] = 'That product action is not valid.';
         }
-    }
 }
 
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
@@ -490,7 +486,6 @@ include("../includes/header.php");
 <section class="manage-panel product-edit-details-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT DETAILS</p><h2><?php echo admin_escape($product['name']); ?></h2></div></div>
   <form method="post" class="manage-form manage-product-create" novalidate>
-    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="update_product">
     <label>Product name<input name="name" value="<?php echo admin_escape(is_string($_POST['name'] ?? null) ? $_POST['name'] : $product['name']); ?>"></label>
     <label>Brand<select name="supplier_id"><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo (int)$supplier['supplier_id'] === (int)$product['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
@@ -511,7 +506,6 @@ include("../includes/header.php");
       <div class="catalog-modal">
         <section class="catalog-dialog catalog-product-dialog" role="dialog" aria-modal="true" aria-labelledby="product-images-title">
           <form method="post" class="product-image-remove-form">
-          <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
           <input type="hidden" name="action" value="remove_images">
           <input type="hidden" name="color_panel_id" value="<?php echo (int)$selected_color_panel_id; ?>">
           <div class="catalog-dialog-heading">
@@ -541,7 +535,6 @@ include("../includes/header.php");
     </div>
   </div>
   <form method="post" class="manage-form manage-add-color" novalidate>
-    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="action" value="add_color">
     <label>New color<input name="color" placeholder="e.g. Navy"></label>
     <label>Image filename<input name="image" placeholder="e.g. shirt-navy.jpg"></label>
@@ -558,14 +551,12 @@ include("../includes/header.php");
       <div class="manage-color-layout">
       <div class="manage-color-details-tile">
       <form id="update-color-<?php echo (int)$color['product_color_id']; ?>" method="post" class="manage-form manage-color-edit" novalidate>
-        <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="update_color">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
         <input type="hidden" name="color_panel_id" value="<?php echo (int)$color['product_color_id']; ?>">
         <label>Color<input name="color" value="<?php echo admin_escape($color['color']); ?>"></label>
       </form>
       <form method="post" enctype="multipart/form-data" class="manage-form manage-color-images" novalidate>
-        <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="add_images">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
         <input type="hidden" name="color_panel_id" value="<?php echo (int)$color['product_color_id']; ?>">
@@ -575,7 +566,6 @@ include("../includes/header.php");
       <div class="manage-color-actions">
         <button class="manage-small-button" type="submit" form="update-color-<?php echo (int)$color['product_color_id']; ?>">Save color</button>
         <form method="post" class="manage-delete-color" novalidate>
-          <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
           <input type="hidden" name="action" value="delete_color">
           <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
           <input type="hidden" name="color_panel_id" value="<?php echo (int)$color['product_color_id']; ?>">
@@ -586,7 +576,6 @@ include("../includes/header.php");
       <div class="manage-color-sizes-tile">
       <div class="manage-variant-heading"><strong>Sizes (<?php echo count($color['variants']); ?>)</strong>
         <form method="post" class="manage-inline-form" novalidate>
-        <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
         <input type="hidden" name="action" value="add_variant">
         <input type="hidden" name="product_color_id" value="<?php echo (int)$color['product_color_id']; ?>">
         <input type="hidden" name="color_panel_id" value="<?php echo (int)$color['product_color_id']; ?>">
@@ -601,7 +590,6 @@ include("../includes/header.php");
             <tr>
               <td>
                 <form id="<?php echo $variant_form_id; ?>" method="post" novalidate></form>
-                <input form="<?php echo $variant_form_id; ?>" type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                 <input form="<?php echo $variant_form_id; ?>" type="hidden" name="action" value="update_variant">
                 <input form="<?php echo $variant_form_id; ?>" type="hidden" name="variant_id" value="<?php echo $variant['variant_id']; ?>">
                 <input form="<?php echo $variant_form_id; ?>" type="hidden" name="color_panel_id" value="<?php echo (int)$color['product_color_id']; ?>">
@@ -609,7 +597,6 @@ include("../includes/header.php");
               </td>
               <td><button form="<?php echo $variant_form_id; ?>" class="manage-small-button" type="submit">Save</button>
                 <form method="post" class="manage-inline-form" novalidate>
-                  <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                   <input type="hidden" name="action" value="delete_variant">
                   <input type="hidden" name="variant_id" value="<?php echo $variant['variant_id']; ?>">
                   <input type="hidden" name="color_panel_id" value="<?php echo (int)$color['product_color_id']; ?>">

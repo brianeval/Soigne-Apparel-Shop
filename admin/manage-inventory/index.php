@@ -4,19 +4,6 @@ require_once("../includes/bootstrap.php");
 const INVENTORY_MAX_STOCK = 2147483647;
 const INVENTORY_MAX_TOTAL_CENTS = 9007199254740991;
 
-function inventory_bind_params(mysqli_stmt $statement, string $types, array &$params): void
-{
-    if ($types === '') {
-        return;
-    }
-
-    $bindings = [$types];
-    foreach ($params as &$param) {
-        $bindings[] = &$param;
-    }
-    call_user_func_array('mysqli_stmt_bind_param', array_merge([$statement], $bindings));
-}
-
 function inventory_cost_to_cents($value): ?int
 {
     if (!is_string($value) || !preg_match('/^\d{1,8}(?:\.\d{1,2})?$/D', $value)) {
@@ -26,13 +13,6 @@ function inventory_cost_to_cents($value): ?int
     $parts = explode('.', $value, 2);
     $fraction = str_pad($parts[1] ?? '', 2, '0');
     return ((int)$parts[0] * 100) + (int)$fraction;
-}
-
-function inventory_sorted_option_names(array $option_set): array
-{
-    $option_names = array_keys($option_set);
-    natcasesort($option_names);
-    return array_values($option_names);
 }
 
 $errors = [];
@@ -75,9 +55,6 @@ foreach ($_SESSION['inventory_restock_tokens'] as $token => $issued_at) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $post_action === 'create') {
     $supplier_id = filter_var($_POST['supplier_id'] ?? null, FILTER_VALIDATE_INT);
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    }
     if ($supplier_id === false || $supplier_id < 1) {
         $errors[] = 'Choose a supplier for this restock.';
     }
@@ -192,25 +169,27 @@ $variant_options = mysqli_fetch_all($variant_options_result, MYSQLI_ASSOC);
 $supplier_variant_ids = [];
 $color_options_by_department = ['men' => [], 'women' => [], 'kids' => []];
 $size_options_by_department = ['men' => [], 'women' => [], 'kids' => []];
+$all_color_options = [];
+$all_size_options = [];
 foreach ($variant_options as $variant_option) {
     $supplier_variant_ids[(int)$variant_option['supplier_id']] = true;
     $color_options_by_department[$variant_option['department']][$variant_option['color']] = true;
     $size_options_by_department[$variant_option['department']][$variant_option['size']] = true;
+    $all_color_options[$variant_option['color']] = true;
+    $all_size_options[$variant_option['size']] = true;
 }
-$all_color_options = array_fill_keys(array_merge(
-    array_keys($color_options_by_department['men']),
-    array_keys($color_options_by_department['women']),
-    array_keys($color_options_by_department['kids'])
-), true);
-$color_options_by_department = array_map('inventory_sorted_option_names', $color_options_by_department);
-$all_color_options = inventory_sorted_option_names($all_color_options);
-$all_size_options = array_fill_keys(array_merge(
-    array_keys($size_options_by_department['men']),
-    array_keys($size_options_by_department['women']),
-    array_keys($size_options_by_department['kids'])
-), true);
-$size_options_by_department = array_map('inventory_sorted_option_names', $size_options_by_department);
-$all_size_options = inventory_sorted_option_names($all_size_options);
+foreach ($color_options_by_department as $department => $color_options) {
+    $color_options_by_department[$department] = array_keys($color_options);
+    sort($color_options_by_department[$department], SORT_NATURAL | SORT_FLAG_CASE);
+}
+foreach ($size_options_by_department as $department => $size_options) {
+    $size_options_by_department[$department] = array_keys($size_options);
+    sort($size_options_by_department[$department], SORT_NATURAL | SORT_FLAG_CASE);
+}
+$all_color_options = array_keys($all_color_options);
+sort($all_color_options, SORT_NATURAL | SORT_FLAG_CASE);
+$all_size_options = array_keys($all_size_options);
+sort($all_size_options, SORT_NATURAL | SORT_FLAG_CASE);
 
 $search = trim(is_string($_GET['search'] ?? null) ? $_GET['search'] : '');
 $search = mb_substr($search, 0, 150);
@@ -231,50 +210,9 @@ $visible_color_options = $filter_department === ''
     ? $all_color_options
     : $color_options_by_department[$filter_department];
 
-$inventory_conditions = [];
-$inventory_types = '';
-$inventory_params = [];
-if ($search !== '') {
-    $inventory_conditions[] = 'p.name LIKE ?';
-    $inventory_types .= 's';
-    $inventory_params[] = '%' . $search . '%';
-}
-if ($filter_department !== '') {
-    $inventory_conditions[] = 'p.department = ?';
-    $inventory_types .= 's';
-    $inventory_params[] = $filter_department;
-}
-if ($filter_supplier !== null) {
-    $inventory_conditions[] = 'p.supplier_id = ?';
-    $inventory_types .= 'i';
-    $inventory_params[] = $filter_supplier;
-}
-if ($filter_category !== null) {
-    $inventory_conditions[] = 'p.category_id = ?';
-    $inventory_types .= 'i';
-    $inventory_params[] = $filter_category;
-}
-if ($filter_color !== '') {
-    $inventory_conditions[] = 'pc.color = ?';
-    $inventory_types .= 's';
-    $inventory_params[] = $filter_color;
-}
-if ($filter_size !== '') {
-    $inventory_conditions[] = 'v.size = ?';
-    $inventory_types .= 's';
-    $inventory_params[] = $filter_size;
-}
-$inventory_where = $inventory_conditions ? ' WHERE ' . implode(' AND ', $inventory_conditions) : '';
-
-$inventory_count_stmt = mysqli_prepare($conn,
-    'SELECT COUNT(*)
-     FROM product_variants v
-     JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-     JOIN products p ON p.product_id = pc.product_id' . $inventory_where
-);
-inventory_bind_params($inventory_count_stmt, $inventory_types, $inventory_params);
-mysqli_stmt_execute($inventory_count_stmt);
-$inventory_total = (int)mysqli_fetch_row(mysqli_stmt_get_result($inventory_count_stmt))[0];
+$search_pattern = '%' . $search . '%';
+$supplier_filter = $filter_supplier ?? 0;
+$category_filter = $filter_category ?? 0;
 $inventory_stmt = mysqli_prepare($conn,
     'SELECT v.variant_id, v.stock, v.size, pc.color, p.name AS product_name, p.department,
             COALESCE(c.name, \'Uncategorized\') AS category_name, s.name AS supplier_name
@@ -282,12 +220,34 @@ $inventory_stmt = mysqli_prepare($conn,
      JOIN product_colors pc ON pc.product_color_id = v.product_color_id
      JOIN products p ON p.product_id = pc.product_id
      JOIN suppliers s ON s.supplier_id = p.supplier_id
-     LEFT JOIN categories c ON c.category_id = p.category_id' . $inventory_where . '
+     LEFT JOIN categories c ON c.category_id = p.category_id
+     WHERE (? = \'\' OR p.name LIKE ?)
+       AND (? = \'\' OR p.department = ?)
+       AND (? = 0 OR p.supplier_id = ?)
+       AND (? = 0 OR p.category_id = ?)
+       AND (? = \'\' OR pc.color = ?)
+       AND (? = \'\' OR v.size = ?)
      ORDER BY p.name, s.name, pc.color, v.size'
 );
-inventory_bind_params($inventory_stmt, $inventory_types, $inventory_params);
+mysqli_stmt_bind_param(
+    $inventory_stmt,
+    'ssssiiiissss',
+    $search,
+    $search_pattern,
+    $filter_department,
+    $filter_department,
+    $supplier_filter,
+    $supplier_filter,
+    $category_filter,
+    $category_filter,
+    $filter_color,
+    $filter_color,
+    $filter_size,
+    $filter_size
+);
 mysqli_stmt_execute($inventory_stmt);
 $inventory_rows = mysqli_fetch_all(mysqli_stmt_get_result($inventory_stmt), MYSQLI_ASSOC);
+$inventory_total = count($inventory_rows);
 
 $summary_result = mysqli_query($conn,
     'SELECT
@@ -300,15 +260,7 @@ $summary = mysqli_fetch_assoc($summary_result);
 
 $history_search = trim(is_string($_GET['history_search'] ?? null) ? $_GET['history_search'] : '');
 $history_search = mb_substr($history_search, 0, 100);
-$history_where = $history_search === '' ? '' : ' WHERE r.batch_number LIKE ? OR s.name LIKE ?';
-$history_params = $history_search === '' ? [] : ['%' . $history_search . '%', '%' . $history_search . '%'];
-$history_types = $history_search === '' ? '' : 'ss';
-$history_count_stmt = mysqli_prepare($conn,
-    'SELECT COUNT(*) FROM restocks r JOIN suppliers s ON s.supplier_id = r.supplier_id' . $history_where
-);
-inventory_bind_params($history_count_stmt, $history_types, $history_params);
-mysqli_stmt_execute($history_count_stmt);
-$history_total = (int)mysqli_fetch_row(mysqli_stmt_get_result($history_count_stmt))[0];
+$history_search_pattern = '%' . $history_search . '%';
 $history_stmt = mysqli_prepare($conn,
     'SELECT r.restock_id, r.batch_number, r.restock_date, s.name AS supplier_name,
             COUNT(ri.restock_item_id) AS line_count,
@@ -316,13 +268,15 @@ $history_stmt = mysqli_prepare($conn,
             COALESCE(SUM(ri.quantity * ri.unit_cost), 0) AS total_cost
      FROM restocks r
      JOIN suppliers s ON s.supplier_id = r.supplier_id
-     LEFT JOIN restock_items ri ON ri.restock_id = r.restock_id' . $history_where . '
+     LEFT JOIN restock_items ri ON ri.restock_id = r.restock_id
+     WHERE (? = \'\' OR r.batch_number LIKE ? OR s.name LIKE ?)
      GROUP BY r.restock_id, r.batch_number, r.restock_date, s.name
      ORDER BY r.restock_date DESC, r.restock_id DESC'
 );
-inventory_bind_params($history_stmt, $history_types, $history_params);
+mysqli_stmt_bind_param($history_stmt, 'sss', $history_search, $history_search_pattern, $history_search_pattern);
 mysqli_stmt_execute($history_stmt);
 $history_rows = mysqli_fetch_all(mysqli_stmt_get_result($history_stmt), MYSQLI_ASSOC);
+$history_total = count($history_rows);
 
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Inventory';
@@ -413,7 +367,6 @@ include("../includes/header.php");
     </div>
     <form id="inventory-restock-form" method="post" class="manage-form inventory-restock-form" novalidate>
     <input type="hidden" name="inventory_view" value="restock">
-    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="restock_token" value="<?php echo admin_escape($restock_token); ?>">
     <input type="hidden" name="variant_supplier_id" value="<?php echo admin_escape($variant_supplier_id); ?>">
     <div class="inventory-restock-supplier">

@@ -16,22 +16,20 @@ $checkout_cart_ids = $_SESSION['checkout_cart_ids'] ?? [];
 if (!is_array($checkout_cart_ids)) {
     $checkout_cart_ids = [];
 }
-$checkout_cart_ids = array_values(array_unique(array_filter(
-    array_map('intval', $checkout_cart_ids),
-    function ($cart_id) {
-        return $cart_id > 0;
+$valid_checkout_cart_ids = [];
+foreach ($checkout_cart_ids as $cart_id) {
+    $cart_id = (int)$cart_id;
+    if ($cart_id > 0) {
+        $valid_checkout_cart_ids[$cart_id] = $cart_id;
     }
-)));
+}
+$checkout_cart_ids = array_values($valid_checkout_cart_ids);
 
 if (!$checkout_cart_ids && !$success_order_id) {
     header('Location: ' . BASE_URL . 'cart/cart.php');
     exit;
 }
 $checkout_id_list = $checkout_cart_ids ? implode(',', $checkout_cart_ids) : '0';
-
-if (!isset($_SESSION['checkout_csrf'])) {
-    $_SESSION['checkout_csrf'] = bin2hex(random_bytes(32));
-}
 
 $customer_name = '';
 $phone = '';
@@ -44,11 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $customer_name = is_string($posted_name) ? trim($posted_name) : '';
     $phone = is_string($posted_phone) ? trim($posted_phone) : '';
     $address = is_string($posted_address) ? trim($posted_address) : '';
-    $csrf_token = $_POST['csrf_token'] ?? '';
-
-    if (!is_string($csrf_token) || !hash_equals($_SESSION['checkout_csrf'], $csrf_token)) {
-        $errors[] = 'Your checkout session expired. Please try again.';
-    }
     if ($customer_name === '' || mb_strlen($customer_name) > 120) {
         $errors[] = 'Please enter your name (up to 120 characters).';
     }
@@ -177,7 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['checkout_success'] = $order_id;
                     $_SESSION['checkout_email_sent'] = $email_sent;
                     unset($_SESSION['checkout_cart_ids']);
-                    unset($_SESSION['checkout_csrf']);
                     header('Location: ' . BASE_URL . 'orders/checkout.php');
                     exit;
                 }
@@ -299,7 +291,6 @@ include_once('../includes/header.php');
 
       <form class="checkout-confirmation" method="post" action="<?php echo BASE_URL; ?>orders/checkout.php" novalidate>
         <h2>Confirm your order</h2>
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['checkout_csrf']); ?>">
 
         <label for="customer_name">Name</label>
         <input type="text" id="customer_name" name="customer_name"

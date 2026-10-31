@@ -42,12 +42,14 @@ function save_product_image_upload(array $upload): ?string
 
 function product_color_image_paths(mysqli $conn, array $product_color_ids): array
 {
-    $color_ids = array_values(array_unique(array_filter(
-        array_map('intval', $product_color_ids),
-        static function (int $color_id): bool {
-            return $color_id > 0;
+    $unique_color_ids = [];
+    foreach ($product_color_ids as $product_color_id) {
+        $color_id = (int)$product_color_id;
+        if ($color_id > 0) {
+            $unique_color_ids[$color_id] = $color_id;
         }
-    )));
+    }
+    $color_ids = array_values($unique_color_ids);
     if (!$color_ids) {
         return [];
     }

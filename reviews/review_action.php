@@ -11,14 +11,6 @@ require_active_customer($conn, $redirect_url);
 
 $user_id = (int)$_SESSION['user_id'];
 $action = $_POST['action'] ?? '';
-$csrf_token = $_POST['csrf_token'] ?? '';
-
-if (!is_string($csrf_token) || empty($_SESSION['orders_csrf'])
-    || !hash_equals($_SESSION['orders_csrf'], $csrf_token)) {
-    $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Your session expired. Please try again.'];
-    header('Location: ' . $redirect_url);
-    exit;
-}
 
 if ($order_id === false || $order_id < 1 || $order_item_id === false || $order_item_id < 1
     || $product_id === false || $product_id < 1

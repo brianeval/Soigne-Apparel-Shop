@@ -63,9 +63,6 @@ if (!$order) {
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    } else {
         $action = $_POST['action'] ?? '';
         if ($action === 'update_address') {
             $shipping_address = trim(is_string($_POST['shipping_address'] ?? null) ? $_POST['shipping_address'] : '');
@@ -210,7 +207,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'Could not update this order.';
             }
         }
-    }
 }
 
 $items_stmt = mysqli_prepare($conn,
@@ -247,13 +243,13 @@ include("../includes/header.php");
   </div>
   <div class="manage-row-actions manage-order-status-actions">
     <?php if ($order['fulfillment_status'] === 'pending' && $order['payment_status'] === 'unpaid') { ?>
-      <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button" type="submit" name="action" value="mark_shipped">Mark as Shipped</button></form>
-      <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button is-danger" type="submit" name="action" value="cancel">Mark as Cancelled</button></form>
+      <form method="post"><button class="manage-small-button" type="submit" name="action" value="mark_shipped">Mark as Shipped</button></form>
+      <form method="post"><button class="manage-small-button is-danger" type="submit" name="action" value="cancel">Mark as Cancelled</button></form>
     <?php } elseif ($order['fulfillment_status'] === 'shipped' && $order['payment_status'] === 'unpaid') { ?>
-      <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button" type="submit" name="action" value="mark_delivered">Mark as Delivered</button></form>
-      <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button is-danger" type="submit" name="action" value="mark_failed_delivery">Mark Failed Delivery</button></form>
+      <form method="post"><button class="manage-small-button" type="submit" name="action" value="mark_delivered">Mark as Delivered</button></form>
+      <form method="post"><button class="manage-small-button is-danger" type="submit" name="action" value="mark_failed_delivery">Mark Failed Delivery</button></form>
     <?php } elseif ($order['fulfillment_status'] === 'delivered' && $order['payment_status'] === 'unpaid') { ?>
-      <form method="post"><input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>"><button class="manage-small-button" type="submit" name="action" value="mark_paid">Mark as Paid</button></form>
+      <form method="post"><button class="manage-small-button" type="submit" name="action" value="mark_paid">Mark as Paid</button></form>
     <?php } elseif ($order['fulfillment_status'] === 'failed_delivery') { ?>
       <p class="manage-order-final">Failed delivery is final. Returned items have been restored to stock.</p>
     <?php } elseif ($order['fulfillment_status'] === 'cancelled') { ?>
@@ -264,7 +260,6 @@ include("../includes/header.php");
   </div>
   <?php if ($order['fulfillment_status'] === 'pending') { ?>
     <form method="post" class="manage-form" novalidate>
-      <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
       <input type="hidden" name="action" value="update_address">
       <label>Shipping address<textarea name="shipping_address" rows="3"><?php echo admin_escape($_POST['shipping_address'] ?? $order['shipping_address']); ?></textarea></label>
       <div class="manage-form-buttons"><button class="admin-button" type="submit">Save shipping address</button></div>

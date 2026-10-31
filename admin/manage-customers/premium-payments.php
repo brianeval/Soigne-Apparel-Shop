@@ -3,12 +3,9 @@ require_once("../includes/bootstrap.php");
 
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    } else {
-        $payment_id = filter_var($_POST['payment_id'] ?? null, FILTER_VALIDATE_INT);
-        $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
-        if ($payment_id === false || $payment_id < 1 || !in_array($action, ['approve', 'reject'], true)) {
+    $payment_id = filter_var($_POST['payment_id'] ?? null, FILTER_VALIDATE_INT);
+    $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
+    if ($payment_id === false || $payment_id < 1 || !in_array($action, ['approve', 'reject'], true)) {
             $errors[] = 'Choose a valid payment request action.';
         } else {
             mysqli_begin_transaction($conn);
@@ -66,7 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = $exception instanceof RuntimeException
                     ? $exception->getMessage()
                     : 'Could not review this Premium payment.';
-            }
         }
     }
 }
@@ -109,7 +105,6 @@ include("../includes/header.php");
               <div class="manage-row-actions">
                 <?php foreach (['approve' => 'Approve and activate VIP', 'reject' => 'Reject'] as $action => $label) { ?>
                   <form method="post">
-                    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                     <input type="hidden" name="payment_id" value="<?php echo (int)$payment['payment_id']; ?>">
                     <button class="manage-small-button<?php echo $action === 'reject' ? ' is-danger' : ''; ?>" type="submit" name="action" value="<?php echo admin_escape($action); ?>"><?php echo admin_escape($label); ?></button>
                   </form>

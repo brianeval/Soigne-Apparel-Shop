@@ -9,9 +9,7 @@ $customer_view = in_array($requested_customer_view, ['directory', 'create'], tru
     ? $requested_customer_view
     : (($_POST['action'] ?? '') === 'create' ? 'create' : 'directory');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    } elseif (($_POST['action'] ?? '') === 'create') {
+    if (($_POST['action'] ?? '') === 'create') {
         $customer_name = trim(is_string($_POST['customer_name'] ?? null) ? $_POST['customer_name'] : '');
         $username = trim(is_string($_POST['username'] ?? null) ? $_POST['username'] : '');
         $email = trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : '');
@@ -162,7 +160,6 @@ include("../includes/header.php");
 <section class="manage-panel customer-create-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">NEW ACCOUNT</p><h2>Create a customer</h2></div></div>
   <form method="post" class="manage-form manage-product-create" novalidate>
-    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="customer_view" value="create">
     <input type="hidden" name="action" value="create">
     <label>Customer name<input name="customer_name" value="<?php echo admin_escape($_POST['customer_name'] ?? ''); ?>"></label>
@@ -201,7 +198,6 @@ include("../includes/header.php");
           <td><div class="manage-row-actions">
             <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-customers/edit.php?id=<?php echo (int)$customer['user_id']; ?>">Edit</a>
             <form method="post">
-              <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
               <input type="hidden" name="customer_view" value="directory">
               <input type="hidden" name="action" value="toggle_status">
               <input type="hidden" name="user_id" value="<?php echo (int)$customer['user_id']; ?>">
@@ -210,7 +206,6 @@ include("../includes/header.php");
             </form>
             <?php if ((int)$customer['order_count'] === 0) { ?>
               <form method="post">
-                <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                 <input type="hidden" name="customer_view" value="directory">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="user_id" value="<?php echo (int)$customer['user_id']; ?>">

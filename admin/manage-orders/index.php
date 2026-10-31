@@ -9,9 +9,7 @@ $order_view = in_array($requested_order_view, ['ongoing', 'history'], true)
     ? $requested_order_view
     : (($_POST['action'] ?? '') === 'delete' && is_string($_POST['order_view'] ?? null) ? $_POST['order_view'] : 'ongoing');
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    } elseif (($_POST['action'] ?? '') === 'create') {
+    if (($_POST['action'] ?? '') === 'create') {
         $user_id = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);
         $product_ids = $_POST['product_ids'] ?? [];
         $variant_ids = $_POST['variant_ids'] ?? [];
@@ -254,7 +252,6 @@ include("../includes/header.php");
         <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-orders/edit.php?id=<?php echo (int)$order['order_id']; ?>">View / Edit</a>
         <?php if (in_array($order['fulfillment_status'], ['pending', 'cancelled'], true)) { ?>
           <form method="post">
-            <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
             <input type="hidden" name="order_view" value="ongoing">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
@@ -292,7 +289,6 @@ include("../includes/header.php");
         <?php } ?>
         <?php if (in_array($order['fulfillment_status'], ['cancelled', 'failed_delivery'], true)) { ?>
           <form method="post">
-            <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
             <input type="hidden" name="order_view" value="history">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">

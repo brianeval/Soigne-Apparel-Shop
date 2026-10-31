@@ -17,18 +17,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (is_string($selected_id) || is_int($selected_id)) {
                     $cart_id = filter_var($selected_id, FILTER_VALIDATE_INT);
                     if ($cart_id !== false && $cart_id > 0) {
-                        $valid_ids[] = (int)$cart_id;
+                        $valid_ids[(int)$cart_id] = (int)$cart_id;
                     }
                 }
             }
         }
-        $valid_ids = array_values(array_unique($valid_ids));
+        $valid_ids = array_values($valid_ids);
 
         if ($valid_ids) {
             // Validate selected items
             $id_list = implode(',', $valid_ids);
             $result = mysqli_query($conn, "SELECT cart_id FROM cart WHERE user_id = $user_id AND cart_id IN ($id_list)");
-            $owned_ids = array_map('intval', array_column(mysqli_fetch_all($result, MYSQLI_ASSOC), 'cart_id'));
+            $owned_rows = mysqli_fetch_all($result, MYSQLI_ASSOC);
+            $owned_ids = [];
+            foreach ($owned_rows as $owned_row) {
+                $owned_ids[] = (int)$owned_row['cart_id'];
+            }
             if (count($owned_ids) === count($valid_ids)) {
                 $_SESSION['checkout_cart_ids'] = $owned_ids;
                 header('Location: ' . BASE_URL . 'orders/checkout.php');

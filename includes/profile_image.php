@@ -7,7 +7,9 @@ function profile_image_files(int $user_id): array
     foreach (['jpg', 'png', 'webp'] as $extension) {
         $matches = glob($directory . '/profile-' . $user_id . '-*.' . $extension);
         if ($matches) {
-            $files = array_merge($files, $matches);
+            foreach ($matches as $match) {
+                $files[] = $match;
+            }
         }
     }
 
@@ -21,11 +23,17 @@ function profile_image_url(int $user_id): string
         return BASE_URL . 'images/default-profile.jpg';
     }
 
-    usort($files, static function ($left, $right) {
-        return filemtime($right) <=> filemtime($left);
-    });
+    $newest_file = $files[0];
+    $newest_file_time = filemtime($newest_file);
+    foreach ($files as $file) {
+        $file_time = filemtime($file);
+        if ($file_time > $newest_file_time) {
+            $newest_file = $file;
+            $newest_file_time = $file_time;
+        }
+    }
 
-    return BASE_URL . 'images/profiles/' . rawurlencode(basename($files[0]));
+    return BASE_URL . 'images/profiles/' . rawurlencode(basename($newest_file));
 }
 
 function save_profile_image_upload(array $upload, int $user_id): ?string

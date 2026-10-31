@@ -23,9 +23,6 @@ if (!$customer) {
 
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    } else {
         $customer_name = trim(is_string($_POST['customer_name'] ?? null) ? $_POST['customer_name'] : '');
         $username = trim(is_string($_POST['username'] ?? null) ? $_POST['username'] : '');
         $email = trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : '');
@@ -100,7 +97,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (mysqli_sql_exception $exception) {
                 mysqli_rollback($conn);
                 $errors[] = $exception->getCode() === 1062 ? 'That username or email is already in use.' : 'Could not update this customer.';
-            }
         }
     }
 }
@@ -119,7 +115,6 @@ include("../includes/header.php");
 <section class="manage-panel">
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">ACCOUNT #<?php echo (int)$user_id; ?></p><h2><?php echo admin_escape($customer['customer_name'] ?? $customer['username']); ?></h2></div></div>
   <form method="post" class="manage-form manage-product-create" novalidate>
-    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <label>Role
       <select name="role">
         <?php

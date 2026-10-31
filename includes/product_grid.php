@@ -7,7 +7,10 @@ $empty_message = $empty_message ?? 'No products found.';
   <p class="dept-empty"><?php echo htmlspecialchars($empty_message); ?></p>
 <?php } else { ?>
   <?php
-  $product_color_ids = array_map('intval', array_column($products, 'first_color_id'));
+  $product_color_ids = [];
+  foreach ($products as $product) {
+      $product_color_ids[] = (int)($product['first_color_id'] ?? 0);
+  }
   $product_images_by_color = product_color_image_paths($conn, $product_color_ids);
   ?>
   <div class="dept-grid">

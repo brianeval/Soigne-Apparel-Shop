@@ -84,9 +84,7 @@ foreach ($categories as $category_row) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    } elseif (isset($_POST['remove_color'])) {
+    if (isset($_POST['remove_color'])) {
         $posted_colors = $_POST['colors'] ?? null;
         $remove_color_index = product_nonnegative_integer($_POST['remove_color']);
         if (!is_array($posted_colors) || $remove_color_index === null || !array_key_exists($remove_color_index, $posted_colors)) {
@@ -389,25 +387,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $suppliers_result = mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name");
 $suppliers = mysqli_fetch_all($suppliers_result, MYSQLI_ASSOC);
-$product_conditions = [];
-$product_filter_types = '';
-$product_filter_values = [];
-if ($product_search !== '') {
-    $product_conditions[] = 'p.name LIKE ?';
-    $product_filter_types .= 's';
-    $product_filter_values[] = '%' . $product_search . '%';
-}
-if ($product_department !== '') {
-    $product_conditions[] = 'p.department = ?';
-    $product_filter_types .= 's';
-    $product_filter_values[] = $product_department;
-}
-if ($product_supplier_id !== null) {
-    $product_conditions[] = 'p.supplier_id = ?';
-    $product_filter_types .= 'i';
-    $product_filter_values[] = $product_supplier_id;
-}
-$product_where = $product_conditions ? ' WHERE ' . implode(' AND ', $product_conditions) : '';
+$product_search_pattern = '%' . $product_search . '%';
+$product_supplier_filter = $product_supplier_id ?? 0;
 $products_stmt = mysqli_prepare($conn,
     "SELECT p.product_id, p.name, c.name AS category, p.department, p.price, s.name AS supplier_name,
             COUNT(DISTINCT pc.product_color_id) AS color_count,
@@ -422,18 +403,22 @@ $products_stmt = mysqli_prepare($conn,
      LEFT JOIN categories c ON c.category_id = p.category_id
      LEFT JOIN product_colors pc ON pc.product_id = p.product_id
      LEFT JOIN product_variants v ON v.product_color_id = pc.product_color_id
-     $product_where
+     WHERE (? = '' OR p.name LIKE ?)
+       AND (? = '' OR p.department = ?)
+       AND (? = 0 OR p.supplier_id = ?)
      GROUP BY p.product_id, p.name, c.name, p.department, p.price, s.name
      ORDER BY p.product_id DESC"
 );
-$product_bindings = [$product_filter_types];
-foreach ($product_filter_values as &$product_filter_value) {
-    $product_bindings[] = &$product_filter_value;
-}
-unset($product_filter_value);
-if ($product_filter_types !== '') {
-    call_user_func_array('mysqli_stmt_bind_param', array_merge([$products_stmt], $product_bindings));
-}
+mysqli_stmt_bind_param(
+    $products_stmt,
+    'ssssii',
+    $product_search,
+    $product_search_pattern,
+    $product_department,
+    $product_department,
+    $product_supplier_filter,
+    $product_supplier_filter
+);
 mysqli_stmt_execute($products_stmt);
 $products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
 $product_total = count($products);
@@ -461,7 +446,6 @@ include("../includes/header.php");
   <section class="manage-panel catalog-category-panel">
     <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2>Add Category</h2></div></div>
     <form method="post" class="manage-form catalog-simple-form" novalidate>
-      <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
       <input type="hidden" name="catalog_view" value="category">
       <input type="hidden" name="action" value="add_category">
       <label>Category name<input name="category_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_category' && is_string($_POST['category_name'] ?? null) ? $_POST['category_name'] : ''); ?>"></label>
@@ -472,7 +456,6 @@ include("../includes/header.php");
   <section class="manage-panel catalog-brand-panel">
     <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2>Add Brand</h2></div></div>
     <form method="post" enctype="multipart/form-data" class="manage-form catalog-simple-form" novalidate>
-      <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
       <input type="hidden" name="catalog_view" value="brand">
       <input type="hidden" name="action" value="add_brand">
       <label>Brand name<input name="brand_name" value="<?php echo admin_escape(($_POST['action'] ?? '') === 'add_brand' && is_string($_POST['brand_name'] ?? null) ? $_POST['brand_name'] : ''); ?>"></label>
@@ -513,7 +496,6 @@ include("../includes/header.php");
       : [];
   ?>
   <form method="post" enctype="multipart/form-data" class="manage-form manage-product-create create-product-form" novalidate>
-    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
     <input type="hidden" name="catalog_view" value="create">
     <section class="manage-panel product-create-panel">
       <div class="manage-panel-heading"><div><p class="admin-eyebrow">ADD TO CATALOG</p><h2>Product details</h2></div></div>
@@ -540,9 +522,14 @@ include("../includes/header.php");
           $posted_color = $form_colors[$color_index] ?? [];
           $posted_color = is_array($posted_color) ? $posted_color : [];
           $color_name_value = is_string($posted_color['name'] ?? null) ? $posted_color['name'] : '';
-          $selected_sizes = is_array($posted_color['sizes'] ?? null)
-              ? array_values(array_intersect(array_filter($posted_color['sizes'], 'is_string'), $visible_size_options))
-              : [];
+          $selected_sizes = [];
+          if (is_array($posted_color['sizes'] ?? null)) {
+              foreach ($posted_color['sizes'] as $posted_size) {
+                  if (is_string($posted_size) && in_array($posted_size, $visible_size_options, true)) {
+                      $selected_sizes[] = $posted_size;
+                  }
+              }
+          }
           if ($color_index > 0) { ?>
             <details class="product-color-disclosure"<?php echo $color_index < $form_color_count ? ' open' : ''; ?>>
               <summary><span class="add-color-label">Add another color</span><span class="existing-color-label">Color option <?php echo $color_index + 1; ?></span></summary>
@@ -613,7 +600,6 @@ include("../includes/header.php");
             <a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-products/edit.php?id=<?php echo (int)$product['product_id']; ?>">Edit</a>
             <?php if ((int)$product['order_count'] === 0) { ?>
               <form method="post" novalidate>
-                <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                 <input type="hidden" name="catalog_view" value="products">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="product_id" value="<?php echo (int)$product['product_id']; ?>">

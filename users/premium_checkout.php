@@ -41,11 +41,6 @@ $success = $_SESSION['premium_payment_success'] ?? false;
 unset($_SESSION['premium_payment_success']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $csrf_token = $_POST['csrf_token'] ?? '';
-    if (!is_string($csrf_token) || !isset($_SESSION['premium_checkout_csrf'])
-        || !hash_equals($_SESSION['premium_checkout_csrf'], $csrf_token)) {
-        $errors[] = 'Your session expired. Refresh the page and try again.';
-    }
     if ($pending_payment) {
         $errors[] = 'You already have a Premium payment awaiting review.';
     }
@@ -117,7 +112,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     mysqli_stmt_execute($payment_stmt);
                     mysqli_commit($conn);
                     $_SESSION['premium_payment_success'] = true;
-                    unset($_SESSION['premium_checkout_csrf']);
                     header('Location: ' . BASE_URL . 'users/premium_checkout.php');
                     exit;
                 } catch (Throwable $exception) {
@@ -132,10 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
-}
-
-if (!isset($_SESSION['premium_checkout_csrf'])) {
-    $_SESSION['premium_checkout_csrf'] = bin2hex(random_bytes(32));
 }
 
 $page_title = 'Soigné Premium payment | Soigné';
@@ -170,7 +160,6 @@ include_once("../includes/header.php");
 
     <?php if (!$pending_payment) { ?>
       <form method="post" enctype="multipart/form-data" class="premium-payment-form">
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['premium_checkout_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
         <label for="payment-receipt">Upload GCash receipt (JPEG, PNG, or WebP; max 5 MB)</label>
         <input type="file" id="payment-receipt" name="payment_receipt" accept="image/jpeg,image/png,image/webp" required>
         <button class="btn" type="submit">Submit receipt for review</button>

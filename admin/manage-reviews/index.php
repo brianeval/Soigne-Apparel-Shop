@@ -5,9 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $review_id = filter_var($_POST['review_id'] ?? null, FILTER_VALIDATE_INT);
     $action = $_POST['action'] ?? '';
 
-    if (!admin_verify_csrf($_POST['csrf_token'] ?? null)) {
-        admin_set_flash('error', 'Your session expired. Please try again.');
-    } elseif ($review_id === false || $review_id < 1 || $action !== 'delete') {
+    if ($review_id === false || $review_id < 1 || $action !== 'delete') {
         admin_set_flash('error', 'That review action is invalid.');
     } else {
         $review_update_statement = mysqli_prepare($conn,
@@ -35,37 +33,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $product_search = mb_substr(trim(is_string($_GET['product_search'] ?? null) ? $_GET['product_search'] : ''), 0, 100);
 $rating_value = is_string($_GET['rating'] ?? null) ? $_GET['rating'] : '';
 $rating = in_array($rating_value, ['1', '2', '3', '4', '5'], true) ? (int)$rating_value : null;
-
-$review_conditions = ["r.status IN ('pending', 'published')"];
-$review_filter_types = '';
-$review_filter_values = [];
-if ($product_search !== '') {
-    $review_conditions[] = 'p.name LIKE ?';
-    $review_filter_types .= 's';
-    $review_filter_values[] = '%' . $product_search . '%';
-}
-if ($rating !== null) {
-    $review_conditions[] = 'r.rating = ?';
-    $review_filter_types .= 'i';
-    $review_filter_values[] = $rating;
-}
+$product_search_pattern = '%' . $product_search . '%';
+$rating_filter = $rating ?? 0;
 $review_sql =
      "SELECT r.review_id, r.rating, r.review_text, r.status, r.created_at, r.published_at,
              p.product_id, p.name AS product_name, u.username
       FROM product_reviews r
       JOIN products p ON p.product_id = r.product_id
       JOIN users u ON u.user_id = r.user_id
-      WHERE " . implode(' AND ', $review_conditions) . "
+      WHERE r.status IN ('pending', 'published')
+        AND (? = '' OR p.name LIKE ?)
+        AND (? = 0 OR r.rating = ?)
       ORDER BY (r.status = 'pending') DESC, r.created_at DESC, r.review_id DESC";
 $reviews_stmt = mysqli_prepare($conn, $review_sql);
-if ($review_filter_types !== '') {
-    $review_bindings = [$review_filter_types];
-    foreach ($review_filter_values as &$review_filter_value) {
-        $review_bindings[] = &$review_filter_value;
-    }
-    unset($review_filter_value);
-    call_user_func_array('mysqli_stmt_bind_param', array_merge([$reviews_stmt], $review_bindings));
-}
+mysqli_stmt_bind_param(
+    $reviews_stmt,
+    'ssii',
+    $product_search,
+    $product_search_pattern,
+    $rating_filter,
+    $rating_filter
+);
 mysqli_stmt_execute($reviews_stmt);
 $reviews = mysqli_fetch_all(mysqli_stmt_get_result($reviews_stmt), MYSQLI_ASSOC);
 $review_total = count($reviews);
@@ -112,7 +100,6 @@ include("../includes/header.php");
                 <div class="manage-form-buttons">
                   <a class="manage-small-button" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$review['product_id']; ?>&amp;review_id=<?php echo (int)$review['review_id']; ?>#review-<?php echo (int)$review['review_id']; ?>">View review</a>
                   <form method="post">
-                    <input type="hidden" name="csrf_token" value="<?php echo admin_escape(admin_csrf_token()); ?>">
                     <input type="hidden" name="review_id" value="<?php echo (int)$review['review_id']; ?>">
                     <button class="manage-small-button is-danger" type="submit" name="action" value="delete">Delete</button>
                   </form>

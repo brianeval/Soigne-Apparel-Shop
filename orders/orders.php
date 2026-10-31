@@ -8,18 +8,11 @@ require_active_customer($conn, BASE_URL . 'orders/orders.php');
 $user_id = (int)$_SESSION['user_id'];
 $orders = [];
 
-if (!isset($_SESSION['orders_csrf'])) {
-    $_SESSION['orders_csrf'] = bin2hex(random_bytes(32));
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $order_id = filter_var($_POST['order_id'] ?? null, FILTER_VALIDATE_INT);
-    $csrf_token = $_POST['csrf_token'] ?? '';
 
-    if (!is_string($csrf_token) || !hash_equals($_SESSION['orders_csrf'], $csrf_token)) {
-        $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Your session expired. Please try again.'];
-    } elseif ($order_id === false || $order_id < 1 || !in_array($action, ['edit_order', 'cancel_order'], true)) {
+    if ($order_id === false || $order_id < 1 || !in_array($action, ['edit_order', 'cancel_order'], true)) {
         $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'That order action is invalid.'];
     } else {
         try {
@@ -327,17 +320,22 @@ include_once("../includes/header.php");
 
       <?php foreach ($order_tabs as $tab) { ?>
         <?php
-          $tab_orders = array_filter($orders, function ($order) use ($tab) {
+          $tab_orders = [];
+          foreach ($orders as $order) {
               $fulfillment_status = strtolower((string)($order['fulfillment_status'] ?? 'pending'));
               $payment_status = strtolower((string)($order['payment_status'] ?? 'unpaid'));
               if ($tab['id'] === 'review-me') {
-                  return $payment_status === 'paid';
+                  $show_order = $payment_status === 'paid';
+              } elseif ($tab['id'] === 'cancellations') {
+                  $show_order = $fulfillment_status === 'cancelled';
+              } else {
+                  $show_order = $payment_status !== 'paid'
+                      && in_array($fulfillment_status, $tab['statuses'], true);
               }
-              if ($tab['id'] === 'cancellations') {
-                  return $fulfillment_status === 'cancelled';
+              if ($show_order) {
+                  $tab_orders[] = $order;
               }
-              return $payment_status !== 'paid' && in_array($fulfillment_status, $tab['statuses'], true);
-          });
+          }
         ?>
         <section class="orders-tab-panel" role="tabpanel"
                  id="orders-panel-<?php echo htmlspecialchars($tab['id']); ?>"
@@ -393,7 +391,6 @@ include_once("../includes/header.php");
                 <?php if ($status === 'pending') { ?>
                   <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
                         class="order-edit-form" id="edit-order-<?php echo (int)$order['order_id']; ?>" novalidate>
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                     <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                     <input type="hidden" name="action" value="edit_order">
                 <?php } ?>
@@ -442,7 +439,6 @@ include_once("../includes/header.php");
                             <p class="rate-review-eyebrow">YOUR PURCHASE</p>
                             <h3><?php echo htmlspecialchars($item['product_name']); ?></h3>
                             <p>Quantity bought: <?php echo (int)$item['quantity']; ?></p>
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                             <input type="hidden" name="order_item_id" value="<?php echo (int)$item['order_item_id']; ?>">
                             <input type="hidden" name="product_id" value="<?php echo (int)$item['product_id']; ?>">
@@ -468,7 +464,6 @@ include_once("../includes/header.php");
                           </form>
                           <?php if ($has_review) { ?>
                             <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php">
-                              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                               <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                               <input type="hidden" name="order_item_id" value="<?php echo (int)$item['order_item_id']; ?>">
                               <input type="hidden" name="product_id" value="<?php echo (int)$item['product_id']; ?>">
@@ -489,7 +484,6 @@ include_once("../includes/header.php");
                   </form>
                   <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
                         class="order-cancel-form order-cancel-form-expanded">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                     <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                     <input type="hidden" name="action" value="cancel_order">
                     <button class="order-cancel-button" type="submit">Cancel order</button>
@@ -500,7 +494,6 @@ include_once("../includes/header.php");
             <?php if ($status === 'pending') { ?>
               <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
                     class="order-cancel-form order-cancel-form-collapsed">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                 <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                 <input type="hidden" name="action" value="cancel_order">
                 <button class="order-cancel-button" type="submit">Cancel order</button>

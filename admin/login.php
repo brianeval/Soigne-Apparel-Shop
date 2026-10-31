@@ -12,23 +12,16 @@ if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
     exit;
 }
 
-if (!isset($_SESSION['admin_login_csrf'])) {
-    $_SESSION['admin_login_csrf'] = bin2hex(random_bytes(32));
-}
-
 $error = '';
 $login_value = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $posted_login = $_POST['login'] ?? '';
     $posted_password = $_POST['password'] ?? '';
-    $csrf_token = $_POST['csrf_token'] ?? '';
     $login_value = is_string($posted_login) ? trim($posted_login) : '';
     $password = is_string($posted_password) ? $posted_password : '';
 
-    if (!is_string($csrf_token) || !hash_equals($_SESSION['admin_login_csrf'], $csrf_token)) {
-        $error = 'Your sign-in session expired. Please refresh the page and try again.';
-    } elseif ($login_value === '' && $password === '') {
+    if ($login_value === '' && $password === '') {
         $error = 'Enter your username or email and password.';
     } elseif ($login_value === '') {
         $error = 'Enter your username or email.';
@@ -49,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = (int)$admin['user_id'];
             $_SESSION['username'] = $admin['username'];
             $_SESSION['role'] = $admin['role'];
-            unset($_SESSION['admin_login_csrf']);
             header('Location: ' . $redirect);
             exit;
         }
@@ -95,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php } ?>
 
         <form method="post" action="<?php echo BASE_URL; ?>admin/login.php" novalidate>
-          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['admin_login_csrf']); ?>">
           <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect, ENT_QUOTES, 'UTF-8'); ?>">
 
           <label for="login">Username or email</label>
