@@ -96,11 +96,18 @@ if ($selected) {
 
 $original_variant_id = $editing_cart_item ? (int)$editing_cart_item['variant_id'] : 0;
 $selected_variant_id = 0;
+$selected_variant_stock = 0;
 $selected_quantity = $editing_cart_item ? (int)$editing_cart_item['quantity'] : 1;
 foreach ($variants as $variant) {
     if ((int)$variant['variant_id'] === $original_variant_id) {
         $selected_variant_id = $original_variant_id;
+        $selected_variant_stock = (int)$variant['stock'];
         break;
+    }
+}
+if ($selected_variant_stock < 1) {
+    foreach ($variants as $variant) {
+        $selected_variant_stock = max($selected_variant_stock, (int)$variant['stock']);
     }
 }
 
@@ -174,13 +181,13 @@ include_once('includes/header.php');
       <div class="size-options">
         <?php foreach ($variants as $v) { ?>
           <label>
-            <input type="radio" name="variant_id" value="<?php echo (int)$v['variant_id']; ?>" <?php echo ((int)$v['variant_id'] === $selected_variant_id) ? 'checked' : ''; ?> <?php echo $v['stock'] > 0 ? '' : 'disabled'; ?>>
+            <input type="radio" name="variant_id" value="<?php echo (int)$v['variant_id']; ?>" data-stock="<?php echo (int)$v['stock']; ?>" <?php echo ((int)$v['variant_id'] === $selected_variant_id) ? 'checked' : ''; ?> <?php echo $v['stock'] > 0 ? '' : 'disabled'; ?>>
             <?php echo htmlspecialchars($v['size']); ?><?php echo $v['stock'] > 0 ? '' : ' (sold out)'; ?>
           </label>
         <?php } ?>
       </div>
 
-      <p class="qty">Quantity: <input type="number" id="product-quantity" name="quantity" value="<?php echo $selected_quantity; ?>"></p>
+      <p class="qty">Quantity: <input type="number" id="product-quantity" name="quantity" min="1" max="<?php echo max(1, $selected_variant_stock); ?>" value="<?php echo $selected_quantity; ?>"></p>
       <?php if ($editing_cart_item) { ?>
         <div class="product-actions">
           <button class="btn" type="submit">Update item</button>
@@ -190,6 +197,38 @@ include_once('includes/header.php');
         <button class="btn" type="submit">Add to cart</button>
       <?php } ?>
     </form>
+    <script>
+      (function () {
+        const form = document.querySelector('.product-info form');
+        const quantityInput = document.getElementById('product-quantity');
+        if (!form || !quantityInput) {
+          return;
+        }
+        const sizeInputs = form.querySelectorAll('input[name="variant_id"]');
+        function updateQuantityLimit() {
+          let limit = 0;
+          sizeInputs.forEach(function (input) {
+            if (input.checked) {
+              limit = parseInt(input.dataset.stock || '0', 10);
+            }
+          });
+          if (!limit) {
+            sizeInputs.forEach(function (input) {
+              limit = Math.max(limit, parseInt(input.dataset.stock || '0', 10));
+            });
+          }
+          limit = Math.max(1, limit);
+          quantityInput.max = limit;
+          if (parseInt(quantityInput.value || '1', 10) > limit) {
+            quantityInput.value = limit;
+          }
+        }
+        sizeInputs.forEach(function (input) {
+          input.addEventListener('change', updateQuantityLimit);
+        });
+        updateQuantityLimit();
+      })();
+    </script>
     <?php } ?>
   </div>
 

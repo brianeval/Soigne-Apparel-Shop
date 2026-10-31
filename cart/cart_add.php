@@ -31,6 +31,7 @@ if (!$variant || (int)$variant['stock'] < 1) {
 }
 
 $stock = (int)$variant['stock'];
+$requested_quantity = $quantity;
 $quantity = min($quantity, $stock);
 
 mysqli_query($conn,
@@ -38,6 +39,8 @@ mysqli_query($conn,
      VALUES ($user_id, $variant_id, $quantity)
      ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + $quantity, $stock)");
 
-$_SESSION['flash'] = ['type' => 'success', 'text' => 'Added to your cart.'];
+$_SESSION['flash'] = $requested_quantity > $stock
+    ? ['type' => 'error', 'text' => 'Only ' . $stock . ' available. Your cart quantity was adjusted.']
+    : ['type' => 'success', 'text' => 'Added to your cart.'];
 header('Location: ' . BASE_URL . 'cart/cart.php');
 exit;
