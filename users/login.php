@@ -4,10 +4,24 @@ include_once("../includes/config.php");
 
 // Redirect validation
 function safe_redirect($redirect_path) {
-    return preg_match('#^/(?!/)#', $redirect_path) ? $redirect_path : 'index.php';
+    if (!is_string($redirect_path) || $redirect_path === '') {
+        return 'index.php';
+    }
+    if (strpos($redirect_path, '/') !== 0 || strpos($redirect_path, '//') === 0
+        || strpos($redirect_path, '\\') !== false
+        || strpos($redirect_path, "\r") !== false || strpos($redirect_path, "\n") !== false) {
+        return 'index.php';
+    }
+    return $redirect_path;
 }
 
-$redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
+$redirect_path = '';
+if (isset($_POST['redirect'])) {
+    $redirect_path = $_POST['redirect'];
+} elseif (isset($_GET['redirect'])) {
+    $redirect_path = $_GET['redirect'];
+}
+$redirect = safe_redirect($redirect_path);
 
 $cart_redirects = [
     BASE_URL . 'cart/cart.php',

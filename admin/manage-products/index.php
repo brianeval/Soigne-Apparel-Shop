@@ -4,19 +4,28 @@ require_once("../../includes/product_images.php");
 require_once("../../includes/product_validation.php");
 
 $errors = [];
-$posted_catalog_view = is_string($_POST['catalog_view'] ?? null)
-    ? $_POST['catalog_view']
-    : (is_string($_GET['catalog_view'] ?? null) ? $_GET['catalog_view'] : '');
-$catalog_view = in_array($posted_catalog_view, ['products', 'create', 'category', 'brand'], true)
-    ? $posted_catalog_view
-    : (($_POST['action'] ?? '') === 'add_category'
-        ? 'category'
-        : ((($_POST['action'] ?? '') === 'add_brand')
-            ? 'brand'
-            : (in_array($_POST['action'] ?? '', ['create', 'refresh_size_options'], true) || isset($_POST['remove_color']) ? 'create' : 'products')));
+$posted_catalog_view = '';
+if (isset($_POST['catalog_view']) && is_string($_POST['catalog_view'])) {
+    $posted_catalog_view = $_POST['catalog_view'];
+} elseif (isset($_GET['catalog_view']) && is_string($_GET['catalog_view'])) {
+    $posted_catalog_view = $_GET['catalog_view'];
+}
+
+if (in_array($posted_catalog_view, ['products', 'create', 'category', 'brand'], true)) {
+    $catalog_view = $posted_catalog_view;
+} elseif (isset($_POST['action']) && $_POST['action'] === 'add_category') {
+    $catalog_view = 'category';
+} elseif (isset($_POST['action']) && $_POST['action'] === 'add_brand') {
+    $catalog_view = 'brand';
+} elseif ((isset($_POST['action']) && in_array($_POST['action'], ['create', 'refresh_size_options'], true))
+    || isset($_POST['remove_color'])) {
+    $catalog_view = 'create';
+} else {
+    $catalog_view = 'products';
+}
 $product_size_guide = require("../../includes/product_size_guide.php");
 
-function product_size_options(array $guide, string $department, ?string $category): array
+function product_size_options(array $guide, string $department, ?string $category)
 {
     $category_group = $category === null
         ? null
@@ -32,7 +41,7 @@ function product_size_options(array $guide, string $department, ?string $categor
     )));
 }
 
-function save_brand_logo_upload(array $upload): ?string
+function save_brand_logo_upload(array $upload)
 {
     if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return null;

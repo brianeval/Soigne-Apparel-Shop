@@ -6,7 +6,17 @@ use Dompdf\Options;
 
 require_once(APP_ROOT . '/vendor/autoload.php');
 
-function send_order_email_message(string $email, string $customer_name, string $subject, string $html, string $text, array $attachments = []): void
+function order_email_escape($value)
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function order_email_money($amount)
+{
+    return '₱' . number_format((float)$amount, 2);
+}
+
+function send_order_email_message(string $email, string $customer_name, string $subject, string $html, string $text, array $attachments = [])
 {
     $username = getenv('MAILTRAP_USERNAME');
     $password = getenv('MAILTRAP_PASSWORD');
@@ -57,7 +67,7 @@ function send_order_email_message(string $email, string $customer_name, string $
     }
 }
 
-function build_order_receipt_pdf(array $order): string
+function build_order_receipt_pdf(array $order)
 {
     if (empty($order['items']) || !is_array($order['items'])) {
         throw new RuntimeException('Order receipt has no items.');
@@ -66,13 +76,6 @@ function build_order_receipt_pdf(array $order): string
         || ($order['payment_status'] ?? null) !== 'paid') {
         throw new InvalidArgumentException('A receipt can only be generated for a delivered, paid order.');
     }
-
-    $escape = static function ($value): string {
-        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    };
-    $money = static function (float $amount): string {
-        return '&#8369;' . number_format($amount, 2);
-    };
 
     $rows = '';
     $subtotal = 0.0;
@@ -90,17 +93,17 @@ function build_order_receipt_pdf(array $order): string
             . ' | ' . (string)($item['color'] ?? '')
             . ' | Size ' . (string)($item['size'] ?? '')
         );
-        $rows .= '<tr><td>' . $escape($description) . '</td>'
+        $rows .= '<tr><td>' . order_email_escape($description) . '</td>'
             . '<td class="number">' . $quantity . '</td>'
-            . '<td class="number">' . $money($unit_price) . '</td>'
-            . '<td class="number">' . $money($line_total) . '</td></tr>';
+            . '<td class="number">&#8369;' . number_format($unit_price, 2) . '</td>'
+            . '<td class="number">&#8369;' . number_format($line_total, 2) . '</td></tr>';
     }
 
     $order_id = (int)($order['order_id'] ?? 0);
-    $customer_name = $escape($order['customer_name'] ?? '');
-    $email = $escape($order['email'] ?? '');
-    $shipping_address = nl2br($escape($order['shipping_address'] ?? ''));
-    $created_at = $escape($order['created_at'] ?? '');
+    $customer_name = order_email_escape($order['customer_name'] ?? '');
+    $email = order_email_escape($order['email'] ?? '');
+    $shipping_address = nl2br(order_email_escape($order['shipping_address'] ?? ''));
+    $created_at = order_email_escape($order['created_at'] ?? '');
     $html = '<!doctype html><html lang="en"><head><meta charset="UTF-8"><style>
         @page{margin:34px}
         body{font-family:DejaVu Sans,sans-serif;color:#282722;font-size:11px;line-height:1.5}
@@ -135,7 +138,7 @@ function build_order_receipt_pdf(array $order): string
         <table class="items"><thead><tr><th>Item</th><th class="number">Qty</th>'
         . '<th class="number">Unit price</th><th class="number">Amount</th></tr></thead>'
         . '<tbody>' . $rows . '</tbody></table>
-        <table class="summary"><tr class="grand-total"><td>Total</td><td>' . $money($subtotal)
+        <table class="summary"><tr class="grand-total"><td>Total</td><td>&#8369;' . number_format($subtotal, 2)
         . '</td></tr></table>
         <div class="footer">Thank you for shopping with Soigné.</div></div></body></html>';
 
@@ -149,15 +152,8 @@ function build_order_receipt_pdf(array $order): string
     return $dompdf->output();
 }
 
-function send_order_confirmation_email(array $order): void
+function send_order_confirmation_email(array $order)
 {
-    $escape = static function ($value): string {
-        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    };
-    $money = static function ($amount): string {
-        return '₱' . number_format((float)$amount, 2);
-    };
-
     $rows = '';
     $text_rows = [];
     foreach ($order['items'] as $item) {
@@ -166,21 +162,21 @@ function send_order_confirmation_email(array $order): void
         $line_total = $unit_price * $quantity;
         $description = $item['name'] . ' — ' . $item['color'] . ', Size ' . $item['size'];
         $rows .= '<tr>'
-            . '<td style="padding:14px 10px;border-bottom:1px solid #e5e5e5;">' . $escape($description) . '</td>'
+            . '<td style="padding:14px 10px;border-bottom:1px solid #e5e5e5;">' . order_email_escape($description) . '</td>'
             . '<td style="padding:14px 10px;border-bottom:1px solid #e5e5e5;text-align:center;">' . $quantity . '</td>'
-            . '<td style="padding:14px 10px;border-bottom:1px solid #e5e5e5;text-align:right;white-space:nowrap;">' . $escape($money($unit_price)) . '</td>'
-            . '<td style="padding:14px 10px;border-bottom:1px solid #e5e5e5;text-align:right;white-space:nowrap;">' . $escape($money($line_total)) . '</td>'
+            . '<td style="padding:14px 10px;border-bottom:1px solid #e5e5e5;text-align:right;white-space:nowrap;">' . order_email_escape(order_email_money($unit_price)) . '</td>'
+            . '<td style="padding:14px 10px;border-bottom:1px solid #e5e5e5;text-align:right;white-space:nowrap;">' . order_email_escape(order_email_money($line_total)) . '</td>'
             . '</tr>';
         $text_rows[] = $description . ' | Qty: ' . $quantity
-            . ' | Unit price: ' . $money($unit_price)
-            . ' | Line total: ' . $money($line_total);
+            . ' | Unit price: ' . order_email_money($unit_price)
+            . ' | Line total: ' . order_email_money($line_total);
     }
 
     $order_number = (int)$order['order_id'];
     $total = (float)$order['total'];
-    $name = $escape($order['customer_name']);
-    $address = nl2br($escape($order['shipping_address']));
-    $payment_method = $escape($order['payment_method']);
+    $name = order_email_escape($order['customer_name']);
+    $address = nl2br(order_email_escape($order['shipping_address']));
+    $payment_method = order_email_escape($order['payment_method']);
     $html = '<!doctype html><html lang="en"><body style="margin:0;padding:32px 12px;background:#f7f6f3;color:#1c1c1c;font-family:Arial,sans-serif;line-height:1.5;">'
         . '<div style="max-width:680px;margin:0 auto;background:#fff;border:1px solid #e5e5e5;">'
         . '<div style="padding:24px 28px;background:#1c1c1c;color:#fff;"><p style="margin:0;font-size:12px;letter-spacing:3px;">SOIGNÉ</p>'
@@ -193,7 +189,7 @@ function send_order_confirmation_email(array $order): void
         . '<th style="padding:11px 10px;">Product</th><th style="padding:11px 10px;text-align:center;">Qty</th>'
         . '<th style="padding:11px 10px;text-align:right;">Price</th><th style="padding:11px 10px;text-align:right;">Total</th>'
         . '</tr></thead><tbody>' . $rows . '</tbody></table>'
-        . '<p style="margin:18px 0;text-align:right;font-size:17px;"><strong>Order total: ' . $escape($money($total)) . '</strong></p>'
+        . '<p style="margin:18px 0;text-align:right;font-size:17px;"><strong>Order total: ' . order_email_escape(order_email_money($total)) . '</strong></p>'
         . '<div style="padding:16px;background:#f3f1ee;font-size:14px;">'
         . '<p style="margin:0 0 8px;"><strong>Shipping to</strong><br>' . $name . '<br>' . $address . '</p>'
         . '<p style="margin:0;"><strong>Payment method:</strong> ' . $payment_method . '</p></div>'
@@ -203,7 +199,7 @@ function send_order_confirmation_email(array $order): void
         . 'Hi ' . $order['customer_name'] . ",\n"
         . 'Your order #' . $order_number . " has been placed.\n\n"
         . "Order summary:\n" . implode("\n", $text_rows) . "\n"
-        . 'Order total: ' . $money($total) . "\n\n"
+        . 'Order total: ' . order_email_money($total) . "\n\n"
         . "Shipping to:\n" . $order['customer_name'] . "\n"
         . $order['shipping_address'] . "\n"
         . 'Payment method: ' . $order['payment_method'] . "\n";
@@ -217,7 +213,7 @@ function send_order_confirmation_email(array $order): void
     );
 }
 
-function send_order_update_email(array $order, string $update_type): void
+function send_order_update_email(array $order, string $update_type)
 {
     $updates = [
         'mark_shipped' => [
@@ -267,22 +263,19 @@ function send_order_update_email(array $order, string $update_type): void
         ];
     }
 
-    $escape = static function ($value): string {
-        return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    };
     $update = $updates[$update_type];
     $order_number = (int)$order['order_id'];
-    $name = $escape($order['customer_name']);
-    $title = $escape($update['title']);
-    $message = $escape($update['message']);
-    $fulfillment = $escape(ucwords(str_replace('_', ' ', $order['fulfillment_status'])));
-    $payment = $escape(ucfirst($order['payment_status']));
+    $name = order_email_escape($order['customer_name']);
+    $title = order_email_escape($update['title']);
+    $message = order_email_escape($update['message']);
+    $fulfillment = order_email_escape(ucwords(str_replace('_', ' ', $order['fulfillment_status'])));
+    $payment = order_email_escape(ucfirst($order['payment_status']));
     $address_html = '';
     $address_text = '';
 
     if ($update_type === 'update_address') {
         $address_html = '<p style="margin:18px 0 0;padding:14px;background:#f3f1ee;"><strong>Updated shipping address</strong><br>'
-            . nl2br($escape($order['shipping_address'])) . '</p>';
+            . nl2br(order_email_escape($order['shipping_address'])) . '</p>';
         $address_text = "\nUpdated shipping address:\n" . $order['shipping_address'] . "\n";
     }
 

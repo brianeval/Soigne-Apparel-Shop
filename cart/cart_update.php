@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-function update_flash_and_go(string $type, string $text, ?int $product_id = null, ?int $cart_id = null): void
+function update_flash_and_go($type, $text, $product_id = null, $cart_id = null)
 {
     $_SESSION['flash'] = ['type' => $type, 'text' => $text];
     if ($product_id && $cart_id) {

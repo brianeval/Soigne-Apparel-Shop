@@ -1,5 +1,5 @@
 <?php
-function clear_customer_session(): void
+function clear_customer_session()
 {
     unset(
         $_SESSION['user_id'],
@@ -9,7 +9,7 @@ function clear_customer_session(): void
     );
 }
 
-function sync_customer_session(mysqli $conn): string
+function sync_customer_session(mysqli $conn)
 {
     if (!isset($_SESSION['user_id'])) {
         return 'guest';
@@ -59,7 +59,7 @@ function sync_customer_session(mysqli $conn): string
     return $account['role'];
 }
 
-function store_product_price_markup(float $price): string
+function store_product_price_markup(float $price)
 {
     if (($_SESSION['role'] ?? '') !== 'vip') {
         return htmlspecialchars(peso($price), ENT_QUOTES, 'UTF-8');
@@ -71,7 +71,7 @@ function store_product_price_markup(float $price): string
         . '</strong><small>VIP 10% off</small></span>';
 }
 
-function require_active_customer(mysqli $conn, string $redirect_path): void
+function require_active_customer(mysqli $conn, string $redirect_path)
 {
     $customer_role = sync_customer_session($conn);
     if (in_array($customer_role, ['customer', 'vip'], true)) {

@@ -2,12 +2,21 @@
 require_once("../includes/bootstrap.php");
 
 $errors = [];
-$requested_order_view = is_string($_POST['order_view'] ?? null)
-    ? $_POST['order_view']
-    : (is_string($_GET['order_view'] ?? null) ? $_GET['order_view'] : '');
-$order_view = in_array($requested_order_view, ['ongoing', 'history'], true)
-    ? $requested_order_view
-    : (($_POST['action'] ?? '') === 'delete' && is_string($_POST['order_view'] ?? null) ? $_POST['order_view'] : 'ongoing');
+$requested_order_view = '';
+if (isset($_POST['order_view']) && is_string($_POST['order_view'])) {
+    $requested_order_view = $_POST['order_view'];
+} elseif (isset($_GET['order_view']) && is_string($_GET['order_view'])) {
+    $requested_order_view = $_GET['order_view'];
+}
+
+if (in_array($requested_order_view, ['ongoing', 'history'], true)) {
+    $order_view = $requested_order_view;
+} elseif (isset($_POST['action']) && $_POST['action'] === 'delete'
+    && isset($_POST['order_view']) && is_string($_POST['order_view'])) {
+    $order_view = $_POST['order_view'];
+} else {
+    $order_view = 'ongoing';
+}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (($_POST['action'] ?? '') === 'create') {
         $user_id = filter_var($_POST['user_id'] ?? null, FILTER_VALIDATE_INT);

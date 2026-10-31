@@ -5,10 +5,25 @@ require_once("../includes/profile_image.php");
 
 // Redirect validation
 function safe_redirect($redirect_path) {
-    return preg_match('#^/(?!/)#', $redirect_path) ? $redirect_path : BASE_URL . 'index.php';
+    $fallback = BASE_URL . 'index.php';
+    if (!is_string($redirect_path) || $redirect_path === '') {
+        return $fallback;
+    }
+    if (strpos($redirect_path, '/') !== 0 || strpos($redirect_path, '//') === 0
+        || strpos($redirect_path, '\\') !== false
+        || strpos($redirect_path, "\r") !== false || strpos($redirect_path, "\n") !== false) {
+        return $fallback;
+    }
+    return $redirect_path;
 }
 
-$redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
+$redirect_path = '';
+if (isset($_POST['redirect'])) {
+    $redirect_path = $_POST['redirect'];
+} elseif (isset($_GET['redirect'])) {
+    $redirect_path = $_GET['redirect'];
+}
+$redirect = safe_redirect($redirect_path);
 
 // Admin redirect
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {

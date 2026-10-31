@@ -10,7 +10,13 @@
         ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
       ORDER BY p.product_id DESC";
     $products = mysqli_fetch_all(mysqli_query($conn, $products_sql), MYSQLI_ASSOC);
-    $product_image_map = product_color_image_paths($conn, array_map('intval', array_column($products, 'first_color_id')));
+    $first_color_ids = [];
+    foreach ($products as $product) {
+        if (array_key_exists('first_color_id', $product)) {
+            $first_color_ids[] = (int)$product['first_color_id'];
+        }
+    }
+    $product_image_map = product_color_image_paths($conn, $first_color_ids);
 
 ?>
     <section class="section">

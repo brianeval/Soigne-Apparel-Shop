@@ -81,11 +81,15 @@ $review_size = is_string($_GET['review_size'] ?? null) && in_array($_GET['review
     ? $_GET['review_size']
     : '';
 $all_published_review_count = count($published_reviews);
-$published_reviews = array_values(array_filter($published_reviews, static function (array $review) use ($review_rating, $review_color, $review_size): bool {
-    return ($review_rating === '' || (string)$review['rating'] === $review_rating)
+$filtered_reviews = [];
+foreach ($published_reviews as $review) {
+    if (($review_rating === '' || (string)$review['rating'] === $review_rating)
         && ($review_color === '' || $review['purchased_color'] === $review_color)
-        && ($review_size === '' || $review['purchased_size'] === $review_size);
-}));
+        && ($review_size === '' || $review['purchased_size'] === $review_size)) {
+        $filtered_reviews[] = $review;
+    }
+}
+$published_reviews = $filtered_reviews;
 usort($published_reviews, static function (array $first, array $second) use ($review_order): int {
     $date_order = strcmp((string)$first['created_at'], (string)$second['created_at']);
     $rating_order = (int)$first['rating'] <=> (int)$second['rating'];
@@ -135,9 +139,15 @@ $colors_stmt = mysqli_prepare($conn, $colors_sql);
 mysqli_stmt_bind_param($colors_stmt, 'i', $product_id);
 mysqli_stmt_execute($colors_stmt);
 $colors = mysqli_fetch_all(mysqli_stmt_get_result($colors_stmt), MYSQLI_ASSOC);
+$product_color_ids = [];
+foreach ($colors as $color) {
+    if (array_key_exists('product_color_id', $color)) {
+        $product_color_ids[] = (int)$color['product_color_id'];
+    }
+}
 $color_image_map = product_color_image_paths(
     $conn,
-    array_map('intval', array_column($colors, 'product_color_id'))
+    $product_color_ids
 );
 
 $selected = null;

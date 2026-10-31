@@ -4,7 +4,7 @@ require_once("../includes/bootstrap.php");
 const INVENTORY_MAX_STOCK = 2147483647;
 const INVENTORY_MAX_TOTAL_CENTS = 9007199254740991;
 
-function inventory_cost_to_cents($value): ?int
+function inventory_cost_to_cents($value)
 {
     if (!is_string($value) || !preg_match('/^\d{1,8}(?:\.\d{1,2})?$/D', $value)) {
         return null;

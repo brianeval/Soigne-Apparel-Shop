@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Soigné Apparel Shop | System Guide</title>
+  <style>
+    :root { color-scheme: light; --ink: #20232b; --muted: #626978; --line: #e2e5eb; --paper: #fff; --wash: #f5f6f8; --accent: #653e8d; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--wash); color: var(--ink); font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    header { background: #211a2b; color: white; padding: 2.5rem max(1.25rem, calc((100% - 1100px) / 2)); }
+    header h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; }
+    header p { max-width: 760px; color: #e2dce9; margin-bottom: 0; }
+    nav { padding: .8rem max(1.25rem, calc((100% - 1100px) / 2)); background: white; border-bottom: 1px solid var(--line); }
+    nav a { margin-right: 1.2rem; color: var(--accent); font-weight: 650; }
+    main { max-width: 1100px; margin: 2rem auto; padding: 0 1.25rem 3rem; }
+    section, .callout { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 1.3rem 1.5rem; margin: 1rem 0; }
+    h2 { margin: .2rem 0 .75rem; font-size: 1.5rem; }
+    h3 { margin: 1.2rem 0 .3rem; font-size: 1.1rem; }
+    p { margin: .5rem 0; }
+    code { color: #432963; background: #f1edf6; border-radius: 4px; padding: .08rem .3rem; overflow-wrap: anywhere; }
+    a { color: #57337a; }
+    .muted { color: var(--muted); }
+    .flow { padding-left: 1.35rem; }
+    .flow li { margin: .65rem 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .8rem; }
+    .card { border: 1px solid var(--line); border-radius: 9px; padding: .9rem 1rem; }
+    .card h3 { margin-top: 0; }
+    .tag { display: inline-block; border-radius: 99px; padding: .1rem .55rem; background: #f1edf6; color: var(--accent); font-size: .82rem; font-weight: 700; }
+    .guide-switch { display: flex; gap: .6rem; padding: .8rem max(1.25rem, calc((100% - 1100px) / 2)); background: white; border-bottom: 1px solid var(--line); }
+    .guide-switch button { border: 1px solid var(--accent); border-radius: 7px; padding: .55rem 1rem; background: white; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
+    .guide-switch button[aria-pressed="true"] { background: var(--accent); color: white; }
+    .guide-panel[hidden] { display: none; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: .65rem; }
+    th { background: #f8f7fa; }
+    pre { overflow-x: auto; padding: 1rem; background: #24202b; color: #f4eff9; border-radius: 8px; }
+    pre code { color: inherit; background: transparent; padding: 0; }
+    footer { max-width: 1100px; margin: auto; padding: 0 1.25rem 2rem; color: var(--muted); }
+    @media print { body { background: white; } section, .callout { break-inside: avoid; } nav, .guide-switch { display: none; } .guide-panel[hidden] { display: block; } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>How the Soigné shop works</h1>
+  <p>A file-by-file guide to the customer storefront, account and order journey, admin portal, and how information moves between the browser, PHP, session, and MySQL.</p>
+</header>
+<div class="guide-switch" role="group" aria-label="Choose documentation section">
+  <button type="button" id="overview-button" aria-controls="overview-panel" aria-pressed="true">Overview</button>
+  <button type="button" id="queries-button" aria-controls="queries-panel" aria-pressed="false">Queries</button>
+  <button type="button" id="codes-button" aria-controls="codes-panel" aria-pressed="false">Codes</button>
+  <button type="button" id="requirements-button" aria-controls="requirements-panel" aria-pressed="false">Requirements</button>
+</div>
+<main>
+<div class="guide-panel" id="overview-panel">
+  <div class="callout">
+    <strong>How to read this guide:</strong> The PHP files are server-rendered pages. The browser requests a URL, PHP reads URL parameters, form data, session values and/or database rows, then returns HTML or a redirect. File paths below are relative to the project root. Use the Queries button for SQL and table relationships.
+  </div>
+
+  <section id="overview">
+    <h2>1. System overview</h2>
+    <p>This is a PHP and MySQL apparel shop. Apache serves the project; PHP runs each requested <code>.php</code> file; MySQL stores accounts, products, cart rows, orders, stock, reviews and payment requests. The rendered HTML is sent back to the browser. The browser submits forms back to PHP using GET (URL parameters) or POST (form fields/files).</p>
+    <ol class="flow">
+      <li><strong>Request:</strong> A customer opens a URL such as <code>index.php</code>, <code>product.php?id=12</code>, or <code>cart/cart.php</code>. The query-string value <code>id=12</code> is available to PHP in <code>$_GET</code>.</li>
+      <li><strong>Bootstrap/shared setup:</strong> A page starts/resumes a PHP session and loads <code>includes/config.php</code> directly or through a shared include. Config opens the <code>soigne_apparel</code> database connection as <code>$conn</code>, sets UTF-8, and defines <code>BASE_URL</code>, <code>APP_ROOT</code>, and <code>peso()</code>.</li>
+      <li><strong>Identity and input:</strong> The page reads <code>$_SESSION</code>, <code>$_GET</code>, <code>$_POST</code>, or <code>$_FILES</code>. Customer pages use <code>includes/customer_auth.php</code> when an active customer/VIP account is required. Admin pages use <code>admin/includes/bootstrap.php</code>.</li>
+      <li><strong>Data work:</strong> PHP executes SQL using MySQLi. Most form values go through prepared statements and bound parameters. Related writes such as checkout, cancellation, restocking and status changes use database transactions so the operation commits together or rolls back.</li>
+      <li><strong>Response:</strong> PHP renders HTML, outputs a PDF/image, or sends a redirect with <code>header('Location: ...')</code>. Flash notices and multi-step checkout state are kept in the session and shown on the next request.</li>
+    </ol>
+    <p><span class="tag">Important</span> A session carries the signed-in user ID, role, and short-lived workflow data between page requests; the database remains the source of truth for account status, VIP expiry, saved records, and current stock.</p>
+  </section>
+
+  <section id="customer-flow">
+    <h2>2. Customer journey: start to finish</h2>
+    <ol class="flow">
+      <li><strong>Enter the storefront.</strong> <code>index.php</code> reads products and their first color for the home listing. It uses <code>includes/header.php</code> for navigation/account/cart badge and <code>includes/footer.php</code> for the shared footer and image viewer. The cart badge is queried for the signed-in customer.</li>
+      <li><strong>Find products.</strong> Navigation points to <code>department.php?dept=men|women|kids</code>. Category links use <code>category.php?category=...</code>. <code>brands.php</code> displays brands or filters products by brand ID/name. The shared <code>search.php?q=...</code> search finds product/category names and brand names. These pages pass their result arrays to <code>includes/product_grid.php</code>; that helper loads color image paths through <code>includes/product_images.php</code> and formats VIP prices through <code>includes/customer_auth.php</code>.</li>
+      <li><strong>Inspect an item.</strong> A product card links to <code>product.php?id=PRODUCT_ID</code>. This page loads the product/category, colors, images and size variants (including stock), then renders its selectable product form and published reviews. The selected color/variant is sent to the cart handler. When <code>cart_id</code> is supplied, the page first confirms that cart row belongs to the signed-in user and matches this product, then displays the edit-cart form. <code>product_view.php</code> is a separate simpler all-products listing. <code>size_guide.php</code> and <code>includes/product_size_guide.php</code> provide sizing guidance.</li>
+      <li><strong>Sign in or register when needed.</strong> <code>users/login.php</code> accepts a username or email plus password, verifies the password hash and active account, refreshes the session ID, and stores the user ID/role/username in the session. It can return the customer to a safe requested page. <code>users/register.php</code> validates details, hashes the password, creates a <code>users</code> record and linked <code>customers</code> record in a transaction, and optionally saves a profile image via <code>includes/profile_image.php</code>. <code>users/logout.php</code> clears the login session.</li>
+      <li><strong>Add/change the cart.</strong> Product forms POST <code>variant_id</code> and <code>quantity</code> to <code>cart/cart_add.php</code>. It verifies the active account, verifies the variant and available stock, then inserts or increments the unique user/variant cart row without exceeding stock. <code>cart/cart.php</code> lists the current user's cart, computes totals and 10% VIP discount, and supports item removal, selected-item checkout, and links back to a product to change size/quantity. <code>cart/cart_update.php</code> validates ownership, product/variant compatibility and stock; if the target variant already has a cart row, it merges quantities. These actions redirect back and use session flash messages.</li>
+      <li><strong>Place the order.</strong> The cart's selected IDs are ownership-checked and stored in <code>$_SESSION['checkout_cart_ids']</code>, then the browser goes to <code>orders/checkout.php</code>. Checkout checks the CSRF token and shipping details, locks the selected cart/product rows, verifies stock, creates the order and order-item snapshots, applies VIP discount, reduces stock, and removes only those cart rows in one transaction. It then tries to send the confirmation email and redirects back to the checkout page to show the order number.</li>
+      <li><strong>Track or change an order.</strong> <code>orders/orders.php</code> lists only this customer's orders and their saved line details. While an order is pending, the customer can cancel it (which returns stock) or request valid size/quantity changes (the transaction restores old stock and reserves the replacement stock). Its tabs group pending, shipped, delivered, failed-delivery, paid/review, and cancelled orders. Only permitted order items from paid orders can be reviewed.</li>
+      <li><strong>Review a purchase.</strong> Forms in <code>orders/orders.php</code> POST to <code>reviews/review_action.php</code>. The handler checks session CSRF, order/user/item ownership and paid status, validates rating/text and stores or updates the customer's review. Reviews are displayed on <code>product.php</code> when published. <code>admin/manage-reviews/index.php</code> lets staff remove a review from public display.</li>
+      <li><strong>Maintain the account or Premium membership.</strong> <code>users/profile.php</code> loads and updates the signed-in customer's account/contact details and profile image. <code>users/premium_checkout.php</code> accepts a GCash receipt image, stores it outside the public web root, and creates a pending payment request. An administrator reviews it in the Premium Payments module; approval changes the customer's role to VIP and sets/extends the expiry. VIP receives the 10% product discount while active; <code>includes/customer_auth.php</code> synchronizes expiry/status back from the database.</li>
+    </ol>
+  </section>
+
+  <section id="customer-files">
+    <h2>3. Customer-side files and their responsibilities</h2>
+    <div class="grid">
+      <article class="card"><h3>Storefront and catalog</h3><p><code>index.php</code> home page; <code>department.php</code> department filter; <code>category.php</code> category filter; <code>brands.php</code> brand index/details; <code>search.php</code> search results; <code>product_view.php</code> simple product listing; <code>product.php</code> full product details, variants, cart form and reviews; <code>size_guide.php</code> size information.</p></article>
+      <article class="card"><h3>Cart and ordering</h3><p><code>cart/cart_add.php</code> adds a size/quantity; <code>cart/cart.php</code> lists and removes/chooses items; <code>cart/cart_update.php</code> changes cart size/quantity; <code>orders/checkout.php</code> places an order; <code>orders/orders.php</code> lists and manages customer orders.</p></article>
+      <article class="card"><h3>Accounts and reviews</h3><p><code>users/login.php</code>, <code>users/register.php</code>, <code>users/logout.php</code>, <code>users/profile.php</code>, and <code>users/premium_checkout.php</code> manage customer access and profile/Premium submission. <code>reviews/review_action.php</code> processes customer review create/update/delete actions.</p></article>
+      <article class="card"><h3>Shared customer helpers</h3><p><code>includes/config.php</code> database/constants; <code>includes/header.php</code> shared nav and cart count; <code>includes/footer.php</code> footer/image preview; <code>includes/customer_auth.php</code> active account/VIP sync/discount; <code>includes/product_grid.php</code> and <code>includes/product_images.php</code> catalog cards/images; <code>includes/profile_image.php</code> profile uploads; <code>includes/product_size_guide.php</code> sizing data; <code>includes/order_email.php</code> SMTP emails and PDF receipt building.</p></article>
+    </div>
+  </section>
+
+  <section id="admin-flow">
+    <h2>4. Admin journey: sign-in to store operation</h2>
+    <ol class="flow">
+      <li><strong>Admin opens the portal.</strong> <code>admin/login.php</code> starts the session, issues a login CSRF token, and checks that the username/email belongs to an active <code>admin</code> account. On success it verifies the password hash, regenerates the session ID, stores the account identity/role and redirects to the safe admin destination (normally <code>admin/index.php</code>).</li>
+      <li><strong>Every protected admin request is gated.</strong> Admin pages include <code>admin/includes/bootstrap.php</code>. It loads the site config and redirect helper using paths rooted at <code>__DIR__</code>, requires an admin session, and rechecks that the database account is active. It supplies CSRF, escaping, one-time flash and pagination helpers. If access fails, it sends the browser to the admin login page.</li>
+      <li><strong>Dashboard navigation.</strong> <code>admin/index.php</code> shows product/customer/order counts, paid sales and recent orders. <code>admin/includes/header.php</code> renders the management sidebar/top bar; <code>admin/includes/footer.php</code> closes the shared layout. The sidebar links to each module and the storefront.</li>
+      <li><strong>Work in a module.</strong> A module loads current rows to display its page. Forms submit POST fields (including an action name, record IDs, and usually a CSRF token) to that module; PHP validates/authorizes the operation, updates the database, stores a flash result and redirects or redisplays validation errors.</li>
+      <li><strong>Sign out.</strong> <code>admin/logout.php</code> ends the admin session. <code>admin/storefront.php</code> is the admin-facing route for returning to the storefront.</li>
+    </ol>
+    <p>Admin pages are server-rendered PHP, not a separate API. The browser does not send database changes directly; it submits form fields to the PHP file, and that file decides which database operation is valid.</p>
+  </section>
+
+  <section id="admin-modules">
+    <h2>5. Admin modules, file by file</h2>
+    <div class="grid">
+      <article class="card">
+        <h3>Overview / authentication</h3>
+        <p><code>admin/login.php</code> authenticates active staff; <code>admin/logout.php</code> ends the session; <code>admin/index.php</code> builds dashboard statistics and latest-order list. <code>admin/includes/bootstrap.php</code> protects all module pages and defines reusable security/UI helpers. <code>admin/includes/header.php</code> draws the admin navigation/layout; <code>admin/includes/footer.php</code> closes it. <code>admin/storefront.php</code> is the navigation route back to the shop.</p>
+      </article>
+      <article class="card">
+        <h3>Manage Products</h3>
+        <p><code>admin/manage-products/index.php</code> lists products and handles product creation, adding categories and brands, and product deletion. Creating a product validates its brand/category/department/price and accepts its colors, sizes and images. <code>admin/manage-products/edit.php</code> handles one product: update basic fields; add/update/delete colors; add/update/delete size variants and stock values; and upload images per color. Image validation/storage is shared through <code>includes/product_images.php</code>; common numeric/price validation is in <code>includes/product_validation.php</code>; size choices use <code>includes/product_size_guide.php</code>.</p>
+      </article>
+      <article class="card">
+        <h3>Manage Inventory</h3>
+        <p><code>admin/manage-inventory/index.php</code> filters product variants by department, brand, category, color, size or search term and records supplier restocks. A restock request validates each variant, quantity and unit cost, locks the supplier/variant rows, inserts a restock header plus lines, increases stock, and commits atomically. <code>admin/manage-inventory/view.php?id=...</code> loads one restock and displays its received variant lines and totals.</p>
+      </article>
+      <article class="card">
+        <h3>Manage Orders</h3>
+        <p><code>admin/manage-orders/index.php</code> lists orders, lets admins create an order for an active customer, and allows deletion only for eligible unpaid orders. <code>admin/manage-orders/edit.php?id=...</code> shows one order, allows a shipping address change only while pending, and enforces state transitions: pending → shipped → delivered → paid, with cancellation or failed delivery returning reserved stock. It emails status changes through <code>includes/order_email.php</code>. <code>admin/manage-orders/receipt.php?id=...</code> serves a PDF only after an order is both delivered and paid.</p>
+      </article>
+      <article class="card">
+        <h3>Manage Reviews</h3>
+        <p><code>admin/manage-reviews/index.php</code> displays active/published customer feedback, prioritizes pending reviews if present, paginates results, and handles a CSRF-protected delete action. Deleted reviews are marked as deleted rather than physically removed.</p>
+      </article>
+      <article class="card">
+        <h3>Manage Customers / Premium</h3>
+        <p><code>admin/manage-customers/index.php</code> creates customer accounts, toggles active/inactive status, and prevents deleting customers with order history. <code>admin/manage-customers/edit.php?id=...</code> edits login/contact details and customer/VIP role, with optional password change or VIP renewal. <code>admin/manage-customers/premium-payments.php</code> lists submitted receipt requests and approves/rejects pending payments; approval extends VIP for one month in the same transaction. <code>admin/manage-customers/premium-receipt.php?id=...</code> validates and streams a receipt stored privately.</p>
+      </article>
+    </div>
+    <p class="muted">Admin changes are protected by the shared admin session gate; mutating forms use the session CSRF token. Pages use prepared SQL, validate IDs and statuses, and use transactions/row locks for changes that affect multiple records or stock.</p>
+  </section>
+
+  <section>
+    <h2>6. Shared support code and assets</h2>
+    <ul>
+      <li><code>includes/order_email.php</code> reads SMTP configuration from environment variables, sends order emails with PHPMailer, and builds PDF receipts with Dompdf. <code>composer.json</code> declares these dependencies and Composer's <code>vendor/</code> directory contains installed packages.</li>
+      <li><code>includes/admin_redirect.php</code> limits requested post-login return paths to safe local admin paths.</li>
+      <li><code>includes/product_images.php</code> validates uploaded product images and retrieves ordered image paths; images are files under <code>images/</code> and metadata is associated with product colors in MySQL.</li>
+      <li><code>includes/product_validation.php</code> contains product ID, stock integer and price validators. <code>includes/profile_image.php</code> validates, stores and replaces profile pictures.</li>
+      <li><code>styles/</code>, <code>admin/styles/</code>, <code>admin/*.js</code>, and root/admin scripts supply presentation and small browser interactions. Images are served from <code>images/</code>.</li>
+      <li><code>sql_files/</code> contains the database import and incremental/migration scripts. Read the warning in <code>sql_files/soigne_apparel_(updated).sql</code> before running it: the full script drops and recreates the application's tables.</li>
+    </ul>
+  </section>
+
+</div>
+
+<div class="guide-panel" id="queries-panel" hidden>
+  <div class="callout">
+    This section describes the main SQL jobs and the data they read/write. The live SQL is in the PHP files named below. Database setup and view definitions are in <code>sql_files/soigne_apparel_(updated).sql</code>.
+  </div>
+  <section id="database">
+    <h2>1. Database model: what records mean</h2>
+    <p>The application's database is <code>soigne_apparel</code>. Connection settings are in <code>includes/config.php</code>, which creates the MySQLi connection <code>$conn</code>.</p>
+    <table>
+      <thead><tr><th>Table or view</th><th>What it stores or provides</th><th>How it connects</th></tr></thead>
+      <tbody>
+        <tr><td><code>users</code></td><td>Login identity, password hash, role, active status, VIP expiry.</td><td>Primary account record. Customer profile, orders, cart and payment requests refer to <code>user_id</code>.</td></tr>
+        <tr><td><code>customers</code></td><td>Customer-facing name, phone and saved address.</td><td>One row per account through unique <code>user_id</code>; joined to <code>users</code> for login/contact display.</td></tr>
+        <tr><td><code>suppliers</code> / <code>categories</code></td><td>Brand name/logo and product category names.</td><td>Products refer to a brand using <code>supplier_id</code> and optionally a <code>category_id</code>.</td></tr>
+        <tr><td><code>products</code></td><td>Product name, description, price, department, brand and category.</td><td>Parent of product colors; root catalog and search records.</td></tr>
+        <tr><td><code>product_colors</code></td><td>Color choices for each product.</td><td>Each color belongs to a product. Its key is passed to images and size variants.</td></tr>
+        <tr><td><code>product_color_images</code></td><td>Image path and display order for a color.</td><td>References <code>product_color_id</code>; image bytes live under <code>images/</code>, not in MySQL.</td></tr>
+        <tr><td><code>product_variants</code></td><td>One size and stock count per color.</td><td>Cart/order line items identify a variant using <code>variant_id</code>.</td></tr>
+        <tr><td><code>cart</code></td><td>Customer's variant and requested quantity.</td><td>Rows refer to <code>user_id</code> and <code>variant_id</code>; a unique user/variant key prevents duplicate size rows.</td></tr>
+        <tr><td><code>orders</code> / <code>order_items</code></td><td>Order owner, address/status/time; then each ordered variant, quantity and checkout-time unit price.</td><td>Order items reference the order and variant; prices are snapshotted for the sale rather than recalculated from today's product price.</td></tr>
+        <tr><td><code>product_reviews</code></td><td>Customer rating, text, review status and optional purchased order item.</td><td>Connected to product and user; status controls storefront visibility.</td></tr>
+        <tr><td><code>premium_payments</code></td><td>Customer payment receipt metadata and review decision.</td><td>References customer and optional reviewing admin; receipt file is stored privately outside the public web root.</td></tr>
+        <tr><td><code>restocks</code> / <code>restock_items</code></td><td>Supplier restock batch and per-variant quantity/unit-cost lines.</td><td>Restock lines connect to the batch and the product variant whose stock is increased.</td></tr>
+        <tr><td><code>order_transaction_details</code> (view)</td><td>Readable order-line data with owner ID, current product/color/size names, saved quantity/unit price, and calculated line/order totals.</td><td>Joins orders, order items, variants, colors and products. Customer names are joined separately where needed.</td></tr>
+        <tr><td><code>restock_totals</code>, <code>all_costs</code> (views)</td><td>Calculated restock-cost or expense summary data.</td><td>Defined by the full database SQL; not a substitute for underlying restock/item records.</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">Exact column types, indexes, foreign keys and view definitions are in the full schema script. Some incremental SQL files add or migrate parts of this schema.</p>
+  </section>
+  <section id="query-patterns">
+    <h2>2. How values reach a query</h2>
+    <ol>
+      <li>A URL value such as <code>?id=12</code> is read from <code>$_GET['id']</code>; submitted fields are read from <code>$_POST</code>; uploads come through <code>$_FILES</code>; the logged-in user ID comes from the PHP session.</li>
+      <li>PHP validates/converts input (for example integer IDs, allowed roles, statuses, lengths and numeric price ranges).</li>
+      <li>For a parameterized query, PHP prepares a statement with <code>?</code> placeholders, binds values with <code>mysqli_stmt_bind_param()</code>, and executes it. User-provided values stay separate from SQL syntax.</li>
+      <li>SELECT results are read via <code>mysqli_fetch_assoc()</code> or <code>mysqli_fetch_all()</code>; the returned rows become PHP arrays used to build the page.</li>
+      <li>For multi-record changes, <code>mysqli_begin_transaction()</code>, row locks such as <code>FOR UPDATE</code>, checks, and <code>mysqli_commit()</code>/<code>mysqli_rollback()</code> keep related updates consistent.</li>
+    </ol>
+    <pre><code>// Common pattern in the PHP pages
+$stmt = mysqli_prepare($conn, 'SELECT ... WHERE id = ?');
+mysqli_stmt_bind_param($stmt, 'i', $id);
+mysqli_stmt_execute($stmt);
+$row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));</code></pre>
+    <p>Binding type codes commonly used are <code>i</code> for integer, <code>s</code> for string, and <code>d</code> for floating-point numeric values; multiple values use a type string such as <code>'isi'</code>. Some pages construct an <code>IN (...)</code> list only after validating IDs, or construct placeholder counts dynamically.</p>
+  </section>
+  <section id="customer-queries">
+    <h2>3. Customer-side query map</h2>
+    <div class="grid">
+      <article class="card"><h3>Catalog reads</h3><p><code>index.php</code>, <code>department.php</code>, <code>category.php</code>, <code>brands.php</code> and <code>search.php</code> select products or brands, join optional category/brand data, and select the first color for product cards. <code>includes/product_images.php</code> finds image paths; <code>includes/product_grid.php</code> renders results. <code>product.php</code> reads one product, colors/images/variants and published reviews. Search terms are passed to prepared statements.</p></article>
+      <article class="card"><h3>Login, profile and VIP</h3><p><code>users/login.php</code> looks up an active customer/VIP by username or email, verifies its password hash, and downgrades expired VIP. <code>users/register.php</code> checks duplicate usernames/emails, then transactionally inserts account and profile rows. <code>users/profile.php</code> reads/updates account details. <code>includes/customer_auth.php</code> re-reads role/status/expiry to sync the session.</p></article>
+      <article class="card"><h3>Cart and stock</h3><p><code>cart/cart_add.php</code> reads variant stock, then inserts/increments a cart row capped at stock. <code>cart/cart.php</code> joins cart → variant → color → product and scopes changes to the current user. <code>cart/cart_update.php</code> locks the owned cart item and target variant, checks product match and stock, then updates or merges duplicate lines.</p></article>
+      <article class="card"><h3>Checkout</h3><p><code>orders/checkout.php</code> reads/locks selected cart lines and product/variant data, confirms stock, inserts the order and each order item (including sale price), reduces stock and removes purchased cart lines in one transaction. After commit, <code>includes/order_email.php</code> sends confirmation; email failure does not undo the order.</p></article>
+      <article class="card"><h3>Orders and customer reviews</h3><p><code>orders/orders.php</code> selects orders scoped to <code>user_id</code> and uses <code>order_transaction_details</code> for totals/line details. POST actions lock and verify a pending order before stock or line changes. <code>reviews/review_action.php</code> verifies ownership of the paid order item before changing a review. <code>product.php</code> selects only published reviews.</p></article>
+      <article class="card"><h3>Premium purchase request</h3><p><code>users/premium_checkout.php</code> checks for a pending payment, validates and privately saves the receipt, locks the active account and pending-request state, then inserts a <code>premium_payments</code> row. The file is outside MySQL; filename and MIME type are stored in the row.</p></article>
+    </div>
+  </section>
+  <section id="admin-queries">
+    <h2>4. Admin-side query map</h2>
+    <div class="grid">
+      <article class="card"><h3>Admin gate and dashboard</h3><p><code>admin/includes/bootstrap.php</code> checks the session and database admin status. <code>admin/index.php</code> aggregates product/order/customer counts, pending unpaid orders and paid sales; a second SELECT joins recent orders to order lines for the latest six rows.</p></article>
+      <article class="card"><h3>Products</h3><p><code>admin/manage-products/index.php</code> reads categories/brands/products and writes catalog records. <code>admin/manage-products/edit.php</code> reads/changes product, color, image and variant records. Create/update/delete actions are validated and constrained by product/color/variant ownership. Image files are stored separately and their paths go into <code>product_color_images</code>.</p></article>
+      <article class="card"><h3>Inventory</h3><p><code>admin/manage-inventory/index.php</code> reads suppliers, categories, variants and filtered stock. A restock locks supplier and variants, checks supplier ownership, creates restock header/lines and increments stock in one transaction. <code>admin/manage-inventory/view.php</code> joins restock lines to product/category/color/size.</p></article>
+      <article class="card"><h3>Orders</h3><p><code>admin/manage-orders/index.php</code> joins order/customer data and the transaction view; order creation locks/validates customer and variants, writes order lines and decrements stock transactionally. Deletion checks allowed statuses and may restore stock. <code>admin/manage-orders/edit.php</code> locks the order before status changes and returns stock on cancellation/failed delivery. <code>admin/manage-orders/receipt.php</code> selects details only for delivered, paid orders.</p></article>
+      <article class="card"><h3>Customers and Premium payments</h3><p><code>admin/manage-customers/index.php</code> lists/creates accounts, changes status, or deletes only accounts without order history. <code>admin/manage-customers/edit.php</code> updates account/profile, optionally password and VIP expiry. <code>admin/manage-customers/premium-payments.php</code> locks the pending payment; approval updates VIP role/expiry and payment review status together. <code>admin/manage-customers/premium-receipt.php</code> streams a validated private image.</p></article>
+      <article class="card"><h3>Reviews</h3><p><code>admin/manage-reviews/index.php</code> counts and paginates active reviews, joins product and username, and soft-deletes by setting review status to <code>deleted</code>.</p></article>
+    </div>
+  </section>
+  <section>
+    <h2>5. SQL views and snapshots</h2>
+    <ul>
+      <li><code>order_transaction_details</code> is defined in the full schema and <code>sql_files/replace_order_totals_with_transaction_details.sql</code>. It joins order/item data to product/color/size names and calculates line/order totals. It exposes owner ID, not customer name; pages join <code>users</code>/<code>customers</code> separately when needed.</li>
+      <li><code>orders.shipping_address</code> is the checkout-time address snapshot. <code>order_items.price</code> is the unit price recorded at sale time.</li>
+      <li><code>product_variants.stock</code> is current stock. Checkout/admin order creation subtract it; cancellation/failed delivery restore it; restocks add received quantity.</li>
+      <li>VIP role/expiry are stored on <code>users</code>; auth synchronization or login downgrades an expired VIP.</li>
+    </ul>
+  </section>
+  <section id="sql-files">
+    <h2>6. Where to inspect SQL</h2>
+    <ul>
+      <li><code>sql_files/soigne_apparel_(updated).sql</code> creates the schema/views and sample data. <strong>It drops and recreates tables</strong>; do not run it against data you need to keep.</li>
+      <li>Other files in <code>sql_files/</code> are incremental changes/imports for reviews, payments, images, orders, VIP, customer status, categories, sizes and product data.</li>
+      <li>PHP pages execute queries at runtime rather than loading query files. Trace an operation from its <code>$_GET</code>/<code>$_POST</code>/session values through validation, <code>mysqli_prepare()</code>, parameter binding, execution and rendering/redirect.</li>
+    </ul>
+  </section>
+</div>
+
+<div class="guide-panel" id="codes-panel" hidden>
+  <div class="callout">
+    The excerpts below are taken from the named project files. They show the important PHP statements that implement the storefront, account, CRUD, cart, order, review and admin behavior; longer SQL and validation blocks are shortened where noted.
+  </div>
+
+  <section id="code-auth">
+    <h2>Codes: sessions, login and admin access</h2>
+    <div class="grid">
+      <article class="card">
+        <h3><code>admin/includes/bootstrap.php</code>: gate admin pages</h3>
+        <p>Every admin module includes this bootstrap. It checks the signed-in role, sends unauthenticated/non-admin requests to admin login with a return path and message, then checks the account is still active in MySQL.</p>
+        <pre><code>if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+    $return_path = safe_admin_return_path($_SERVER['REQUEST_URI'] ?? '');
+    $_SESSION['admin_login_notice'] = 'Please sign in with an active administrator account to access that page.';
+    header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
+    exit;
+}</code></pre>
+      </article>
+      <article class="card">
+        <h3><code>users/login.php</code> and <code>users/logout.php</code></h3>
+        <p>Login chooses email or username, prepares the lookup, verifies the stored password hash and regenerates the session ID. Logout clears and destroys the session.</p>
+        <pre><code>$login_column = filter_var($login_value, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+$user_stmt = mysqli_prepare($conn, $user_lookup_sql);
+mysqli_stmt_bind_param($user_stmt, 's', $login_value);
+mysqli_stmt_execute($user_stmt);
+if ($user && password_verify($password, $user['password'])) {
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = (int)$user['user_id'];
+    $_SESSION['role'] = $user['role'];
+}</code></pre>
+        <p><code>users/logout.php</code> runs <code>$_SESSION = [];</code>, <code>session_destroy();</code>, then redirects to the storefront.</p>
+      </article>
+      <article class="card">
+        <h3><code>includes/customer_auth.php</code>: customer-only routes</h3>
+        <p>This shared helper rechecks account status/role in the database. Cart, profile, order and review actions call <code>require_active_customer()</code>; guests are sent to login with a safe destination.</p>
+        <pre><code>function require_active_customer(mysqli $conn, string $redirect_path): void
+{
+    $customer_role = sync_customer_session($conn);
+    if (in_array($customer_role, ['customer', 'vip'], true)) {
+        return;
+    }
+    header('Location: ' . BASE_URL . 'users/login.php?redirect=' . urlencode($redirect_path));
+    exit;
+}</code></pre>
+      </article>
+    </div>
+  </section>
+
+  <section id="code-crud">
+    <h2>Product CRUD, customer CRUD and image uploads</h2>
+    <div class="grid">
+      <article class="card">
+        <h3><code>admin/manage-products/index.php</code> and <code>admin/manage-products/edit.php</code></h3>
+        <p>The admin product screens create, edit and delete catalog records and their category, brand, color, size, stock and image data. Server-side product checks are shared from <code>includes/product_validation.php</code>.</p>
+        <pre><code>function product_price_value($value): ?float
+{
+    ...
+    if (!preg_match('/\A\d{1,8}(?:\.\d{1,2})?\z/', $price)) {
+        return null;
+    }
+    return (float)$price;
+}</code></pre>
+        <p>For an edit, <code>admin/manage-products/edit.php</code> validates the selected color and caps one upload action at 10 images. Each accepted image is stored through <code>save_product_image_upload()</code>, then its path and order are inserted into <code>product_color_images</code>.</p>
+        <pre><code>if (!$uploads || count($uploads) &gt; 10) {
+    $errors[] = 'Choose between 1 and 10 images to upload.';
+} else {
+    foreach ($uploads as $upload) {
+        $image_path = save_product_image_upload($upload);
+        $saved_images[] = $image_path;
+    }
+    $image_stmt = mysqli_prepare($conn,
+        "INSERT INTO product_color_images (product_color_id, image_path, sort_order)
+         VALUES (?, ?, ?)"
+    );
+}</code></pre>
+      </article>
+      <article class="card">
+        <h3><code>includes/product_images.php</code>: validate and store photos</h3>
+        <p>The shared upload helper checks upload status, file size and detected image MIME type; it generates a random filename and moves the uploaded file into the product image directory. The retrieval helper returns images in display order.</p>
+        <pre><code>$allowed_types = [
+    'image/jpeg' =&gt; 'jpg',
+    'image/png' =&gt; 'png',
+    'image/webp' =&gt; 'webp',
+];
+...
+if (!move_uploaded_file($upload['tmp_name'], $directory . DIRECTORY_SEPARATOR . $filename)) {
+    throw new RuntimeException('The product image could not be saved. Please try again.');
+}</code></pre>
+      </article>
+      <article class="card">
+        <h3><code>admin/manage-customers/index.php</code> and <code>admin/manage-customers/edit.php</code></h3>
+        <p>The customer manager can create accounts, deactivate/reactivate accounts and remove eligible customers. The edit screen validates allowed customer roles and updates the role/profile; passwords are stored as hashes.</p>
+        <pre><code>$status_update_statement = mysqli_prepare($conn,
+    "UPDATE users SET status = ? WHERE user_id = ? AND role IN ('customer', 'vip')"
+);
+mysqli_stmt_bind_param($status_update_statement, 'si', $new_status, $user_id);</code></pre>
+        <pre><code>if (!in_array($role, ['customer', 'vip'], true)) {
+    $errors[] = 'Choose a valid customer role.';
+}
+...
+role = ?
+WHERE user_id = ? AND role IN ('customer', 'vip')</code></pre>
+        <p>Role changes are restricted to <code>customer</code> or <code>vip</code> in the edit form; the admin-page bootstrap separately requires the <code>admin</code> role.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="code-catalog">
+    <h2>Storefront PHP: home, search, product, category and department</h2>
+    <table>
+      <thead><tr><th>File</th><th>What the code does</th><th>Important source lines</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>index.php</code></td>
+          <td>Loads the five newest products and their first color for homepage cards.</td>
+          <td><pre><code>FROM products p
+LEFT JOIN product_colors pc
+  ON pc.product_color_id = (SELECT MIN(product_color_id)
+                            FROM product_colors
+                            WHERE product_id = p.product_id)
+ORDER BY p.product_id DESC
+LIMIT 5</code></pre></td>
+        </tr>
+        <tr>
+          <td><code>includes/header.php</code> and <code>search.php</code></td>
+          <td>The shared homepage header submits the search field to <code>search.php?q=...</code>. Search matches product/category and brand names through bound parameters.</td>
+          <td><pre><code>&lt;form class="search" role="search" method="get" action="&lt;?php echo BASE_URL; ?&gt;search.php"&gt;
+    &lt;input type="search" name="q" value="&lt;?php echo htmlspecialchars($_GET['q'] ?? ''); ?&gt;"&gt;
+&lt;/form&gt;
+...
+WHERE LOWER(p.name) LIKE LOWER(?)
+   OR LOWER(COALESCE(c.name, '')) LIKE LOWER(?)
+mysqli_stmt_bind_param($products_stmt, 'ss', $like, $like);</code></pre></td>
+        </tr>
+        <tr>
+          <td><code>product_view.php</code></td>
+          <td>Lists all products and links each card to the detailed <code>product.php</code> page.</td>
+          <td><pre><code>ORDER BY p.product_id DESC";
+$products = mysqli_fetch_all(mysqli_query($conn, $products_sql), MYSQLI_ASSOC);</code></pre></td>
+        </tr>
+        <tr>
+          <td><code>category.php</code></td>
+          <td>Maps approved category slugs to category names, returns 404 for unknown slugs and uses a prepared category query.</td>
+          <td><pre><code>if (!is_string($category_slug) || !isset($categories[$category_slug])) {
+    http_response_code(404);
+    exit('Category not found.');
+}
+mysqli_stmt_bind_param($products_stmt, 's', $category_name);</code></pre></td>
+        </tr>
+        <tr>
+          <td><code>department.php</code></td>
+          <td>Allows only <code>men</code>, <code>women</code> or <code>kids</code>, then binds the chosen department into its product query.</td>
+          <td><pre><code>$allowed = ['men' =&gt; 'Men', 'women' =&gt; 'Women', 'kids' =&gt; 'Kids'];
+if (!isset($allowed[$dept])) {
+    http_response_code(404);
+    exit('Department not found.');
+}
+mysqli_stmt_bind_param($products_stmt, 's', $dept);</code></pre></td>
+        </tr>
+        <tr>
+          <td><code>product.php</code></td>
+          <td>Loads a single product and only published reviews; it also checks ownership when a customer edits a cart item from the product page.</td>
+          <td><pre><code>WHERE r.product_id = ? AND r.status = 'published'
+ORDER BY r.created_at DESC, r.review_id DESC
+mysqli_stmt_bind_param($reviews_stmt, 'i', $product_id);</code></pre></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="code-cart-orders">
+    <h2>Cart, checkout and order-status code</h2>
+    <div class="grid">
+      <article class="card">
+        <h3><code>cart/cart_add.php</code> and <code>cart/cart_update.php</code></h3>
+        <p>Add-to-cart checks the chosen variant's available stock. A duplicate user/variant cart row increments quantity but caps it at stock. Update locks the user's cart row and verifies that the replacement size belongs to the same product.</p>
+        <pre><code>$variant_stmt = mysqli_prepare($conn,
+    "SELECT stock FROM product_variants WHERE variant_id = ?"
+);
+...
+$cart_insert_sql = "INSERT INTO cart (user_id, variant_id, quantity) VALUES (?, ?, ?)
+      ON DUPLICATE KEY UPDATE quantity = LEAST(quantity + VALUES(quantity), ?)";</code></pre>
+      </article>
+      <article class="card">
+        <h3><code>orders/checkout.php</code> and <code>orders/orders.php</code></h3>
+        <p>Checkout validates the posted name, phone, address and CSRF token, locks the selected cart/product rows, checks stock, inserts order snapshots and commits related writes together. Customer order edits/cancellation are restricted to that customer's pending orders.</p>
+        <pre><code>mysqli_begin_transaction($conn);
+mysqli_stmt_bind_param($selected_items_stmt, 'i', $user_id);
+mysqli_stmt_execute($selected_items_stmt);
+...
+mysqli_commit($conn);</code></pre>
+      </article>
+      <article class="card">
+        <h3><code>admin/manage-orders/edit.php</code></h3>
+        <p>The admin order screen validates legal status transitions, updates fulfillment/payment status under a row lock, restores stock for cancellation/failed delivery and notifies the customer after the database commit.</p>
+        <pre><code>$allowed_actions = ['mark_shipped', 'mark_delivered', 'mark_failed_delivery', 'mark_paid', 'cancel'];
+...
+mysqli_commit($conn);
+$email_sent = admin_send_order_update_notification($conn, $notification_order, $action);</code></pre>
+      </article>
+    </div>
+  </section>
+
+  <section id="code-reviews-email">
+    <h2>Reviews, shared helpers and email/PDF</h2>
+    <div class="grid">
+      <article class="card">
+        <h3><code>reviews/review_action.php</code></h3>
+        <p>The handler requires a signed-in active customer, validates CSRF and verifies that the referenced product was in that customer's paid order. It allows review create/update/delete and masks detected foul words with asterisks.</p>
+        <pre><code>$normalized_review = strtolower(strtr($review_text, [
+    '0' =&gt; 'o', '1' =&gt; 'i', '3' =&gt; 'e', '4' =&gt; 'a',
+    '5' =&gt; 's', '7' =&gt; 't', '@' =&gt; 'a', '$' =&gt; 's'
+]));
+$contains_vulgar_language = preg_match_all($vulgar_pattern, $normalized_review, $vulgar_matches, PREG_OFFSET_CAPTURE);
+...
+$matched_length = strlen($vulgar_match[0]);
+$review_text = substr_replace(
+    $review_text,
+    str_repeat('*', $matched_length),
+    $vulgar_match[1],
+    $matched_length
+);</code></pre>
+      </article>
+      <article class="card">
+        <h3><code>users/register.php</code>, <code>users/profile.php</code> and <code>includes/profile_image.php</code></h3>
+        <p>Registration stores a password hash and user/profile rows in a transaction and can save an optional photo. Profile updates call the same helper to replace the signed-in user's photo; accepted formats are JPEG, PNG and WebP (5 MB maximum).</p>
+        <pre><code>$password_hash = password_hash($password, PASSWORD_DEFAULT);
+$user_insert_stmt = mysqli_prepare($conn,
+    "INSERT INTO users (username, email, password) VALUES (?, ?, ?)"
+);
+...
+$saved_profile_image = save_profile_image_upload($profile_upload, $user_id);</code></pre>
+      </article>
+      <article class="card">
+        <h3><code>includes/order_email.php</code>: Mailtrap and receipt attachment</h3>
+        <p>SMTP credentials are read from <code>MAILTRAP_*</code> environment variables. Admin status changes call the order-update email; the <code>mark_paid</code> email includes a generated PDF receipt. The separate order-confirmation email builds item rows and line totals.</p>
+        <pre><code>$host = getenv('MAILTRAP_HOST') ?: 'sandbox.smtp.mailtrap.io';
+$mailer-&gt;isSMTP();
+$mailer-&gt;Host = $host;
+...
+'content' =&gt; build_order_receipt_pdf($order),
+'name' =&gt; 'soigne-order-receipt-' . (int)$order['order_id'] . '.pdf',
+'mime' =&gt; 'application/pdf',</code></pre>
+      </article>
+    </div>
+  </section>
+</div>
+
+<div class="guide-panel" id="requirements-panel" hidden>
+  <div class="callout">
+    Rubric coverage below is mapped to the current source, not a claim that external services are configured or that a grader has accepted the work. “Partial / check” calls out specific differences between a rubric phrase and what the source currently sends.
+  </div>
+
+  <section id="requirements-mp1">
+    <h2>Requirements: MP1 — Product/Service CRUD</h2>
+    <table>
+      <thead><tr><th>Rubric item</th><th>Pts</th><th>Code evidence / explanation</th></tr></thead>
+      <tbody>
+        <tr><td>Product/Service CRUD</td><td>20</td><td><code>admin/manage-products/index.php</code> creates products, categories and brands; <code>admin/manage-products/edit.php</code> updates products, colors, sizes and variants; delete actions are also handled in the admin module.</td></tr>
+        <tr><td>Product/Service CRUD</td><td>10</td><td>Same CRUD workflow: posted actions are checked and handled server-side; product fields use shared numeric/price validation in <code>includes/product_validation.php</code>.</td></tr>
+        <tr><td>Product/Service CRUD upload a single photo</td><td>15</td><td>One selected file is accepted by the image helper, validated for upload status/size/MIME type and stored using <code>move_uploaded_file()</code>. The gallery workflow can upload one image as a one-file batch.</td></tr>
+        <tr><td>Product/Service CRUD upload/view multiple photos</td><td>20</td><td>The create/edit forms accept <code>multiple</code> files; the edit action allows up to 10 at once and saves ordered rows in <code>product_color_images</code>. <code>includes/product_images.php</code> retrieves ordered paths for the product gallery.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="requirements-mp2">
+    <h2>Requirements: MP2 — User CRUD</h2>
+    <table>
+      <thead><tr><th>Rubric item</th><th>Pts</th><th>Code evidence / explanation</th></tr></thead>
+      <tbody>
+        <tr><td>User CRUD</td><td>20</td><td><code>users/register.php</code> creates an account; <code>users/profile.php</code> updates customer information; admin customer screens create/edit/deactivate and conditionally delete accounts.</td></tr>
+        <tr><td>User Registration upload a photo</td><td>5</td><td><code>users/register.php</code> accepts optional <code>profile_photo</code> in a multipart form and calls <code>save_profile_image_upload()</code>.</td></tr>
+        <tr><td>User can update profile with upload photo</td><td>5</td><td><code>users/profile.php</code> has an <code>update_photo</code> POST action; it saves the new profile photo and removes older profile images.</td></tr>
+        <tr><td>Admin can deactivate a user</td><td>5</td><td><code>admin/manage-customers/index.php</code> changes <code>users.status</code> to <code>inactive</code>; <code>includes/customer_auth.php</code> clears sessions for accounts that are no longer active.</td></tr>
+        <tr><td>Admin updates an active user's role</td><td>5</td><td><code>admin/manage-customers/edit.php</code> validates and saves the customer/VIP role. Admin authorization itself is checked centrally in <code>admin/includes/bootstrap.php</code>.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="requirements-mp3">
+    <h2>Requirements: MP3 — Login/logout and access control</h2>
+    <table>
+      <thead><tr><th>Rubric item</th><th>Pts</th><th>Code evidence / explanation</th></tr></thead>
+      <tbody>
+        <tr><td>User login/logout; use email for user login</td><td>5</td><td><code>users/login.php</code> uses <code>FILTER_VALIDATE_EMAIL</code> to select email rather than username, verifies with <code>password_verify()</code> and regenerates the session ID. <code>users/logout.php</code> clears/destroys the session.</td></tr>
+        <tr><td>Login/logout; restrict ordinary users from CRUD pages</td><td>10</td><td><code>admin/includes/bootstrap.php</code> rejects sessions without the admin role and verifies the admin account is active. All admin CRUD pages load the shared bootstrap.</td></tr>
+        <tr><td>Redirect unauthenticated users to login with an appropriate message</td><td>15</td><td>The admin gate stores a clear login notice and redirects to <code>admin/login.php</code>; customer-only actions use <code>require_active_customer()</code> and return guests to storefront login with a destination.</td></tr>
+        <tr><td>Admin role can access CRUD pages/scripts</td><td>20</td><td>Admin role is explicitly allowed by the common admin bootstrap, while normal customer/VIP roles fail its gate. Admin login is separate from customer login.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="requirements-mp4">
+    <h2>Requirements: MP4 — Review CRUD</h2>
+    <table>
+      <thead><tr><th>Rubric item</th><th>Pts</th><th>Code evidence / explanation</th></tr></thead>
+      <tbody>
+        <tr><td>A customer who availed the product/service can review it</td><td>5</td><td><code>reviews/review_action.php</code> joins the order and order item and requires matching user, product and paid order status before allowing a review.</td></tr>
+        <tr><td>Product reviews appear on the product details page</td><td>5</td><td><code>product.php</code> selects reviews with <code>status = 'published'</code> and renders them on the product detail page.</td></tr>
+        <tr><td>A user can update the review</td><td>5</td><td>The review action accepts <code>create</code>, <code>update</code> and <code>delete</code>; update/delete first verify that the active review belongs to the current user and product.</td></tr>
+        <tr><td>Apply regex to filter or mask bad/foul words</td><td>5</td><td><code>reviews/review_action.php</code> normalizes common character substitutions, applies English and Tagalog foul-word regular expressions, then masks matched text before saving.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="requirements-mp5">
+    <h2>Requirements: MP5 — PHP form validation</h2>
+    <table>
+      <thead><tr><th>Rubric item</th><th>Pts</th><th>Code evidence / explanation</th></tr></thead>
+      <tbody>
+        <tr><td>PHP form validation on login and Product CRUD; do not use HTML5 validation</td><td>20</td><td><code>users/login.php</code> checks blank login/password values and its form uses <code>novalidate</code>. Product create/edit forms also use <code>novalidate</code>; server-side handlers validate required names, IDs, departments, prices and uploads using <code>includes/product_validation.php</code> and image helpers.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="requirements-term-test">
+    <h2>Requirements: Term test lab — completed transaction (35 pts)</h2>
+    <table>
+      <thead><tr><th>Rubric item</th><th>Pts</th><th>Code evidence / explanation</th></tr></thead>
+      <tbody>
+        <tr><td>Completed transaction uses prepared statements</td><td>10</td><td><code>orders/checkout.php</code> prepares/binds the customer and order/item statements, locks cart/variant rows, checks stock and commits the order, line snapshots, stock changes and cart cleanup in a transaction.</td></tr>
+        <tr><td>Admin can view all orders and update transaction status</td><td>5</td><td><code>admin/manage-orders/index.php</code> lists orders; <code>admin/manage-orders/edit.php</code> exposes valid status actions and enforces state transitions.</td></tr>
+        <tr><td>Email customer when transaction status is updated</td><td>5</td><td>After a successful admin status update commits, <code>admin/manage-orders/edit.php</code> calls <code>admin_send_order_update_notification()</code>, which uses the shared PHPMailer helper.</td></tr>
+        <tr><td>Email contains product list, each subtotal and grand total</td><td>5</td><td><strong>Partial / verify against rubric:</strong> the order-confirmation email in <code>includes/order_email.php</code> contains product rows, line totals and order total. Admin status-update email content currently contains status/address; when marked paid, it attaches the itemized PDF receipt. The status-update email body itself does not include the item list and subtotals.</td></tr>
+        <tr><td>Update the status of the order</td><td>5</td><td><code>admin/manage-orders/edit.php</code> handles shipped, delivered, failed delivery, paid and cancelled transitions with conditional updates and row locks.</td></tr>
+        <tr><td>Attach a PDF transaction receipt</td><td>5</td><td>When the order is marked paid, <code>includes/order_email.php</code> builds a Dompdf receipt and attaches it as <code>application/pdf</code>. Receipt generation requires a delivered, paid order with items.</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">Mail is configured through <code>MAILTRAP_USERNAME</code>, <code>MAILTRAP_PASSWORD</code>, <code>MAILTRAP_HOST</code> and <code>MAILTRAP_PORT</code>. Those environment variables must be configured for delivery; source code alone does not prove a live Mailtrap send.</p>
+  </section>
+
+  <section id="requirements-units">
+    <h2>Requirements: units and quiz</h2>
+    <table>
+      <thead><tr><th>Rubric item</th><th>Pts</th><th>Code evidence / explanation</th></tr></thead>
+      <tbody>
+        <tr><td>Unit 1: database design at least 2nd normal form</td><td>15</td><td><code>sql_files/soigne_apparel_(updated).sql</code> separates login/profile data, products/categories/brands, product colors/images/variants and orders/order_items with primary/foreign keys and unique constraints. Assess the full functional dependencies against the instructor's 2NF definition when grading.</td></tr>
+        <tr><td>Unit 1: MySQL VIEW for order transaction details</td><td>20</td><td>The schema and <code>sql_files/replace_order_totals_with_transaction_details.sql</code> define <code>order_transaction_details</code>, joining orders, order items, variants, colors and products and calculating line subtotal and order total.</td></tr>
+        <tr><td>Unit 2: program execution (errors)</td><td>10</td><td>PHP handlers validate request data and surface errors through HTTP 404 responses, form error arrays, session flash messages, rollback paths and log entries for failed email/review-pattern checks. Test the main success and invalid-input flows in the configured PHP/MySQL environment.</td></tr>
+        <tr><td>Unit 2: User interface design</td><td>10</td><td>Customer and admin pages render shared, responsive layouts with page-specific CSS in <code>styles/</code> and <code>admin/styles/</code>; form errors, order/review statuses, empty states and confirmations are displayed in the UI.</td></tr>
+        <tr><td>Quiz 3: search function on homepage</td><td>15</td><td><code>includes/header.php</code> puts a search form in the shared homepage header. It submits <code>q</code> to <code>search.php</code>, which searches product/category and brand names with prepared statements.</td></tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+</main>
+<footer>Soigné Apparel Shop · System and query documentation · Project-root-relative file names</footer>
+<script>
+  (function () {
+    var buttons = {
+      overview: document.getElementById('overview-button'),
+      queries: document.getElementById('queries-button'),
+      codes: document.getElementById('codes-button'),
+      requirements: document.getElementById('requirements-button')
+    };
+    var panels = {
+      overview: document.getElementById('overview-panel'),
+      queries: document.getElementById('queries-panel'),
+      codes: document.getElementById('codes-panel'),
+      requirements: document.getElementById('requirements-panel')
+    };
+
+    function showPanel(activePanel) {
+      Object.keys(panels).forEach(function (name) {
+        var active = name === activePanel;
+        panels[name].hidden = !active;
+        buttons[name].setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    Object.keys(buttons).forEach(function (name) {
+      buttons[name].addEventListener('click', function () { showPanel(name); });
+    });
+  })();
+</script>
+</body>
+</html>

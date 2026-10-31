@@ -1,5 +1,5 @@
 <?php
-function profile_image_files(int $user_id): array
+function profile_image_files(int $user_id)
 {
     $directory = APP_ROOT . '/images/profiles';
     $files = [];
@@ -16,7 +16,7 @@ function profile_image_files(int $user_id): array
     return $files;
 }
 
-function profile_image_url(int $user_id): string
+function profile_image_url(int $user_id)
 {
     $files = profile_image_files($user_id);
     if (!$files) {
@@ -36,7 +36,7 @@ function profile_image_url(int $user_id): string
     return BASE_URL . 'images/profiles/' . rawurlencode(basename($newest_file));
 }
 
-function save_profile_image_upload(array $upload, int $user_id): ?string
+function save_profile_image_upload(array $upload, int $user_id)
 {
     if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return null;
@@ -77,7 +77,7 @@ function save_profile_image_upload(array $upload, int $user_id): ?string
     return 'images/profiles/' . $filename;
 }
 
-function remove_old_profile_images(int $user_id, ?string $keep_path = null): void
+function remove_old_profile_images(int $user_id, ?string $keep_path = null)
 {
     foreach (profile_image_files($user_id) as $file) {
         $relative_path = 'images/profiles/' . basename($file);

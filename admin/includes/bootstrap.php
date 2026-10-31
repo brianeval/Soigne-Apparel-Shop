@@ -27,17 +27,17 @@ if (!$admin_account || $admin_account['status'] !== 'active') {
     exit;
 }
 
-function admin_escape($value): string
+function admin_escape($value)
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-function admin_set_flash(string $type, string $message): void
+function admin_set_flash($type, $message)
 {
     $_SESSION['admin_flash'] = ['type' => $type, 'message' => $message];
 }
 
-function admin_take_flash(): ?array
+function admin_take_flash()
 {
     $flash = $_SESSION['admin_flash'] ?? null;
     unset($_SESSION['admin_flash']);

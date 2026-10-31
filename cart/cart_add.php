@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-function flash_and_go(string $type, string $text): void
+function flash_and_go($type, $text)
 {
     $_SESSION['flash'] = ['type' => $type, 'text' => $text];
     header('Location: ' . BASE_URL . 'cart/cart.php');

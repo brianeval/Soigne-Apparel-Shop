@@ -1,5 +1,5 @@
 <?php
-function product_positive_integer($value): ?int
+function product_positive_integer($value)
 {
     if (!is_string($value) && !is_int($value)) {
         return null;
@@ -9,7 +9,7 @@ function product_positive_integer($value): ?int
     return $integer !== false && $integer > 0 ? $integer : null;
 }
 
-function product_nonnegative_integer($value): ?int
+function product_nonnegative_integer($value)
 {
     if (!is_string($value) && !is_int($value)) {
         return null;
@@ -19,7 +19,7 @@ function product_nonnegative_integer($value): ?int
     return $integer !== false && $integer >= 0 ? $integer : null;
 }
 
-function product_price_value($value): ?float
+function product_price_value($value)
 {
     if (!is_string($value) && !is_int($value) && !is_float($value)) {
         return null;

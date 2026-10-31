@@ -8,7 +8,7 @@ if ($order_id === false || $order_id < 1) {
     exit('Order not found.');
 }
 
-function load_admin_order(mysqli $conn, int $order_id): ?array
+function load_admin_order(mysqli $conn, int $order_id)
 {
     $order_lookup_statement = mysqli_prepare($conn,
         "SELECT o.order_id, o.user_id, o.fulfillment_status, o.payment_status, o.shipping_address,
@@ -25,7 +25,7 @@ function load_admin_order(mysqli $conn, int $order_id): ?array
     return $order ?: null;
 }
 
-function admin_send_order_update_notification(mysqli $conn, array $order, string $action): bool
+function admin_send_order_update_notification(mysqli $conn, array $order, string $action)
 {
     try {
         if ($action === 'mark_paid') {

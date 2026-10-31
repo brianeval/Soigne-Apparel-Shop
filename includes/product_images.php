@@ -1,6 +1,6 @@
 <?php
 
-function save_product_image_upload(array $upload): ?string
+function save_product_image_upload(array $upload)
 {
     if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return null;
@@ -40,7 +40,7 @@ function save_product_image_upload(array $upload): ?string
     return 'products/' . $filename;
 }
 
-function product_color_image_paths(mysqli $conn, array $product_color_ids): array
+function product_color_image_paths(mysqli $conn, array $product_color_ids)
 {
     $unique_color_ids = [];
     foreach ($product_color_ids as $product_color_id) {
@@ -76,7 +76,7 @@ function product_color_image_paths(mysqli $conn, array $product_color_ids): arra
     return $images;
 }
 
-function product_color_uploads(array $upload, int $color_index): array
+function product_color_uploads(array $upload, int $color_index)
 {
     $uploads = [];
     $names = $upload['name'][$color_index] ?? [];
@@ -99,7 +99,7 @@ function product_color_uploads(array $upload, int $color_index): array
     return $uploads;
 }
 
-function product_file_uploads(array $upload): array
+function product_file_uploads(array $upload)
 {
     $files = [];
     if (!is_array($upload['name'] ?? null)) {
