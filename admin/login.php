@@ -1,9 +1,12 @@
 <?php
 session_start();
-include_once("../includes/config.php");
-require_once("../includes/admin_redirect.php");
+include_once('../includes/config.php');
 
-$redirect = safe_admin_return_path($_POST['redirect'] ?? $_GET['redirect'] ?? '');
+$redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
+if (!is_string($redirect) || strpos($redirect, BASE_URL . 'admin/') !== 0) {
+    $redirect = BASE_URL . 'admin/manage-products/';
+}
+
 $login_notice = $_SESSION['admin_login_notice'] ?? '';
 unset($_SESSION['admin_login_notice']);
 
@@ -16,32 +19,24 @@ $error = '';
 $login_value = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $posted_login = $_POST['login'] ?? '';
-    $posted_password = $_POST['password'] ?? '';
-    $login_value = is_string($posted_login) ? trim($posted_login) : '';
-    $password = is_string($posted_password) ? $posted_password : '';
+    $login_value = trim($_POST['login'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if ($login_value === '' && $password === '') {
+    if ($login_value === '' || $password === '') {
         $error = 'Enter your username or email and password.';
-    } elseif ($login_value === '') {
-        $error = 'Enter your username or email.';
-    } elseif ($password === '') {
-        $error = 'Enter your password.';
     } else {
-        $admin_lookup_query = "SELECT user_id, username, password, role
-                               FROM users
-                               WHERE (username = ? OR email = ?) AND role = 'admin' AND status = 'active'
-                               LIMIT 1";
-        $admin_lookup_statement = mysqli_prepare($conn, $admin_lookup_query);
-        mysqli_stmt_bind_param($admin_lookup_statement, 'ss', $login_value, $login_value);
-        mysqli_stmt_execute($admin_lookup_statement);
-        $admin = mysqli_fetch_assoc(mysqli_stmt_get_result($admin_lookup_statement));
+        $login_sql = mysqli_real_escape_string($conn, $login_value);
+        $admin = mysqli_fetch_assoc(mysqli_query($conn,
+            "SELECT user_id, username, password FROM users
+             WHERE (username = '$login_sql' OR email = '$login_sql')
+               AND role = 'admin' AND status = 'active'
+             LIMIT 1"));
 
         if ($admin && password_verify($password, $admin['password'])) {
             session_regenerate_id(true);
             $_SESSION['user_id'] = (int)$admin['user_id'];
             $_SESSION['username'] = $admin['username'];
-            $_SESSION['role'] = $admin['role'];
+            $_SESSION['role'] = 'admin';
             header('Location: ' . $redirect);
             exit;
         }

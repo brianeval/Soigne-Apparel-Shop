@@ -3,26 +3,14 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-require_once(__DIR__ . "/../../includes/config.php");
-require_once(__DIR__ . "/../../includes/admin_redirect.php");
+require_once(__DIR__ . '/../../includes/config.php');
 
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    $return_path = safe_admin_return_path($_SERVER['REQUEST_URI'] ?? '');
-    $_SESSION['admin_login_notice'] = 'Please sign in with an active administrator account to access that page.';
-    header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
-    exit;
-}
-
-$admin_status_stmt = mysqli_prepare($conn, "SELECT status FROM users WHERE user_id = ? AND role = 'admin'");
-$admin_user_id = (int)$_SESSION['user_id'];
-mysqli_stmt_bind_param($admin_status_stmt, 'i', $admin_user_id);
-mysqli_stmt_execute($admin_status_stmt);
-$admin_account = mysqli_fetch_assoc(mysqli_stmt_get_result($admin_status_stmt));
-
-if (!$admin_account || $admin_account['status'] !== 'active') {
-    unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
-    $return_path = safe_admin_return_path($_SERVER['REQUEST_URI'] ?? '');
-    $_SESSION['admin_login_notice'] = 'Your administrator account is inactive. Contact another administrator for assistance.';
+    $_SESSION['admin_login_notice'] = 'Please sign in with an administrator account to access that page.';
+    $return_path = $_SERVER['REQUEST_URI'] ?? '';
+    if (strpos($return_path, BASE_URL . 'admin/') !== 0) {
+        $return_path = BASE_URL . 'admin/manage-products/';
+    }
     header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
     exit;
 }

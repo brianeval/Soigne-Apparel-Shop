@@ -1,116 +1,74 @@
 <?php
 session_start();
-include_once("../includes/config.php");
-require_once("../includes/customer_auth.php");
-require_active_customer($conn, BASE_URL . 'cart/cart.php');
+include_once('../includes/config.php');
+require_once('../includes/customer_auth.php');
+
+require_login();
 $user_id = (int)$_SESSION['user_id'];
 
-// Cart actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    $selected_ids = array_values(array_filter(array_map('intval', (array)($_POST['selected_cart_ids'] ?? []))));
 
     if ($action === 'checkout_selected') {
-        $selected_ids = $_POST['selected_cart_ids'] ?? [];
-        $valid_ids = [];
-        if (is_array($selected_ids)) {
-            foreach ($selected_ids as $selected_id) {
-                if (is_string($selected_id) || is_int($selected_id)) {
-                    $cart_id = filter_var($selected_id, FILTER_VALIDATE_INT);
-                    if ($cart_id !== false && $cart_id > 0) {
-                        $valid_ids[(int)$cart_id] = (int)$cart_id;
-                    }
-                }
-            }
-        }
-        $valid_ids = array_values($valid_ids);
-
-        if ($valid_ids) {
-            // Validate selected items
-            $id_list = implode(',', $valid_ids);
-            $result = mysqli_query($conn, "SELECT cart_id FROM cart WHERE user_id = $user_id AND cart_id IN ($id_list)");
-            $owned_rows = mysqli_fetch_all($result, MYSQLI_ASSOC);
-            $owned_ids = [];
-            foreach ($owned_rows as $owned_row) {
-                $owned_ids[] = (int)$owned_row['cart_id'];
-            }
-            if (count($owned_ids) === count($valid_ids)) {
-                $_SESSION['checkout_cart_ids'] = $owned_ids;
+        if ($selected_ids) {
+            $id_list = implode(',', $selected_ids);
+            $owned = mysqli_fetch_all(mysqli_query($conn,
+                "SELECT cart_id FROM cart WHERE user_id = $user_id AND cart_id IN ($id_list)"), MYSQLI_ASSOC);
+            if (count($owned) === count($selected_ids)) {
+                $_SESSION['checkout_cart_ids'] = array_column($owned, 'cart_id');
                 header('Location: ' . BASE_URL . 'orders/checkout.php');
                 exit;
             }
         }
         $_SESSION['flash'] = ['type' => 'error', 'text' => 'Select at least one item in your cart to check out.'];
     } elseif ($action === 'remove_selected') {
-        $selected_ids = $_POST['selected_cart_ids'] ?? [];
-        if (is_array($selected_ids)) {
-            // Remove selected items
-            $stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
-            foreach ($selected_ids as $selected_id) {
-                if (!is_string($selected_id) && !is_int($selected_id)) {
-                    continue;
-                }
-                $cart_id = filter_var($selected_id, FILTER_VALIDATE_INT);
-                if ($cart_id !== false && $cart_id > 0) {
-                    mysqli_stmt_bind_param($stmt, 'ii', $cart_id, $user_id);
-                    mysqli_stmt_execute($stmt);
-                }
-            }
+        if ($selected_ids) {
+            mysqli_query($conn, "DELETE FROM cart WHERE user_id = $user_id AND cart_id IN (" . implode(',', $selected_ids) . ")");
         }
     } elseif ($action === 'remove') {
         $cart_id = (int)($_POST['cart_id'] ?? 0);
-        // Remove one item
-        $stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
-        mysqli_stmt_bind_param($stmt, 'ii', $cart_id, $user_id);
-        mysqli_stmt_execute($stmt);
+        mysqli_query($conn, "DELETE FROM cart WHERE cart_id = $cart_id AND user_id = $user_id");
     }
     header('Location: ' . BASE_URL . 'cart/cart.php');
     exit;
 }
 
-// Cart message
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-// Cart contents
-$cart_items_sql = "SELECT c.cart_id, c.quantity,
-             v.size, v.stock,
-             pc.color,
-             (SELECT pci.image_path
-              FROM product_color_images AS pci
-              WHERE pci.product_color_id = pc.product_color_id
-              ORDER BY pci.sort_order, pci.image_id
-              LIMIT 1) AS image,
-             p.product_id, p.name, p.price
-      FROM cart c
-      JOIN product_variants v ON v.variant_id = c.variant_id
-      JOIN product_colors pc  ON pc.product_color_id = v.product_color_id
-      JOIN products p         ON p.product_id = pc.product_id
-      WHERE c.user_id = ?
-      ORDER BY c.cart_id DESC";
-$cart_items_stmt = mysqli_prepare($conn, $cart_items_sql);
-mysqli_stmt_bind_param($cart_items_stmt, 'i', $user_id);
-mysqli_stmt_execute($cart_items_stmt);
-$items = mysqli_fetch_all(mysqli_stmt_get_result($cart_items_stmt), MYSQLI_ASSOC);
+$items = mysqli_fetch_all(mysqli_query($conn,
+    "SELECT c.cart_id, c.quantity, v.size, v.stock, pc.color,
+            (SELECT pci.image_path FROM product_color_images AS pci
+             WHERE pci.product_color_id = pc.product_color_id
+             ORDER BY pci.sort_order, pci.image_id LIMIT 1) AS image,
+            p.product_id, p.name, p.price
+     FROM cart c
+     JOIN product_variants v ON v.variant_id = c.variant_id
+     JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+     JOIN products p ON p.product_id = pc.product_id
+     WHERE c.user_id = $user_id
+     ORDER BY c.cart_id DESC"), MYSQLI_ASSOC);
 
 $vip_discount_rate = ($_SESSION['role'] ?? '') === 'vip' ? 0.10 : 0;
-$subtotal   = 0;
+$subtotal = 0;
 $original_subtotal = 0;
 $item_count = 0;
-$has_issue  = false;
+$has_issue = false;
 foreach ($items as &$item) {
     $item['discounted_price'] = round((float)$item['price'] * (1 - $vip_discount_rate), 2);
     $original_subtotal += (float)$item['price'] * (int)$item['quantity'];
     $subtotal += $item['discounted_price'] * (int)$item['quantity'];
-    $item_count += $item['quantity'];
+    $item_count += (int)$item['quantity'];
     if ($item['stock'] < $item['quantity']) {
         $has_issue = true;
     }
 }
 unset($item);
 
-$page_title = "Your cart | Soigné";
-$extra_css  = "cart.css";
-include_once ('../includes/header.php');
+$page_title = 'Your cart | Soigné';
+$extra_css = 'cart.css';
+include_once('../includes/header.php');
 ?>
 
 <main class="cart-page">
@@ -175,7 +133,6 @@ include_once ('../includes/header.php');
                 <p class="cart-warn">Only <?php echo (int)$item['stock']; ?> left. Please lower the quantity.</p>
               <?php } ?>
 
-              <!-- Update button -->
               <div class="cart-actions">
                 <a class="link-btn" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$item['product_id']; ?>&cart_id=<?php echo (int)$item['cart_id']; ?>">Update</a>
               </div>
@@ -205,7 +162,6 @@ include_once ('../includes/header.php');
         <?php if ($has_issue) { ?>
           <p class="cart-warn">Some items in your cart have stock issues. Select only available items to check out.</p>
         <?php } ?>
-        <!-- Checkout button -->
         <button class="btn" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions">Checkout selected</button>
         <a class="sum-continue" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
       </aside>
@@ -214,4 +170,4 @@ include_once ('../includes/header.php');
   <?php } ?>
 </main>
 
-<?php include_once ('../includes/footer.php'); ?>
+<?php include_once('../includes/footer.php'); ?>

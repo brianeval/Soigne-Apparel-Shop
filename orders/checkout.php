@@ -1,30 +1,18 @@
 <?php
 session_start();
 include_once('../includes/config.php');
-require_once("../includes/customer_auth.php");
-require_once("../includes/order_email.php");
+require_once('../includes/customer_auth.php');
+require_once('../includes/order_email.php');
 
-require_active_customer($conn, BASE_URL . 'orders/checkout.php');
+require_login();
 
 $user_id = (int)$_SESSION['user_id'];
 $errors = [];
 $success_order_id = $_SESSION['checkout_success'] ?? null;
 $checkout_email_sent = $_SESSION['checkout_email_sent'] ?? null;
-unset($_SESSION['checkout_success']);
-unset($_SESSION['checkout_email_sent']);
-$checkout_cart_ids = $_SESSION['checkout_cart_ids'] ?? [];
-if (!is_array($checkout_cart_ids)) {
-    $checkout_cart_ids = [];
-}
-$valid_checkout_cart_ids = [];
-foreach ($checkout_cart_ids as $cart_id) {
-    $cart_id = (int)$cart_id;
-    if ($cart_id > 0) {
-        $valid_checkout_cart_ids[$cart_id] = $cart_id;
-    }
-}
-$checkout_cart_ids = array_values($valid_checkout_cart_ids);
+unset($_SESSION['checkout_success'], $_SESSION['checkout_email_sent']);
 
+$checkout_cart_ids = array_values(array_filter(array_map('intval', (array)($_SESSION['checkout_cart_ids'] ?? []))));
 if (!$checkout_cart_ids && !$success_order_id) {
     header('Location: ' . BASE_URL . 'cart/cart.php');
     exit;
@@ -36,157 +24,107 @@ $phone = '';
 $address = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $posted_name = $_POST['customer_name'] ?? '';
-    $posted_phone = $_POST['phone'] ?? '';
-    $posted_address = $_POST['address'] ?? '';
-    $customer_name = is_string($posted_name) ? trim($posted_name) : '';
-    $phone = is_string($posted_phone) ? trim($posted_phone) : '';
-    $address = is_string($posted_address) ? trim($posted_address) : '';
-    if ($customer_name === '' || mb_strlen($customer_name) > 120) {
-        $errors[] = 'Please enter your name (up to 120 characters).';
+    $customer_name = trim($_POST['customer_name'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+
+    if ($customer_name === '') {
+        $errors[] = 'Please enter your name.';
     }
-    if ($phone === '' || mb_strlen($phone) > 30) {
-        $errors[] = 'Please enter your phone number (up to 30 characters).';
+    if ($phone === '') {
+        $errors[] = 'Please enter your phone number.';
     }
-    if ($address === '' || mb_strlen($address) > 255) {
-        $errors[] = 'Please enter your shipping address (up to 255 characters).';
+    if ($address === '') {
+        $errors[] = 'Please enter your shipping address.';
     }
 
     if (!$errors) {
-        try {
-            mysqli_begin_transaction($conn);
+        $items = mysqli_fetch_all(mysqli_query($conn,
+            "SELECT c.cart_id, c.variant_id, c.quantity, v.stock, v.size, pc.color,
+                    (SELECT pci.image_path FROM product_color_images AS pci
+                     WHERE pci.product_color_id = pc.product_color_id
+                     ORDER BY pci.sort_order, pci.image_id LIMIT 1) AS image,
+                    p.product_id, p.name, p.price
+             FROM cart c
+             JOIN product_variants v ON v.variant_id = c.variant_id
+             JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+             JOIN products p ON p.product_id = pc.product_id
+             WHERE c.user_id = $user_id AND c.cart_id IN ($checkout_id_list)
+             ORDER BY c.cart_id"), MYSQLI_ASSOC);
 
-            // Lock selected items
-            $selected_items_stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.variant_id, c.quantity,
-                                                   v.stock, v.size, pc.color,
-                                                   (SELECT pci.image_path
-                                                    FROM product_color_images AS pci
-                                                    WHERE pci.product_color_id = pc.product_color_id
-                                                    ORDER BY pci.sort_order, pci.image_id
-                                                    LIMIT 1) AS image,
-                                                   p.product_id, p.name, p.price
-                                            FROM cart c
-                                            JOIN product_variants v ON v.variant_id = c.variant_id
-                                            JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                                            JOIN products p ON p.product_id = pc.product_id
-                                            WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_list)
-                                            ORDER BY c.cart_id
-                                            FOR UPDATE");
-            mysqli_stmt_bind_param($selected_items_stmt, 'i', $user_id);
-            mysqli_stmt_execute($selected_items_stmt);
-            $items = mysqli_fetch_all(mysqli_stmt_get_result($selected_items_stmt), MYSQLI_ASSOC);
-
-            if (!$items) {
-                mysqli_rollback($conn);
-                $errors[] = 'The selected cart items are no longer available. Please return to your cart and select items again.';
-            } else {
-                $out_of_stock = false;
-                foreach ($items as $item) {
-                    if ((int)$item['quantity'] < 1 || (int)$item['stock'] < (int)$item['quantity']) {
-                        $out_of_stock = true;
-                        break;
-                    }
-                }
-
-                if ($out_of_stock) {
-                    mysqli_rollback($conn);
+        if (!$items) {
+            $errors[] = 'The selected cart items are no longer available. Please return to your cart and select items again.';
+        } else {
+            foreach ($items as $item) {
+                if ((int)$item['stock'] < (int)$item['quantity']) {
                     $errors[] = 'One or more items are no longer available in the requested quantity. Please review your cart.';
-                } else {
-                    $payment_method = 'Cash on delivery (COD)';
-                    $recipient_stmt = mysqli_prepare($conn, "SELECT email FROM users WHERE user_id = ?");
-                    mysqli_stmt_bind_param($recipient_stmt, 'i', $user_id);
-                    mysqli_stmt_execute($recipient_stmt);
-                    $recipient = mysqli_fetch_assoc(mysqli_stmt_get_result($recipient_stmt));
-                    if (!$recipient || !filter_var($recipient['email'], FILTER_VALIDATE_EMAIL)) {
-                        throw new mysqli_sql_exception('The customer email address is unavailable.');
-                    }
-
-                    // Create order
-                    $order_stmt = mysqli_prepare($conn, "INSERT INTO orders (user_id, shipping_address) VALUES (?, ?)");
-                    mysqli_stmt_bind_param($order_stmt, 'is', $user_id, $address);
-                    mysqli_stmt_execute($order_stmt);
-                    $order_id = mysqli_insert_id($conn);
-
-                    // Save order items
-                    $item_stmt = mysqli_prepare($conn, "INSERT INTO order_items (order_id, variant_id, quantity, price)
-                                                        VALUES (?, ?, ?, ?)");
-                    // Update stock
-                    $stock_stmt = mysqli_prepare($conn, "UPDATE product_variants
-                                                         SET stock = stock - ?
-                                                         WHERE variant_id = ? AND stock >= ?");
-                    $email_items = [];
-                    $order_total = 0;
-                    foreach ($items as $item) {
-                        $variant_id = (int)$item['variant_id'];
-                        $quantity = (int)$item['quantity'];
-                        $price = round((float)$item['price'] * (($_SESSION['role'] ?? '') === 'vip' ? 0.90 : 1), 2);
-                        $email_items[] = [
-                            'name' => $item['name'],
-                            'color' => $item['color'],
-                            'size' => $item['size'],
-                            'quantity' => $quantity,
-                            'price' => $price,
-                        ];
-                        $order_total += $price * $quantity;
-
-                        mysqli_stmt_bind_param($item_stmt, 'iiid', $order_id, $variant_id, $quantity, $price);
-                        mysqli_stmt_execute($item_stmt);
-
-                        mysqli_stmt_bind_param($stock_stmt, 'iii', $quantity, $variant_id, $quantity);
-                        mysqli_stmt_execute($stock_stmt);
-                        if (mysqli_stmt_affected_rows($stock_stmt) !== 1) {
-                            throw new mysqli_sql_exception('Product stock changed during checkout.');
-                        }
-                    }
-
-                    // Clear checked-out items
-                    $delete_stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
-                    foreach ($items as $item) {
-                        $cart_id = (int)$item['cart_id'];
-                        mysqli_stmt_bind_param($delete_stmt, 'ii', $cart_id, $user_id);
-                        mysqli_stmt_execute($delete_stmt);
-                    }
-
-                    mysqli_commit($conn);
-                    $email_sent = false;
-                    try {
-                        send_order_confirmation_email([
-                            'email' => $recipient['email'],
-                            'customer_name' => $customer_name,
-                            'shipping_address' => $address,
-                            'payment_method' => $payment_method,
-                            'order_id' => $order_id,
-                            'items' => $email_items,
-                            'total' => round($order_total, 2),
-                        ]);
-                        $email_sent = true;
-                    } catch (RuntimeException $e) {
-                        $mail_error = $e->getMessage();
-                        if ($e->getPrevious()) {
-                            $mail_error .= ' Details: ' . $e->getPrevious()->getMessage();
-                        }
-                        error_log('Order confirmation email failed for order #' . $order_id . ': ' . $mail_error);
-                    }
-                    $_SESSION['checkout_success'] = $order_id;
-                    $_SESSION['checkout_email_sent'] = $email_sent;
-                    unset($_SESSION['checkout_cart_ids']);
-                    header('Location: ' . BASE_URL . 'orders/checkout.php');
-                    exit;
+                    break;
                 }
             }
-        } catch (mysqli_sql_exception $e) {
-            mysqli_rollback($conn);
-            $errors[] = 'Could not place your order. Please try again.';
+        }
+
+        if (!$errors) {
+            $recipient = mysqli_fetch_assoc(mysqli_query($conn,
+                "SELECT email FROM users WHERE user_id = $user_id"));
+            $email_items = [];
+            $order_total = 0;
+            $discount = ($_SESSION['role'] ?? '') === 'vip' ? 0.90 : 1;
+
+            $address_sql = mysqli_real_escape_string($conn, $address);
+            mysqli_query($conn, "INSERT INTO orders (user_id, shipping_address) VALUES ($user_id, '$address_sql')");
+            $order_id = mysqli_insert_id($conn);
+
+            foreach ($items as $item) {
+                $variant_id = (int)$item['variant_id'];
+                $quantity = (int)$item['quantity'];
+                $price = round((float)$item['price'] * $discount, 2);
+                $order_total += $price * $quantity;
+
+                $email_items[] = [
+                    'name' => $item['name'],
+                    'color' => $item['color'],
+                    'size' => $item['size'],
+                    'quantity' => $quantity,
+                    'price' => $price,
+                ];
+
+                mysqli_query($conn,
+                    "INSERT INTO order_items (order_id, variant_id, quantity, price)
+                     VALUES ($order_id, $variant_id, $quantity, $price)");
+                mysqli_query($conn,
+                    "UPDATE product_variants SET stock = stock - $quantity WHERE variant_id = $variant_id");
+            }
+
+            mysqli_query($conn, "DELETE FROM cart WHERE user_id = $user_id AND cart_id IN ($checkout_id_list)");
+
+            $email_sent = false;
+            try {
+                send_order_confirmation_email([
+                    'email' => $recipient['email'],
+                    'customer_name' => $customer_name,
+                    'shipping_address' => $address,
+                    'payment_method' => 'Cash on delivery (COD)',
+                    'order_id' => $order_id,
+                    'items' => $email_items,
+                    'total' => round($order_total, 2),
+                ]);
+                $email_sent = true;
+            } catch (RuntimeException $e) {
+                error_log('Order confirmation email failed for order #' . $order_id . ': ' . $e->getMessage());
+            }
+
+            $_SESSION['checkout_success'] = $order_id;
+            $_SESSION['checkout_email_sent'] = $email_sent;
+            unset($_SESSION['checkout_cart_ids']);
+            header('Location: ' . BASE_URL . 'orders/checkout.php');
+            exit;
         }
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    // Saved customer details
-    $customer_stmt = mysqli_prepare($conn, "SELECT customer_name, phone, address FROM customers WHERE user_id = ?");
-    mysqli_stmt_bind_param($customer_stmt, 'i', $user_id);
-    mysqli_stmt_execute($customer_stmt);
-    $customer = mysqli_fetch_assoc(mysqli_stmt_get_result($customer_stmt));
+    $customer = mysqli_fetch_assoc(mysqli_query($conn,
+        "SELECT customer_name, phone, address FROM customers WHERE user_id = $user_id"));
     if ($customer) {
         $customer_name = $customer['customer_name'] ?? '';
         $phone = $customer['phone'] ?? '';
@@ -194,24 +132,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     }
 }
 
-// Checkout summary
-$summary_stmt = mysqli_prepare($conn, "SELECT c.cart_id, c.quantity, v.variant_id, v.size, v.stock,
-                                      pc.color,
-                                      (SELECT pci.image_path
-                                       FROM product_color_images AS pci
-                                       WHERE pci.product_color_id = pc.product_color_id
-                                       ORDER BY pci.sort_order, pci.image_id
-                                       LIMIT 1) AS image,
-                                      p.product_id, p.name, p.price
-                               FROM cart c
-                               JOIN product_variants v ON v.variant_id = c.variant_id
-                               JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                               JOIN products p ON p.product_id = pc.product_id
-                               WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_list)
-                               ORDER BY c.cart_id DESC");
-mysqli_stmt_bind_param($summary_stmt, 'i', $user_id);
-mysqli_stmt_execute($summary_stmt);
-$items = mysqli_fetch_all(mysqli_stmt_get_result($summary_stmt), MYSQLI_ASSOC);
+$items = mysqli_fetch_all(mysqli_query($conn,
+    "SELECT c.cart_id, c.quantity, v.variant_id, v.size, v.stock, pc.color,
+            (SELECT pci.image_path FROM product_color_images AS pci
+             WHERE pci.product_color_id = pc.product_color_id
+             ORDER BY pci.sort_order, pci.image_id LIMIT 1) AS image,
+            p.product_id, p.name, p.price
+     FROM cart c
+     JOIN product_variants v ON v.variant_id = c.variant_id
+     JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+     JOIN products p ON p.product_id = pc.product_id
+     WHERE c.user_id = $user_id AND c.cart_id IN ($checkout_id_list)
+     ORDER BY c.cart_id DESC"), MYSQLI_ASSOC);
 
 $vip_discount_rate = ($_SESSION['role'] ?? '') === 'vip' ? 0.10 : 0;
 $item_count = 0;

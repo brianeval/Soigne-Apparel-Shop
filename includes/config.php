@@ -1,22 +1,22 @@
 <?php
 $conn = mysqli_connect('localhost', 'root', '', 'soigne_apparel');
 if (!$conn) {
-    die('Database connection failed: ' . mysqli_connect_error());
-}
-mysqli_set_charset($conn, 'utf8mb4');
-
-if (!defined('BASE_URL')) {
-    define('BASE_URL', '/soigne_apparel_shop/');
+    die('Database connection failed.');
 }
 
-if (!defined('APP_ROOT')) {
-    $document_root = rtrim($_SERVER['DOCUMENT_ROOT'] ?? '', '/\\');
-    $app_relative_path = trim(str_replace('/', DIRECTORY_SEPARATOR, BASE_URL), '/\\');
-    define('APP_ROOT', $document_root . DIRECTORY_SEPARATOR . $app_relative_path);
+define('BASE_URL', '/soigne_apparel_shop/');
+define('APP_ROOT', dirname(__DIR__));
+
+function peso($amount)
+{
+    return '₱' . number_format($amount, 2);
 }
 
-if (!function_exists('peso')) {
-    function peso($amount) {
-        return '₱' . number_format($amount, 2);  
+function price_html($price)
+{
+    if (($_SESSION['role'] ?? '') === 'vip') {
+        return '<span class="premium-product-price"><del>' . peso($price) . '</del> '
+            . '<strong>' . peso($price * 0.90) . '</strong><small>VIP 10% off</small></span>';
     }
+    return peso($price);
 }

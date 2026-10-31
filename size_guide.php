@@ -4,7 +4,7 @@ session_start();
 $page_title = "Size Guide | Soigné";
 $extra_css = 'size-guide.css';
 $dept = 'men';
-$product_size_guide = require("includes/product_size_guide.php");
+$product_size_guide = require 'includes/product_size_guide.php';
 
 $size_ranges = [
     '25-27' => [
@@ -459,7 +459,7 @@ include_once('includes/header.php');
                   <table class="measurement-table">
                     <caption><?php echo htmlspecialchars($measurement_label . ' · ' . $range['label']); ?></caption>
                     <thead><tr><th scope="col">Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
-                    <tbody><tr><th scope="row"><?php echo htmlspecialchars($measurement_label); ?><?php echo $measurement_key === 'inside_leg' ? ' (cm)' : ' (cm)'; ?></th><?php foreach ($range['measurements'][$measurement_key] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
+                    <tbody><tr><th scope="row"><?php echo htmlspecialchars($measurement_label); ?> (cm)</th><?php foreach ($range['measurements'][$measurement_key] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
                   </table>
                 <?php } ?>
               </div>

@@ -1,67 +1,49 @@
 <?php
-require_once("../includes/bootstrap.php");
+require_once "../includes/bootstrap.php";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $review_id = filter_var($_POST['review_id'] ?? null, FILTER_VALIDATE_INT);
-    $action = $_POST['action'] ?? '';
-
-    if ($review_id === false || $review_id < 1 || $action !== 'delete') {
+    $review_id = (int)($_POST['review_id'] ?? 0);
+    if ($review_id < 1 || ($_POST['action'] ?? '') !== 'delete') {
         admin_set_flash('error', 'That review action is invalid.');
     } else {
-        $review_update_statement = mysqli_prepare($conn,
-            "UPDATE product_reviews
-             SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
-             WHERE review_id = ? AND status IN ('pending', 'published')"
+        mysqli_query($conn,
+            "UPDATE product_reviews SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
+             WHERE review_id = $review_id AND status IN ('pending', 'published')"
         );
-        mysqli_stmt_bind_param($review_update_statement, 'i', $review_id);
-        mysqli_stmt_execute($review_update_statement);
-        if (mysqli_stmt_affected_rows($review_update_statement) !== 1) {
-            admin_set_flash('error', 'The review could not be deleted.');
-        } else {
-            admin_set_flash('success', 'Review deleted.');
-        }
+        admin_set_flash('success', 'Review deleted.');
     }
-
-    $review_filters = [
-        'product_search' => is_string($_GET['product_search'] ?? null) ? $_GET['product_search'] : '',
-        'rating' => is_string($_GET['rating'] ?? null) ? $_GET['rating'] : '',
-    ];
-    header('Location: ' . BASE_URL . 'admin/manage-reviews/?' . http_build_query($review_filters));
+    header('Location: ' . BASE_URL . 'admin/manage-reviews/');
     exit;
 }
 
-$product_search = mb_substr(trim(is_string($_GET['product_search'] ?? null) ? $_GET['product_search'] : ''), 0, 100);
-$rating_value = is_string($_GET['rating'] ?? null) ? $_GET['rating'] : '';
-$rating = in_array($rating_value, ['1', '2', '3', '4', '5'], true) ? (int)$rating_value : null;
-$product_search_pattern = '%' . $product_search . '%';
-$rating_filter = $rating ?? 0;
-$review_sql =
-     "SELECT r.review_id, r.rating, r.review_text, r.status, r.created_at, r.published_at,
-             p.product_id, p.name AS product_name, u.username
-      FROM product_reviews r
-      JOIN products p ON p.product_id = r.product_id
-      JOIN users u ON u.user_id = r.user_id
-      WHERE r.status IN ('pending', 'published')
-        AND (? = '' OR p.name LIKE ?)
-        AND (? = 0 OR r.rating = ?)
-      ORDER BY (r.status = 'pending') DESC, r.created_at DESC, r.review_id DESC";
-$reviews_stmt = mysqli_prepare($conn, $review_sql);
-mysqli_stmt_bind_param(
-    $reviews_stmt,
-    'ssii',
-    $product_search,
-    $product_search_pattern,
-    $rating_filter,
-    $rating_filter
-);
-mysqli_stmt_execute($reviews_stmt);
-$reviews = mysqli_fetch_all(mysqli_stmt_get_result($reviews_stmt), MYSQLI_ASSOC);
+$product_search = trim($_GET['product_search'] ?? '');
+$rating = (int)($_GET['rating'] ?? 0);
+if ($rating < 1 || $rating > 5) {
+    $rating = 0;
+}
+
+$where = ["r.status IN ('pending', 'published')"];
+if ($product_search !== '') {
+    $where[] = "p.name LIKE '%" . mysqli_real_escape_string($conn, $product_search) . "%'";
+}
+if ($rating > 0) {
+    $where[] = "r.rating = $rating";
+}
+$reviews = mysqli_fetch_all(mysqli_query($conn,
+    "SELECT r.review_id, r.rating, r.review_text, r.status, r.created_at, r.published_at,
+            p.product_id, p.name AS product_name, u.username
+     FROM product_reviews r
+     JOIN products p ON p.product_id = r.product_id
+     JOIN users u ON u.user_id = r.user_id
+     WHERE " . implode(' AND ', $where) . "
+     ORDER BY (r.status = 'pending') DESC, r.created_at DESC, r.review_id DESC"
+), MYSQLI_ASSOC);
 $review_total = count($reviews);
 
 $flash = admin_take_flash();
 $admin_page_title = 'Manage Reviews';
 $admin_active_page = 'reviews';
-include("../includes/header.php");
+include "../includes/header.php";
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">CUSTOMER FEEDBACK</p><h1>Manage Reviews</h1><p>Review customer feedback and remove reviews when needed.</p></div>
@@ -114,4 +96,4 @@ include("../includes/header.php");
     <p class="manage-empty">No reviews found.</p>
   <?php } ?>
 </section>
-<?php include("../includes/footer.php"); ?>
+<?php include "../includes/footer.php"; ?>

@@ -1,44 +1,35 @@
 <?php
 session_start();
-include_once ('includes/config.php');
+include_once('includes/config.php');
+require_once('includes/product_images.php');
 
 $search_term = trim($_GET['q'] ?? '');
 $products = [];
 $brands = [];
 
 if ($search_term !== '') {
-    $like = '%' . $search_term . '%';
+    $like = '%' . mysqli_real_escape_string($conn, $search_term) . '%';
 
-    // Product search
-    $products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
-                         pc.product_color_id AS first_color_id,
-                         (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
-                    FROM products p
-                    LEFT JOIN categories c ON c.category_id = p.category_id
-                    LEFT JOIN product_colors pc
-                      ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
-                    WHERE LOWER(p.name) LIKE LOWER(?)
-                       OR LOWER(COALESCE(c.name, '')) LIKE LOWER(?)
-                    ORDER BY p.product_id DESC";
-    $products_stmt = mysqli_prepare($conn, $products_sql);
-    mysqli_stmt_bind_param($products_stmt, 'ss', $like, $like);
-    mysqli_stmt_execute($products_stmt);
-    $products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
+    $products = mysqli_fetch_all(mysqli_query($conn,
+        "SELECT p.product_id, p.name, p.price, c.name AS category,
+                pc.product_color_id AS first_color_id,
+                (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
+         FROM products p
+         LEFT JOIN categories c ON c.category_id = p.category_id
+         LEFT JOIN product_colors pc
+           ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
+         WHERE p.name LIKE '$like' OR c.name LIKE '$like'
+         ORDER BY p.product_id DESC"), MYSQLI_ASSOC);
 
-    // Brand search
-    $brand_sql = "SELECT supplier_id, name, image
-                  FROM suppliers
-                  WHERE LOWER(name) LIKE LOWER(?)
-                  ORDER BY name";
-    $brands_stmt = mysqli_prepare($conn, $brand_sql);
-    mysqli_stmt_bind_param($brands_stmt, 's', $like);
-    mysqli_stmt_execute($brands_stmt);
-    $brands = mysqli_fetch_all(mysqli_stmt_get_result($brands_stmt), MYSQLI_ASSOC);
+    $brands = mysqli_fetch_all(mysqli_query($conn,
+        "SELECT supplier_id, name, image FROM suppliers
+         WHERE name LIKE '$like' ORDER BY name"), MYSQLI_ASSOC);
 }
 
+$result_count = count($products) + count($brands);
 $page_title = $search_term !== '' ? 'Search results for "' . $search_term . '" | Soigné' : 'Search | Soigné';
 $extra_css = 'department.css';
-include_once ('includes/header.php');
+include_once('includes/header.php');
 ?>
 
 <main class="dept-page">
@@ -46,7 +37,7 @@ include_once ('includes/header.php');
     <h1>Search results</h1>
     <?php if ($search_term !== '') { ?>
       <p class="dept-count">
-        <?php echo (count($products) + count($brands)); ?> result<?php echo (count($products) + count($brands)) === 1 ? '' : 's'; ?> for "<?php echo htmlspecialchars($search_term); ?>"
+        <?php echo $result_count; ?> result<?php echo $result_count === 1 ? '' : 's'; ?> for "<?php echo htmlspecialchars($search_term); ?>"
       </p>
     <?php } else { ?>
       <p class="dept-count">Enter a product or brand name</p>
@@ -76,7 +67,7 @@ include_once ('includes/header.php');
 
     <?php if ($products) { ?>
       <h2>Products</h2>
-      <?php $empty_message = 'No products matched your search.'; include("includes/product_grid.php"); ?>
+      <?php $empty_message = 'No products matched your search.'; include('includes/product_grid.php'); ?>
     <?php } ?>
 
     <?php if (!$brands && !$products) { ?>
@@ -85,4 +76,4 @@ include_once ('includes/header.php');
   <?php } ?>
 </main>
 
-<?php include_once ('includes/footer.php'); ?>
+<?php include_once('includes/footer.php'); ?>

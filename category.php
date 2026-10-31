@@ -1,6 +1,7 @@
 <?php
 session_start();
-include_once ('includes/config.php');
+include_once('includes/config.php');
+require_once('includes/product_images.php');
 
 $categories = [
     't-shirts' => 'T-shirts',
@@ -16,34 +17,27 @@ $categories = [
 ];
 
 $category_slug = $_GET['category'] ?? '';
-if (!is_string($category_slug) || !isset($categories[$category_slug])) {
+if (!isset($categories[$category_slug])) {
     http_response_code(404);
     exit('Category not found.');
 }
-
 $category_name = $categories[$category_slug];
-$products_stmt = mysqli_prepare($conn,
+$category_sql = mysqli_real_escape_string($conn, $category_name);
+
+$products = mysqli_fetch_all(mysqli_query($conn,
     "SELECT p.product_id, p.name, p.price, c.name AS category,
             pc.product_color_id AS first_color_id,
             (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
      FROM products p
      JOIN categories c ON c.category_id = p.category_id
      LEFT JOIN product_colors pc
-       ON pc.product_color_id = (
-         SELECT MIN(product_color_id)
-         FROM product_colors
-         WHERE product_id = p.product_id
-       )
-     WHERE c.name = ?
-     ORDER BY p.product_id DESC"
-);
-mysqli_stmt_bind_param($products_stmt, 's', $category_name);
-mysqli_stmt_execute($products_stmt);
-$products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
+       ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
+     WHERE c.name = '$category_sql'
+     ORDER BY p.product_id DESC"), MYSQLI_ASSOC);
 
 $page_title = $category_name . ' | Soigné';
 $extra_css = 'department.css';
-include_once ('includes/header.php');
+include_once('includes/header.php');
 ?>
 
 <main class="dept-page">
@@ -54,8 +48,8 @@ include_once ('includes/header.php');
 
   <?php
   $empty_message = 'No products in this category yet. Please check back soon.';
-  include("includes/product_grid.php");
+  include('includes/product_grid.php');
   ?>
 </main>
 
-<?php include_once ('includes/footer.php'); ?>
+<?php include_once('includes/footer.php'); ?>

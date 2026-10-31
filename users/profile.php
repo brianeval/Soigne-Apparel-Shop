@@ -1,24 +1,21 @@
 <?php
 session_start();
 include_once('../includes/config.php');
-require_once("../includes/profile_image.php");
-require_once("../includes/customer_auth.php");
+require_once('../includes/product_images.php');
+require_once('../includes/customer_auth.php');
 
-require_active_customer($conn, BASE_URL . 'users/profile.php');
+require_login();
 
 $user_id = (int)$_SESSION['user_id'];
 $errors = [];
 $success = $_SESSION['profile_success'] ?? '';
 unset($_SESSION['profile_success']);
 
-// Profile details
-$profile_stmt = mysqli_prepare($conn, "SELECT u.username, u.email, c.customer_name, c.phone, c.address
-                               FROM users u
-                               LEFT JOIN customers c ON c.user_id = u.user_id
-                               WHERE u.user_id = ?");
-mysqli_stmt_bind_param($profile_stmt, 'i', $user_id);
-mysqli_stmt_execute($profile_stmt);
-$profile = mysqli_fetch_assoc(mysqli_stmt_get_result($profile_stmt));
+$profile = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT u.username, u.email, c.customer_name, c.phone, c.address
+     FROM users u
+     LEFT JOIN customers c ON c.user_id = u.user_id
+     WHERE u.user_id = $user_id"));
 
 if (!$profile) {
     http_response_code(404);
@@ -33,127 +30,74 @@ $email = $profile['email'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form_action = $_POST['form_action'] ?? '';
+
     if ($form_action === 'update_photo') {
-        $saved_profile_image = null;
-        try {
-            if (!isset($_FILES['profile_photo'])) {
-                throw new RuntimeException('Please choose a profile picture to upload.');
+        if (!empty($_FILES['profile_photo']['name'])) {
+            foreach (glob(APP_ROOT . '/images/profiles/profile-' . $user_id . '-*') as $old_file) {
+                unlink($old_file);
             }
-            $saved_profile_image = save_profile_image_upload($_FILES['profile_photo'], $user_id);
-            if ($saved_profile_image === null) {
-                throw new RuntimeException('Please choose a profile picture to upload.');
-            }
-            remove_old_profile_images($user_id, $saved_profile_image);
+            save_image_upload($_FILES['profile_photo'], 'profiles', 'profile-' . $user_id);
             $_SESSION['profile_success'] = 'Your profile picture has been updated.';
             header('Location: ' . BASE_URL . 'users/profile.php');
             exit;
-        } catch (RuntimeException $e) {
-            if ($saved_profile_image !== null) {
-                remove_old_profile_images($user_id);
-            }
-            $errors[] = $e->getMessage();
         }
+        $errors[] = 'Please choose a profile picture to upload.';
     } elseif ($form_action === 'update_details') {
-        $posted_name = $_POST['customer_name'] ?? '';
-        $posted_phone = $_POST['phone'] ?? '';
-        $posted_address = $_POST['address'] ?? '';
-        $posted_username = $_POST['username'] ?? '';
-        $posted_email = $_POST['email'] ?? '';
-        $posted_password = $_POST['new_password'] ?? '';
-        $posted_confirm_password = $_POST['confirm_password'] ?? '';
+        $name = trim($_POST['customer_name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['new_password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
 
-        $name = is_string($posted_name) ? trim($posted_name) : '';
-        $phone = is_string($posted_phone) ? trim($posted_phone) : '';
-        $address = is_string($posted_address) ? trim($posted_address) : '';
-        $username = is_string($posted_username) ? trim($posted_username) : '';
-        $email = is_string($posted_email) ? trim($posted_email) : '';
-        $password = is_string($posted_password) ? $posted_password : '';
-        $confirm_password = is_string($posted_confirm_password) ? $posted_confirm_password : '';
+        if ($name === '' || $username === '' || $email === '') {
+            $errors[] = 'Name, username and email are required.';
+        }
+        if ($password !== '' && $password !== $confirm_password) {
+            $errors[] = 'The new password and confirmation do not match.';
+        }
 
-        if ($name === '' || mb_strlen($name) > 120) {
-            $errors[] = 'Please enter your name (up to 120 characters).';
-        }
-        if (mb_strlen($phone) > 30) {
-            $errors[] = 'Phone number must be 30 characters or fewer.';
-        }
-        if (mb_strlen($address) > 255) {
-            $errors[] = 'Address must be 255 characters or fewer.';
-        }
-        if (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) {
-            $errors[] = 'Username must be 3-50 characters: letters, numbers and underscores only.';
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 120) {
-            $errors[] = 'Please enter a valid email address.';
-        }
-        if ($password !== '' || $confirm_password !== '') {
-            if (strlen($password) < 8) {
-                $errors[] = 'A new password must be at least 8 characters.';
-            } elseif (strlen($password) > 72) {
-                $errors[] = 'A new password must be 72 characters or fewer.';
-            }
-            if ($password !== $confirm_password) {
-                $errors[] = 'The new password and confirmation do not match.';
+        if (!$errors) {
+            $username_sql = mysqli_real_escape_string($conn, $username);
+            $email_sql = mysqli_real_escape_string($conn, $email);
+            $taken = mysqli_fetch_assoc(mysqli_query($conn,
+                "SELECT username, email FROM users
+                 WHERE (username = '$username_sql' OR email = '$email_sql') AND user_id <> $user_id"));
+            if ($taken) {
+                $errors[] = strcasecmp($taken['username'], $username) === 0
+                    ? 'That username is already taken.'
+                    : 'That email is already registered.';
             }
         }
 
         if (!$errors) {
-            // Check username and email
-            $accounts_stmt = mysqli_prepare($conn, "SELECT username, email FROM users
-                                           WHERE (username = ? OR email = ?) AND user_id <> ?");
-            mysqli_stmt_bind_param($accounts_stmt, 'ssi', $username, $email, $user_id);
-            mysqli_stmt_execute($accounts_stmt);
-            $taken = mysqli_fetch_all(mysqli_stmt_get_result($accounts_stmt), MYSQLI_ASSOC);
-            foreach ($taken as $account) {
-                if (strcasecmp($account['username'], $username) === 0) {
-                    $errors[] = 'That username is already taken.';
-                }
-                if (strcasecmp($account['email'], $email) === 0) {
-                    $errors[] = 'That email is already registered.';
-                }
+            $name_sql = mysqli_real_escape_string($conn, $name);
+            $phone_sql = mysqli_real_escape_string($conn, $phone);
+            $address_sql = mysqli_real_escape_string($conn, $address);
+
+            mysqli_query($conn, "UPDATE users SET username = '$username_sql', email = '$email_sql' WHERE user_id = $user_id");
+            mysqli_query($conn,
+                "INSERT INTO customers (user_id, customer_name, phone, address)
+                 VALUES ($user_id, '$name_sql', '$phone_sql', '$address_sql')
+                 ON DUPLICATE KEY UPDATE customer_name = '$name_sql', phone = '$phone_sql', address = '$address_sql'");
+
+            if ($password !== '') {
+                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                mysqli_query($conn, "UPDATE users SET password = '$password_hash' WHERE user_id = $user_id");
             }
+
+            $_SESSION['username'] = $username;
+            $_SESSION['profile_success'] = 'Your profile has been updated.';
+            header('Location: ' . BASE_URL . 'users/profile.php');
+            exit;
         }
-
-        if (!$errors) {
-            try {
-                mysqli_begin_transaction($conn);
-
-                // Update account details
-                $account_update_stmt = mysqli_prepare($conn, "UPDATE users SET username = ?, email = ? WHERE user_id = ?");
-                mysqli_stmt_bind_param($account_update_stmt, 'ssi', $username, $email, $user_id);
-                mysqli_stmt_execute($account_update_stmt);
-
-                // Save customer details
-                $customer_details_stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address)
-                                               VALUES (?, ?, ?, ?)
-                                               ON DUPLICATE KEY UPDATE customer_name = VALUES(customer_name),
-                                                                       phone = VALUES(phone),
-                                                                       address = VALUES(address)");
-                mysqli_stmt_bind_param($customer_details_stmt, 'isss', $user_id, $name, $phone, $address);
-                mysqli_stmt_execute($customer_details_stmt);
-
-                if ($password !== '') {
-                    $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                    // Update password
-                    $password_update_stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE user_id = ?");
-                    mysqli_stmt_bind_param($password_update_stmt, 'si', $password_hash, $user_id);
-                    mysqli_stmt_execute($password_update_stmt);
-                }
-
-                mysqli_commit($conn);
-                $_SESSION['username'] = $username;
-                $_SESSION['profile_success'] = 'Your profile has been updated.';
-                header('Location: ' . BASE_URL . 'users/profile.php');
-                exit;
-            } catch (mysqli_sql_exception $e) {
-                mysqli_rollback($conn);
-                $errors[] = $e->getCode() == 1062
-                    ? 'That username or email is already registered.'
-                    : 'Could not update your profile. Please try again.';
-            }
-        }
-    } elseif (!$errors) {
-        $errors[] = 'Invalid profile update request.';
     }
+}
+
+$avatar = BASE_URL . 'images/default-profile.jpg';
+foreach (glob(APP_ROOT . '/images/profiles/profile-' . $user_id . '-*') as $file) {
+    $avatar = BASE_URL . 'images/profiles/' . basename($file);
 }
 
 $page_title = 'My profile | Soigné';
@@ -192,7 +136,7 @@ include_once('../includes/header.php');
         <form method="post" action="<?php echo BASE_URL; ?>users/profile.php" enctype="multipart/form-data" novalidate>
           <input type="hidden" name="form_action" value="update_photo">
           <img class="profile-photo-preview" id="profile-photo-preview"
-               src="<?php echo htmlspecialchars(profile_image_url($user_id)); ?>"
+               src="<?php echo htmlspecialchars($avatar); ?>"
                alt="Your profile picture">
           <div class="profile-photo-picker">
             <label for="profile_photo">Choose a new picture</label>

@@ -1,428 +1,269 @@
 <?php
-require_once("../includes/bootstrap.php");
-require_once("../../includes/product_images.php");
-require_once("../../includes/product_validation.php");
+require_once('../includes/bootstrap.php');
+require_once('../../includes/product_images.php');
 
-$product_id = product_positive_integer($_GET['id'] ?? null);
-if ($product_id === null) {
-    http_response_code(404);
-    exit('Product not found.');
-}
-
-$product_stmt = mysqli_prepare($conn,
+$product_id = (int)($_GET['id'] ?? 0);
+$product = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT p.*, s.name AS supplier_name
      FROM products p
      JOIN suppliers s ON s.supplier_id = p.supplier_id
-     WHERE p.product_id = ?"
-);
-mysqli_stmt_bind_param($product_stmt, 'i', $product_id);
-mysqli_stmt_execute($product_stmt);
-$product = mysqli_fetch_assoc(mysqli_stmt_get_result($product_stmt));
+     WHERE p.product_id = $product_id"));
 if (!$product) {
     http_response_code(404);
     exit('Product not found.');
 }
 
 $errors = [];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    if ($action === 'add_images') {
-            $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
-            $uploads = product_file_uploads(is_array($_FILES['images'] ?? null) ? $_FILES['images'] : []);
-            $saved_images = [];
-            if ($color_id === null) {
-                $errors[] = 'Choose a valid color.';
-            } elseif (!$uploads || count($uploads) > 10) {
-                $errors[] = 'Choose between 1 and 10 images to upload.';
-            } else {
-                $color_stmt = mysqli_prepare($conn,
-                    "SELECT product_color_id FROM product_colors WHERE product_color_id = ? AND product_id = ?"
-                );
-                mysqli_stmt_bind_param($color_stmt, 'ii', $color_id, $product_id);
-                mysqli_stmt_execute($color_stmt);
-                $color = mysqli_fetch_assoc(mysqli_stmt_get_result($color_stmt));
-                if (!$color) {
-                    $errors[] = 'Color not found for this product.';
-                } else {
-                    $transaction_started = false;
-                    try {
-                        foreach ($uploads as $upload) {
-                            if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-                                throw new RuntimeException('One or more images could not be uploaded. Please try again.');
-                            }
-                            $image_path = save_product_image_upload($upload);
-                            if ($image_path === null) {
-                                throw new RuntimeException('Choose at least one product image.');
-                            }
-                            $saved_images[] = $image_path;
-                        }
 
-                        mysqli_begin_transaction($conn);
-                        $transaction_started = true;
-                        $count_stmt = mysqli_prepare($conn,
-                            "SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order
-                             FROM product_color_images WHERE product_color_id = ?"
-                        );
-                        mysqli_stmt_bind_param($count_stmt, 'i', $color_id);
-                        mysqli_stmt_execute($count_stmt);
-                        $next_order = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($count_stmt))['next_order'];
-                        $image_stmt = mysqli_prepare($conn,
-                            "INSERT INTO product_color_images (product_color_id, image_path, sort_order)
-                             VALUES (?, ?, ?)"
-                        );
-                        foreach ($saved_images as $image_path) {
-                            mysqli_stmt_bind_param($image_stmt, 'isi', $color_id, $image_path, $next_order);
-                            mysqli_stmt_execute($image_stmt);
-                            $next_order++;
-                        }
-                        mysqli_commit($conn);
-                        $transaction_started = false;
-                        admin_set_flash('success', count($saved_images) . ' image' . (count($saved_images) === 1 ? '' : 's') . ' added.');
-                        header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . $color_id);
-                        exit;
-                    } catch (RuntimeException $exception) {
-                        if ($transaction_started) {
-                            mysqli_rollback($conn);
-                        }
-                        foreach ($saved_images as $image_path) {
-                            $file_path = APP_ROOT . '/images/' . $image_path;
-                            if (is_file($file_path) && !unlink($file_path)) {
-                                $errors[] = 'An uploaded image could not be removed after the upload failed.';
-                            }
-                        }
-                        $errors[] = $exception->getMessage();
-                    } catch (mysqli_sql_exception $exception) {
-                        if ($transaction_started) {
-                            mysqli_rollback($conn);
-                        }
-                        foreach ($saved_images as $image_path) {
-                            $file_path = APP_ROOT . '/images/' . $image_path;
-                            if (is_file($file_path) && !unlink($file_path)) {
-                                $errors[] = 'An uploaded image could not be removed after the save failed.';
-                            }
-                        }
-                        $errors[] = 'Could not add product images. Please try again.';
-                    }
+    if ($action === 'add_images') {
+        $color_id = (int)($_POST['product_color_id'] ?? 0);
+        $color = mysqli_fetch_assoc(mysqli_query($conn,
+            "SELECT product_color_id FROM product_colors WHERE product_color_id = $color_id AND product_id = $product_id"));
+
+        $uploads = [];
+        foreach ((array)($_FILES['images']['name'] ?? []) as $index => $file_name) {
+            if ($file_name === '') {
+                continue;
             }
+            $uploads[] = [
+                'name' => $file_name,
+                'tmp_name' => $_FILES['images']['tmp_name'][$index],
+                'error' => $_FILES['images']['error'][$index] ?? UPLOAD_ERR_OK,
+            ];
         }
-        } elseif ($action === 'remove_images') {
-            $posted_image_ids = $_POST['image_ids'] ?? [];
-            $image_ids = [];
-            if (is_array($posted_image_ids)) {
-                foreach ($posted_image_ids as $posted_image_id) {
-                    $image_id = product_positive_integer($posted_image_id);
-                    if ($image_id !== null) {
-                        $image_ids[] = $image_id;
-                    }
+
+        if (!$color) {
+            $errors[] = 'Color not found for this product.';
+        } elseif (!$uploads) {
+            $errors[] = 'Choose at least one image to upload.';
+        } else {
+            $next_order = (int)mysqli_fetch_assoc(mysqli_query($conn,
+                "SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order
+                 FROM product_color_images WHERE product_color_id = $color_id"))['next_order'];
+
+            foreach ($uploads as $upload) {
+                if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                    continue;
                 }
+                $image_path = save_image_upload($upload, 'products', 'product');
+                $image_sql = mysqli_real_escape_string($conn, $image_path);
+                mysqli_query($conn,
+                    "INSERT INTO product_color_images (product_color_id, image_path, sort_order)
+                     VALUES ($color_id, '$image_sql', $next_order)");
+                $next_order++;
             }
-            $image_ids = array_values(array_unique($image_ids));
-            if (!$image_ids) {
-                $errors[] = 'Select at least one image to remove.';
-            } else {
-                $image_rows = [];
-                $image_lookup = mysqli_prepare($conn,
+
+            admin_set_flash('success', 'Product images added.');
+            header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . $color_id);
+            exit;
+        }
+    } elseif ($action === 'remove_images') {
+        $image_ids = array_values(array_filter(array_map('intval', (array)($_POST['image_ids'] ?? []))));
+        if (!$image_ids) {
+            $errors[] = 'Select at least one image to remove.';
+        } else {
+            foreach ($image_ids as $image_id) {
+                $image = mysqli_fetch_assoc(mysqli_query($conn,
                     "SELECT pci.image_id, pci.product_color_id, pci.image_path
                      FROM product_color_images pci
                      JOIN product_colors pc ON pc.product_color_id = pci.product_color_id
-                     WHERE pci.image_id = ? AND pc.product_id = ?"
-                );
-                foreach ($image_ids as $image_id) {
-                    mysqli_stmt_bind_param($image_lookup, 'ii', $image_id, $product_id);
-                    mysqli_stmt_execute($image_lookup);
-                    $image_row = mysqli_fetch_assoc(mysqli_stmt_get_result($image_lookup));
-                    if ($image_row) {
-                        $image_rows[] = $image_row;
-                    }
+                     WHERE pci.image_id = $image_id AND pc.product_id = $product_id"));
+                if (!$image) {
+                    continue;
                 }
 
-                if (!$image_rows) {
-                    $errors[] = 'No selected images belong to this product.';
-                } else {
-                    $delete_image = mysqli_prepare($conn,
-                        'DELETE FROM product_color_images WHERE image_id = ? AND product_color_id = ?'
-                    );
-                    foreach ($image_rows as $image_row) {
-                        $image_id = (int)$image_row['image_id'];
-                        $color_id = (int)$image_row['product_color_id'];
-                        mysqli_stmt_bind_param($delete_image, 'ii', $image_id, $color_id);
-                        mysqli_stmt_execute($delete_image);
-                    }
+                $image_path = $image['image_path'];
+                $path_sql = mysqli_real_escape_string($conn, $image_path);
+                mysqli_query($conn, "DELETE FROM product_color_images WHERE image_id = $image_id");
 
-                    $shared_image_check = mysqli_prepare($conn,
-                        'SELECT COUNT(*) AS image_count FROM product_color_images WHERE image_path = ?'
-                    );
-                    $image_root = realpath(APP_ROOT . '/images');
-                    foreach ($image_rows as $image_row) {
-                        $image_path = (string)$image_row['image_path'];
-                        mysqli_stmt_bind_param($shared_image_check, 's', $image_path);
-                        mysqli_stmt_execute($shared_image_check);
-                        $remaining_references = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($shared_image_check))['image_count'];
-                        $file_path = realpath(APP_ROOT . '/images/' . $image_path);
-                        if ($remaining_references === 0 && $image_root !== false && $file_path !== false
-                            && strpos($file_path, $image_root . DIRECTORY_SEPARATOR) === 0
-                            && is_file($file_path) && !unlink($file_path)) {
-                            $errors[] = 'An image was removed from the product, but its file could not be deleted.';
-                        }
-                    }
-
-                    if (!$errors) {
-                        admin_set_flash('success', count($image_rows) . ' image' . (count($image_rows) === 1 ? '' : 's') . ' removed.');
-                        header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options');
-                        exit;
+                $remaining = mysqli_fetch_assoc(mysqli_query($conn,
+                    "SELECT COUNT(*) AS total FROM product_color_images WHERE image_path = '$path_sql'"));
+                if ((int)$remaining['total'] === 0) {
+                    $file = APP_ROOT . '/images/' . $image_path;
+                    if (is_file($file)) {
+                        unlink($file);
                     }
                 }
             }
-        } elseif ($action === 'update_product') {
-            $supplier_id = product_positive_integer($_POST['supplier_id'] ?? null);
-            $name = trim(is_string($_POST['name'] ?? null) ? $_POST['name'] : '');
-            $category_id_value = $_POST['category_id'] ?? '';
-            $category_id_input = is_string($category_id_value) ? $category_id_value : '';
-            $category_id = $category_id_input === '' ? null : product_positive_integer($category_id_input);
-            $department = is_string($_POST['department'] ?? null) ? $_POST['department'] : '';
-            $price = product_price_value($_POST['price'] ?? null);
-            $description = trim(is_string($_POST['description'] ?? null) ? $_POST['description'] : '');
-
-            if ($supplier_id === null) {
-                $errors[] = 'Choose a valid brand.';
-            }
-            if ($name === '' || mb_strlen($name) > 150) {
-                $errors[] = 'Enter a product name up to 150 characters.';
-            }
-            if ($category_id_value !== '' && !is_string($category_id_value)) {
-                $errors[] = 'Choose a valid category.';
-            }
-            if ($category_id_input !== '' && $category_id === null) {
-                $errors[] = 'Choose a valid category.';
-            }
-            if (!in_array($department, ['men', 'women', 'kids'], true)) {
-                $errors[] = 'Choose a valid department.';
-            }
-            if ($price === null) {
-                $errors[] = 'Enter a valid non-negative price with no more than two decimal places.';
-            }
-
-            if (!$errors) {
-                $supplier_stmt = mysqli_prepare($conn, "SELECT supplier_id FROM suppliers WHERE supplier_id = ?");
-                mysqli_stmt_bind_param($supplier_stmt, 'i', $supplier_id);
-                mysqli_stmt_execute($supplier_stmt);
-                if (!mysqli_fetch_assoc(mysqli_stmt_get_result($supplier_stmt))) {
-                    $errors[] = 'Choose a valid brand.';
-                }
-            }
-            if (!$errors && $category_id !== null) {
-                $category_stmt = mysqli_prepare($conn, "SELECT category_id FROM categories WHERE category_id = ?");
-                mysqli_stmt_bind_param($category_stmt, 'i', $category_id);
-                mysqli_stmt_execute($category_stmt);
-                $category_row = mysqli_fetch_assoc(mysqli_stmt_get_result($category_stmt));
-                if (!$category_row) {
-                    $errors[] = 'Choose a valid category.';
-                }
-            }
-
-            if (!$errors) {
-                $stmt = mysqli_prepare($conn, "UPDATE products SET supplier_id = ?, name = ?, category_id = ?, department = ?, price = ?, description = ? WHERE product_id = ?");
-                mysqli_stmt_bind_param($stmt, 'isisdsi', $supplier_id, $name, $category_id, $department, $price, $description, $product_id);
-                mysqli_stmt_execute($stmt);
-                admin_set_flash('success', 'Product details updated.');
-                header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id);
-                exit;
-            }
-        } elseif ($action === 'add_color') {
-            $color = trim(is_string($_POST['color'] ?? null) ? $_POST['color'] : '');
-            $image = trim(is_string($_POST['image'] ?? null) ? $_POST['image'] : '');
-            if ($color === '' || mb_strlen($color) > 80) {
-                $errors[] = 'Enter a color name up to 80 characters.';
-            }
-            if (mb_strlen($image) > 255) {
-                $errors[] = 'Image path must be 255 characters or fewer.';
-            }
-            if (!$errors) {
-                try {
-                    mysqli_begin_transaction($conn);
-                    $stmt = mysqli_prepare($conn, "INSERT INTO product_colors (product_id, color) VALUES (?, ?)");
-                    mysqli_stmt_bind_param($stmt, 'is', $product_id, $color);
-                    mysqli_stmt_execute($stmt);
-                    $color_id = mysqli_insert_id($conn);
-                    if ($image !== '') {
-                        $image_stmt = mysqli_prepare($conn,
-                            "INSERT INTO product_color_images (product_color_id, image_path, sort_order)
-                             VALUES (?, ?, 0)"
-                        );
-                        mysqli_stmt_bind_param($image_stmt, 'is', $color_id, $image);
-                        mysqli_stmt_execute($image_stmt);
-                    }
-                    mysqli_commit($conn);
-                    admin_set_flash('success', 'Color added.');
-                    header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . $color_id);
-                    exit;
-                } catch (mysqli_sql_exception $exception) {
-                    mysqli_rollback($conn);
-                    $errors[] = $exception->getCode() === 1062 ? 'This product already has that color.' : 'Could not add the color.';
-                }
-            }
-        } elseif ($action === 'update_color') {
-            $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
-            $color = trim(is_string($_POST['color'] ?? null) ? $_POST['color'] : '');
-            if ($color_id === null || $color === '' || mb_strlen($color) > 80) {
-                $errors[] = 'Enter a valid color name.';
-            } else {
-                try {
-                    $stmt = mysqli_prepare($conn,
-                        "UPDATE product_colors
-                         SET color = ?
-                         WHERE product_color_id = ? AND product_id = ?"
-                    );
-                    mysqli_stmt_bind_param($stmt, 'sii', $color, $color_id, $product_id);
-                    mysqli_stmt_execute($stmt);
-                    admin_set_flash('success', 'Color updated.');
-                    header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . $color_id);
-                    exit;
-                } catch (mysqli_sql_exception $exception) {
-                    $errors[] = $exception->getCode() === 1062 ? 'This product already has that color.' : 'Could not update the color.';
-                }
-            }
-        } elseif ($action === 'delete_color') {
-            $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
-            if ($color_id === null) {
-                $errors[] = 'Choose a valid color.';
-            } else {
-                $usage_stmt = mysqli_prepare($conn,
-                    "SELECT
-                        (SELECT COUNT(*) FROM cart c JOIN product_variants v ON v.variant_id = c.variant_id WHERE v.product_color_id = pc.product_color_id) AS cart_count,
-                        (SELECT COUNT(*) FROM order_items oi JOIN product_variants v ON v.variant_id = oi.variant_id WHERE v.product_color_id = pc.product_color_id) AS order_count,
-                        (SELECT COUNT(*) FROM restock_items ri JOIN product_variants v ON v.variant_id = ri.variant_id WHERE v.product_color_id = pc.product_color_id) AS restock_count
-                     FROM product_colors pc WHERE pc.product_color_id = ? AND pc.product_id = ?"
-                );
-                mysqli_stmt_bind_param($usage_stmt, 'ii', $color_id, $product_id);
-                mysqli_stmt_execute($usage_stmt);
-                $usage = mysqli_fetch_assoc(mysqli_stmt_get_result($usage_stmt));
-                if (!$usage) {
-                    $errors[] = 'Color not found.';
-                } elseif ((int)$usage['cart_count'] || (int)$usage['order_count'] || (int)$usage['restock_count']) {
-                    $errors[] = 'This color has cart, order, or restock history and cannot be deleted.';
-                } else {
-                    mysqli_begin_transaction($conn);
-                    try {
-                        $delete_variants = mysqli_prepare($conn, "DELETE FROM product_variants WHERE product_color_id = ?");
-                        mysqli_stmt_bind_param($delete_variants, 'i', $color_id);
-                        mysqli_stmt_execute($delete_variants);
-                        $delete_color = mysqli_prepare($conn, "DELETE FROM product_colors WHERE product_color_id = ? AND product_id = ?");
-                        mysqli_stmt_bind_param($delete_color, 'ii', $color_id, $product_id);
-                        mysqli_stmt_execute($delete_color);
-                        mysqli_commit($conn);
-                        admin_set_flash('success', 'Color and its unused sizes deleted.');
-                        header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options');
-                        exit;
-                    } catch (mysqli_sql_exception $exception) {
-                        mysqli_rollback($conn);
-                        $errors[] = 'Could not delete this color because it is referenced by store data.';
-                    }
-                }
-            }
-        } elseif ($action === 'add_variant') {
-            $color_id = product_positive_integer($_POST['product_color_id'] ?? null);
-            $size = trim(is_string($_POST['size'] ?? null) ? $_POST['size'] : '');
-            if ($color_id === null || $size === '' || mb_strlen($size) > 20) {
-                $errors[] = 'Enter a valid color and size.';
-            } else {
-                $stmt = mysqli_prepare($conn, "INSERT INTO product_variants (product_color_id, size, stock) SELECT product_color_id, ?, 0 FROM product_colors WHERE product_color_id = ? AND product_id = ?");
-                mysqli_stmt_bind_param($stmt, 'sii', $size, $color_id, $product_id);
-                try {
-                    mysqli_stmt_execute($stmt);
-                    if (mysqli_stmt_affected_rows($stmt) !== 1) {
-                        $errors[] = 'That color does not belong to this product.';
-                    } else {
-                        admin_set_flash('success', 'Size variant added.');
-                        header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . $color_id);
-                        exit;
-                    }
-                } catch (mysqli_sql_exception $exception) {
-                    $errors[] = $exception->getCode() === 1062 ? 'That size already exists for this color.' : 'Could not add the size variant.';
-                }
-            }
-        } elseif ($action === 'update_variant') {
-            $variant_id = product_positive_integer($_POST['variant_id'] ?? null);
-            $size = trim(is_string($_POST['size'] ?? null) ? $_POST['size'] : '');
-            if ($variant_id === null || $size === '' || mb_strlen($size) > 20) {
-                $errors[] = 'Enter a valid size.';
-            } else {
-                $usage_stmt = mysqli_prepare($conn,
-                    "SELECT v.size,
-                        (SELECT COUNT(*) FROM cart c WHERE c.variant_id = v.variant_id) +
-                        (SELECT COUNT(*) FROM order_items oi WHERE oi.variant_id = v.variant_id) +
-                        (SELECT COUNT(*) FROM restock_items ri WHERE ri.variant_id = v.variant_id) AS usage_count
-                     FROM product_variants v
-                     JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                     WHERE v.variant_id = ? AND pc.product_id = ?"
-                );
-                mysqli_stmt_bind_param($usage_stmt, 'ii', $variant_id, $product_id);
-                mysqli_stmt_execute($usage_stmt);
-                $variant_usage = mysqli_fetch_assoc(mysqli_stmt_get_result($usage_stmt));
-                if (!$variant_usage) {
-                    $errors[] = 'Size variant not found.';
-                } elseif ($size !== $variant_usage['size'] && (int)$variant_usage['usage_count'] > 0) {
-                    $errors[] = 'The size cannot be renamed while it is referenced by a cart, order, or restock record.';
-                } else {
-                    $stmt = mysqli_prepare($conn, "UPDATE product_variants v JOIN product_colors pc ON pc.product_color_id = v.product_color_id SET v.size = ? WHERE v.variant_id = ? AND pc.product_id = ?");
-                    mysqli_stmt_bind_param($stmt, 'sii', $size, $variant_id, $product_id);
-                    try {
-                        mysqli_stmt_execute($stmt);
-                        admin_set_flash('success', 'Size updated.');
-                        header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . (int)($_POST['color_panel_id'] ?? 0));
-                        exit;
-                    } catch (mysqli_sql_exception $exception) {
-                        $errors[] = $exception->getCode() === 1062 ? 'That size already exists for this color.' : 'Could not update the size variant.';
-                    }
-                }
-            }
-        } elseif ($action === 'delete_variant') {
-            $variant_id = product_positive_integer($_POST['variant_id'] ?? null);
-            if ($variant_id === null) {
-                $errors[] = 'Choose a valid size variant.';
-            } else {
-                $usage_stmt = mysqli_prepare($conn,
-                    "SELECT
-                        (SELECT COUNT(*) FROM cart WHERE variant_id = v.variant_id) AS cart_count,
-                        (SELECT COUNT(*) FROM order_items WHERE variant_id = v.variant_id) AS order_count,
-                        (SELECT COUNT(*) FROM restock_items WHERE variant_id = v.variant_id) AS restock_count
-                     FROM product_variants v
-                     JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                     WHERE v.variant_id = ? AND pc.product_id = ?"
-                );
-                mysqli_stmt_bind_param($usage_stmt, 'ii', $variant_id, $product_id);
-                mysqli_stmt_execute($usage_stmt);
-                $usage = mysqli_fetch_assoc(mysqli_stmt_get_result($usage_stmt));
-                if (!$usage) {
-                    $errors[] = 'Size variant not found.';
-                } elseif ((int)$usage['cart_count'] || (int)$usage['order_count'] || (int)$usage['restock_count']) {
-                    $errors[] = 'This size has cart, order, or restock history and cannot be deleted.';
-                } else {
-                    $stmt = mysqli_prepare($conn, "DELETE v FROM product_variants v JOIN product_colors pc ON pc.product_color_id = v.product_color_id WHERE v.variant_id = ? AND pc.product_id = ?");
-                    mysqli_stmt_bind_param($stmt, 'ii', $variant_id, $product_id);
-                    mysqli_stmt_execute($stmt);
-                    admin_set_flash('success', 'Size variant deleted.');
-                    header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . (int)($_POST['color_panel_id'] ?? 0));
-                    exit;
-                }
-            }
-        } else {
-            $errors[] = 'That product action is not valid.';
+            admin_set_flash('success', 'Selected images removed.');
+            header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options');
+            exit;
         }
+    } elseif ($action === 'update_product') {
+        $supplier_id = (int)($_POST['supplier_id'] ?? 0);
+        $name = trim($_POST['name'] ?? '');
+        $category_id = (int)($_POST['category_id'] ?? 0);
+        $department = $_POST['department'] ?? '';
+        $price = (float)($_POST['price'] ?? 0);
+        $description = trim($_POST['description'] ?? '');
+
+        if ($supplier_id < 1) {
+            $errors[] = 'Choose a brand.';
+        }
+        if ($name === '') {
+            $errors[] = 'Enter a product name.';
+        }
+        if (!in_array($department, ['men', 'women', 'kids'], true)) {
+            $errors[] = 'Choose a department.';
+        }
+        if ($price <= 0) {
+            $errors[] = 'Enter a valid price.';
+        }
+
+        if (!$errors) {
+            $name_sql = mysqli_real_escape_string($conn, $name);
+            $description_sql = mysqli_real_escape_string($conn, $description);
+            $category_sql = $category_id > 0 ? $category_id : 'NULL';
+            mysqli_query($conn,
+                "UPDATE products
+                 SET supplier_id = $supplier_id, name = '$name_sql', category_id = $category_sql,
+                     department = '$department', price = $price, description = '$description_sql'
+                 WHERE product_id = $product_id");
+            admin_set_flash('success', 'Product details updated.');
+            header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id);
+            exit;
+        }
+    } elseif ($action === 'add_color') {
+        $color = trim($_POST['color'] ?? '');
+        $image = trim($_POST['image'] ?? '');
+        if ($color === '') {
+            $errors[] = 'Enter a color name.';
+        } else {
+            $color_sql = mysqli_real_escape_string($conn, $color);
+            try {
+                mysqli_query($conn,
+                    "INSERT INTO product_colors (product_id, color) VALUES ($product_id, '$color_sql')");
+                $color_id = mysqli_insert_id($conn);
+                if ($image !== '') {
+                    $image_sql = mysqli_real_escape_string($conn, $image);
+                    mysqli_query($conn,
+                        "INSERT INTO product_color_images (product_color_id, image_path, sort_order)
+                         VALUES ($color_id, '$image_sql', 0)");
+                }
+                admin_set_flash('success', 'Color added.');
+                header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . $color_id);
+                exit;
+            } catch (mysqli_sql_exception $e) {
+                $errors[] = 'This product already has that color.';
+            }
+        }
+    } elseif ($action === 'update_color') {
+        $color_id = (int)($_POST['product_color_id'] ?? 0);
+        $color = trim($_POST['color'] ?? '');
+        if ($color === '' || $color_id < 1) {
+            $errors[] = 'Enter a valid color name.';
+        } else {
+            $color_sql = mysqli_real_escape_string($conn, $color);
+            try {
+                mysqli_query($conn,
+                    "UPDATE product_colors SET color = '$color_sql'
+                     WHERE product_color_id = $color_id AND product_id = $product_id");
+                admin_set_flash('success', 'Color updated.');
+                header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . $color_id);
+                exit;
+            } catch (mysqli_sql_exception $e) {
+                $errors[] = 'This product already has that color.';
+            }
+        }
+    } elseif ($action === 'delete_color') {
+        $color_id = (int)($_POST['product_color_id'] ?? 0);
+        $usage = mysqli_fetch_assoc(mysqli_query($conn,
+            "SELECT
+                (SELECT COUNT(*) FROM cart c JOIN product_variants v ON v.variant_id = c.variant_id WHERE v.product_color_id = $color_id) AS cart_count,
+                (SELECT COUNT(*) FROM order_items oi JOIN product_variants v ON v.variant_id = oi.variant_id WHERE v.product_color_id = $color_id) AS order_count,
+                (SELECT COUNT(*) FROM restock_items ri JOIN product_variants v ON v.variant_id = ri.variant_id WHERE v.product_color_id = $color_id) AS restock_count"));
+
+        if ((int)$usage['cart_count'] || (int)$usage['order_count'] || (int)$usage['restock_count']) {
+            $errors[] = 'This color has cart, order, or restock history and cannot be deleted.';
+        } else {
+            mysqli_query($conn, "DELETE FROM product_variants WHERE product_color_id = $color_id");
+            mysqli_query($conn, "DELETE FROM product_colors WHERE product_color_id = $color_id AND product_id = $product_id");
+            admin_set_flash('success', 'Color and its unused sizes deleted.');
+            header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options');
+            exit;
+        }
+    } elseif ($action === 'add_variant') {
+        $color_id = (int)($_POST['product_color_id'] ?? 0);
+        $size = trim($_POST['size'] ?? '');
+        $color = mysqli_fetch_assoc(mysqli_query($conn,
+            "SELECT product_color_id FROM product_colors WHERE product_color_id = $color_id AND product_id = $product_id"));
+
+        if (!$color || $size === '') {
+            $errors[] = 'Enter a valid color and size.';
+        } else {
+            $size_sql = mysqli_real_escape_string($conn, $size);
+            try {
+                mysqli_query($conn,
+                    "INSERT INTO product_variants (product_color_id, size, stock)
+                     VALUES ($color_id, '$size_sql', 0)");
+                admin_set_flash('success', 'Size variant added.');
+                header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . $color_id);
+                exit;
+            } catch (mysqli_sql_exception $e) {
+                $errors[] = 'That size already exists for this color.';
+            }
+        }
+    } elseif ($action === 'update_variant') {
+        $variant_id = (int)($_POST['variant_id'] ?? 0);
+        $size = trim($_POST['size'] ?? '');
+        $variant = mysqli_fetch_assoc(mysqli_query($conn,
+            "SELECT v.size,
+                    (SELECT COUNT(*) FROM cart c WHERE c.variant_id = v.variant_id) +
+                    (SELECT COUNT(*) FROM order_items oi WHERE oi.variant_id = v.variant_id) +
+                    (SELECT COUNT(*) FROM restock_items ri WHERE ri.variant_id = v.variant_id) AS usage_count
+             FROM product_variants v
+             JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+             WHERE v.variant_id = $variant_id AND pc.product_id = $product_id"));
+
+        if (!$variant || $size === '') {
+            $errors[] = 'Enter a valid size.';
+        } elseif ($size !== $variant['size'] && (int)$variant['usage_count'] > 0) {
+            $errors[] = 'The size cannot be renamed while it is referenced by a cart, order, or restock record.';
+        } else {
+            $size_sql = mysqli_real_escape_string($conn, $size);
+            try {
+                mysqli_query($conn, "UPDATE product_variants SET size = '$size_sql' WHERE variant_id = $variant_id");
+                admin_set_flash('success', 'Size updated.');
+                header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . (int)($_POST['color_panel_id'] ?? 0));
+                exit;
+            } catch (mysqli_sql_exception $e) {
+                $errors[] = 'That size already exists for this color.';
+            }
+        }
+    } elseif ($action === 'delete_variant') {
+        $variant_id = (int)($_POST['variant_id'] ?? 0);
+        $usage = mysqli_fetch_assoc(mysqli_query($conn,
+            "SELECT
+                (SELECT COUNT(*) FROM cart WHERE variant_id = $variant_id) AS cart_count,
+                (SELECT COUNT(*) FROM order_items WHERE variant_id = $variant_id) AS order_count,
+                (SELECT COUNT(*) FROM restock_items WHERE variant_id = $variant_id) AS restock_count"));
+
+        if ((int)$usage['cart_count'] || (int)$usage['order_count'] || (int)$usage['restock_count']) {
+            $errors[] = 'This size has cart, order, or restock history and cannot be deleted.';
+        } else {
+            mysqli_query($conn, "DELETE FROM product_variants WHERE variant_id = $variant_id");
+            admin_set_flash('success', 'Size variant deleted.');
+            header('Location: ' . BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id . '&panel=options&color_panel_id=' . (int)($_POST['color_panel_id'] ?? 0));
+            exit;
+        }
+    } else {
+        $errors[] = 'That product action is not valid.';
+    }
 }
 
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
 $categories = mysqli_fetch_all(mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name"), MYSQLI_ASSOC);
-$colors_stmt = mysqli_prepare($conn,
+
+$color_rows = mysqli_fetch_all(mysqli_query($conn,
     "SELECT pc.product_color_id, pc.color, v.variant_id, v.size
      FROM product_colors pc
      LEFT JOIN product_variants v ON v.product_color_id = pc.product_color_id
-     WHERE pc.product_id = ?
-     ORDER BY pc.product_color_id, v.variant_id"
-);
-mysqli_stmt_bind_param($colors_stmt, 'i', $product_id);
-mysqli_stmt_execute($colors_stmt);
-$color_rows = mysqli_fetch_all(mysqli_stmt_get_result($colors_stmt), MYSQLI_ASSOC);
+     WHERE pc.product_id = $product_id
+     ORDER BY pc.product_color_id, v.variant_id"), MYSQLI_ASSOC);
+
 $colors = [];
 foreach ($color_rows as $row) {
     $color_id = (int)$row['product_color_id'];
@@ -433,42 +274,35 @@ foreach ($color_rows as $row) {
         $colors[$color_id]['variants'][] = ['variant_id' => (int)$row['variant_id'], 'size' => $row['size']];
     }
 }
-$color_images = product_color_image_paths($conn, array_keys($colors));
+
+$color_images = product_images($conn, array_keys($colors));
 $color_image_ids = [];
-$color_image_ids_stmt = mysqli_prepare($conn,
-    "SELECT pci.product_color_id, pci.image_id
+$image_rows = mysqli_fetch_all(mysqli_query($conn,
+    "SELECT pci.image_id, pci.product_color_id
      FROM product_color_images pci
      JOIN product_colors pc ON pc.product_color_id = pci.product_color_id
-     WHERE pc.product_id = ?
-     ORDER BY pc.product_color_id, pci.sort_order, pci.image_id"
-);
-mysqli_stmt_bind_param($color_image_ids_stmt, 'i', $product_id);
-mysqli_stmt_execute($color_image_ids_stmt);
-$color_image_id_result = mysqli_stmt_get_result($color_image_ids_stmt);
-while ($image_id_row = mysqli_fetch_assoc($color_image_id_result)) {
-    $color_image_ids[(int)$image_id_row['product_color_id']][] = (int)$image_id_row['image_id'];
+     WHERE pc.product_id = $product_id
+     ORDER BY pc.product_color_id, pci.sort_order, pci.image_id"), MYSQLI_ASSOC);
+foreach ($image_rows as $row) {
+    $color_image_ids[(int)$row['product_color_id']][] = (int)$row['image_id'];
 }
 foreach ($colors as $color_id => &$color) {
     $color['image'] = $color_images[$color_id][0] ?? '';
 }
 unset($color);
-$selected_color_panel_id = product_positive_integer($_POST['color_panel_id'] ?? $_GET['color_panel_id'] ?? null);
-if ($selected_color_panel_id === null && isset($_POST['product_color_id'])) {
-    $selected_color_panel_id = product_positive_integer($_POST['product_color_id']);
-}
-if ($selected_color_panel_id === null || !isset($colors[$selected_color_panel_id])) {
+
+$selected_color_panel_id = (int)($_POST['color_panel_id'] ?? $_GET['color_panel_id'] ?? $_POST['product_color_id'] ?? 0);
+if (!isset($colors[$selected_color_panel_id])) {
     $selected_color_panel_id = $colors ? (int)array_key_first($colors) : 0;
 }
-$flash = admin_take_flash();
+
 $option_actions = ['add_images', 'remove_images', 'add_color', 'update_color', 'delete_color', 'add_variant', 'update_variant', 'delete_variant'];
-$posted_action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
-$active_edit_panel = (
-    in_array($posted_action, $option_actions, true)
-    || (($_GET['panel'] ?? '') === 'options')
-) ? 'options' : 'details';
+$active_edit_panel = (in_array($_POST['action'] ?? '', $option_actions, true) || ($_GET['panel'] ?? '') === 'options') ? 'options' : 'details';
+
+$flash = admin_take_flash();
 $admin_page_title = 'Edit Product';
 $admin_active_page = 'products';
-include("../includes/header.php");
+include('../includes/header.php');
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">PRODUCT CATALOG</p><h1>Edit Product</h1><p>Update product details, colors, and sizes.</p></div>
@@ -487,12 +321,12 @@ include("../includes/header.php");
   <div class="manage-panel-heading"><div><p class="admin-eyebrow">PRODUCT DETAILS</p><h2><?php echo admin_escape($product['name']); ?></h2></div></div>
   <form method="post" class="manage-form manage-product-create" novalidate>
     <input type="hidden" name="action" value="update_product">
-    <label>Product name<input name="name" value="<?php echo admin_escape(is_string($_POST['name'] ?? null) ? $_POST['name'] : $product['name']); ?>"></label>
+    <label>Product name<input name="name" value="<?php echo admin_escape($_POST['name'] ?? $product['name']); ?>"></label>
     <label>Brand<select name="supplier_id"><?php foreach ($suppliers as $supplier) { ?><option value="<?php echo (int)$supplier['supplier_id']; ?>" <?php echo (int)$supplier['supplier_id'] === (int)$product['supplier_id'] ? 'selected' : ''; ?>><?php echo admin_escape($supplier['name']); ?></option><?php } ?></select></label>
-    <label>Category<select name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { $selected_category_id = is_string($_POST['category_id'] ?? null) ? $_POST['category_id'] : (string)$product['category_id']; ?><option value="<?php echo (int)$category_option['category_id']; ?>" <?php echo $selected_category_id === (string)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
+    <label>Category<select name="category_id"><option value="">Uncategorized</option><?php foreach ($categories as $category_option) { $selected_category_id = $_POST['category_id'] ?? (string)$product['category_id']; ?><option value="<?php echo (int)$category_option['category_id']; ?>" <?php echo $selected_category_id === (string)$category_option['category_id'] ? 'selected' : ''; ?>><?php echo admin_escape($category_option['name']); ?></option><?php } ?></select></label>
     <label>Department<select name="department"><?php foreach (['men' => 'Men', 'women' => 'Women', 'kids' => 'Kids'] as $key => $label) { ?><option value="<?php echo $key; ?>" <?php echo $product['department'] === $key ? 'selected' : ''; ?>><?php echo $label; ?></option><?php } ?></select></label>
-    <label>Price (₱)<input type="text" inputmode="decimal" name="price" value="<?php echo admin_escape(is_string($_POST['price'] ?? null) ? $_POST['price'] : $product['price']); ?>"></label>
-    <label class="manage-form-wide">Description<textarea name="description" rows="3"><?php echo admin_escape(is_string($_POST['description'] ?? null) ? $_POST['description'] : $product['description']); ?></textarea></label>
+    <label>Price (₱)<input type="text" inputmode="decimal" name="price" value="<?php echo admin_escape($_POST['price'] ?? $product['price']); ?>"></label>
+    <label class="manage-form-wide">Description<textarea name="description" rows="3"><?php echo admin_escape($_POST['description'] ?? $product['description']); ?></textarea></label>
     <div class="manage-form-wide"><button class="admin-button" type="submit">Save product details</button></div>
   </form>
 </section>
@@ -542,8 +376,7 @@ include("../includes/header.php");
   </form>
   <?php if (!$colors) { ?><p class="manage-empty">No colors added for this product yet.</p><?php } ?>
   <div class="product-color-tabs" role="radiogroup" aria-label="Product color panels">
-  <?php foreach ($colors as $color) {
-  ?>
+  <?php foreach ($colors as $color) { ?>
     <div class="product-color-tab">
       <input class="product-color-tab-input" type="radio" name="color_panel" id="color-panel-<?php echo (int)$color['product_color_id']; ?>" <?php echo $selected_color_panel_id === (int)$color['product_color_id'] ? 'checked' : ''; ?>>
       <label class="product-color-tab-label" for="color-panel-<?php echo (int)$color['product_color_id']; ?>"><?php echo admin_escape($color['color']); ?></label>
@@ -615,4 +448,4 @@ include("../includes/header.php");
   </div>
 </section>
 </div>
-<?php include("../includes/footer.php"); ?>
+<?php include('../includes/footer.php'); ?>

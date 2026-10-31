@@ -1,157 +1,91 @@
 <?php
 session_start();
-include_once("../includes/config.php");
-require_once("../includes/profile_image.php");
+include_once('../includes/config.php');
+require_once('../includes/product_images.php');
 
-// Redirect validation
-function safe_redirect($redirect_path) {
-    $fallback = BASE_URL . 'index.php';
-    if (!is_string($redirect_path) || $redirect_path === '') {
-        return $fallback;
-    }
-    if (strpos($redirect_path, '/') !== 0 || strpos($redirect_path, '//') === 0
-        || strpos($redirect_path, '\\') !== false
-        || strpos($redirect_path, "\r") !== false || strpos($redirect_path, "\n") !== false) {
-        return $fallback;
-    }
-    return $redirect_path;
+$redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
+if (!is_string($redirect) || strpos($redirect, '/') !== 0 || strpos($redirect, '//') === 0) {
+    $redirect = BASE_URL . 'index.php';
 }
 
-$redirect_path = '';
-if (isset($_POST['redirect'])) {
-    $redirect_path = $_POST['redirect'];
-} elseif (isset($_GET['redirect'])) {
-    $redirect_path = $_GET['redirect'];
-}
-$redirect = safe_redirect($redirect_path);
-
-// Admin redirect
-if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
-    header('Location: ' . BASE_URL . 'admin/manage-products/');
-    exit;
-}
-
-// Existing customer redirect
-if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
+if (isset($_SESSION['user_id'])) {
     header('Location: ' . $redirect);
     exit;
 }
 
-$errors   = [];
-$name     = '';
+$errors = [];
+$name = '';
 $username = '';
-$email    = '';
-$phone    = '';
-$address  = '';
+$email = '';
+$phone = '';
+$address = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name     = trim($_POST['customer_name'] ?? '');
+    $name = trim($_POST['customer_name'] ?? '');
     $username = trim($_POST['username'] ?? '');
-    $email    = trim($_POST['email'] ?? '');
-    $phone    = trim($_POST['phone'] ?? '');
-    $address  = trim($_POST['address'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $address = trim($_POST['address'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
-    // Validate registration
-    if ($name === '' || mb_strlen($name) > 120) {
+    if ($name === '') {
         $errors[] = 'Please enter your full name.';
     }
-    if (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) {
-        $errors[] = 'Username must be 3-50 characters: letters, numbers and underscores only.';
+    if ($username === '') {
+        $errors[] = 'Please enter a username.';
     }
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 120) {
-        $errors[] = 'Please enter a valid email address.';
+    if ($email === '') {
+        $errors[] = 'Please enter your email address.';
     }
-    if (strlen($password) < 8) {
-        $errors[] = 'Password must be at least 8 characters.';
-    } elseif (strlen($password) > 72) {
-        $errors[] = 'Password must be 72 characters or fewer.';
-    }
-    if ($password !== $confirm_password) {
+    if ($password === '') {
+        $errors[] = 'Please enter a password.';
+    } elseif ($password !== $confirm_password) {
         $errors[] = 'Passwords do not match.';
     }
-    // Check account availability
+
     if (!$errors) {
-        // Check username and email
-        $accounts_stmt = mysqli_prepare($conn, "SELECT username, email FROM users WHERE username = ? OR email = ?");
-        mysqli_stmt_bind_param($accounts_stmt, 'ss', $username, $email);
-        mysqli_stmt_execute($accounts_stmt);
-        $taken = mysqli_fetch_all(mysqli_stmt_get_result($accounts_stmt), MYSQLI_ASSOC);
-        foreach ($taken as $account) {
-            if (strcasecmp($account['username'], $username) === 0) {
-                $errors[] = 'That username is already taken.';
-            }
-            if (strcasecmp($account['email'], $email) === 0) {
-                $errors[] = 'That email is already registered.';
-            }
+        $username_sql = mysqli_real_escape_string($conn, $username);
+        $email_sql = mysqli_real_escape_string($conn, $email);
+
+        $taken = mysqli_fetch_assoc(mysqli_query($conn,
+            "SELECT username, email FROM users WHERE username = '$username_sql' OR email = '$email_sql'"));
+        if ($taken) {
+            $errors[] = strcasecmp($taken['username'], $username) === 0
+                ? 'That username is already taken.'
+                : 'That email is already registered.';
         }
-        $errors = array_unique($errors);
     }
 
-    // Create account
     if (!$errors) {
+        $name_sql = mysqli_real_escape_string($conn, $name);
+        $phone_sql = mysqli_real_escape_string($conn, $phone);
+        $address_sql = mysqli_real_escape_string($conn, $address);
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
-        $user_id = 0;
-        $saved_profile_image = null;
 
-        try {
-            mysqli_begin_transaction($conn);
+        mysqli_query($conn,
+            "INSERT INTO users (username, email, password) VALUES ('$username_sql', '$email_sql', '$password_hash')");
+        $user_id = mysqli_insert_id($conn);
 
-            // Save login details
-            $user_insert_stmt = mysqli_prepare($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-            mysqli_stmt_bind_param($user_insert_stmt, 'sss', $username, $email, $password_hash);
-            mysqli_stmt_execute($user_insert_stmt);
-            $user_id = mysqli_insert_id($conn);
+        mysqli_query($conn,
+            "INSERT INTO customers (user_id, customer_name, phone, address)
+             VALUES ($user_id, '$name_sql', '$phone_sql', '$address_sql')");
 
-            // Save customer details
-            $customer_insert_stmt = mysqli_prepare($conn, "INSERT INTO customers (user_id, customer_name, phone, address) VALUES (?, ?, ?, ?)");
-            mysqli_stmt_bind_param($customer_insert_stmt, 'isss', $user_id, $name, $phone, $address);
-            mysqli_stmt_execute($customer_insert_stmt);
-
-            $profile_upload = $_FILES['profile_photo'] ?? null;
-            if (is_array($profile_upload) && ($profile_upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-                $saved_profile_image = save_profile_image_upload($profile_upload, $user_id);
-            }
-
-            mysqli_commit($conn);
-
-            // Sign in new customer
-            session_regenerate_id(true);
-            $_SESSION['user_id']  = (int)$user_id;
-            $_SESSION['username'] = $username;
-            $_SESSION['role']     = 'customer';
-            header('Location: ' . $redirect);
-            exit;
-
-        } catch (RuntimeException $e) {
-            mysqli_rollback($conn);
-            if ($user_id > 0 && $saved_profile_image !== null) {
-                try {
-                    remove_old_profile_images($user_id);
-                } catch (RuntimeException $cleanup_error) {
-                    $errors[] = $cleanup_error->getMessage();
-                }
-            }
-            $errors[] = $e->getMessage();
-        } catch (mysqli_sql_exception $e) {
-            mysqli_rollback($conn);
-            if ($user_id > 0 && $saved_profile_image !== null) {
-                try {
-                    remove_old_profile_images($user_id);
-                } catch (RuntimeException $cleanup_error) {
-                    $errors[] = $cleanup_error->getMessage();
-                }
-            }
-            $errors[] = $e->getCode() === 1062
-                ? 'That username or email is already registered.'
-                : 'Could not create your account. Please try again.';
+        if (!empty($_FILES['profile_photo']['name'])) {
+            save_image_upload($_FILES['profile_photo'], 'profiles', 'profile-' . $user_id);
         }
+
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = (int)$user_id;
+        $_SESSION['username'] = $username;
+        $_SESSION['role'] = 'customer';
+        header('Location: ' . $redirect);
+        exit;
     }
 }
 
 $page_title = 'Create account | Soigné';
-$extra_css  = 'login.css';
+$extra_css = 'login.css';
 include_once('../includes/header.php');
 ?>
 
@@ -183,16 +117,16 @@ include_once('../includes/header.php');
       <input type="text" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>">
 
       <label for="phone">Phone number</label>
-      <input type="tel" id="phone" name="phone">
+      <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone); ?>">
 
       <label for="address">Address</label>
-      <textarea id="address" name="address"></textarea>
+      <textarea id="address" name="address"><?php echo htmlspecialchars($address); ?></textarea>
 
       <label for="profile_photo">Profile image (optional)</label>
-      <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" aria-describedby="profile-photo-help">
+      <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp">
       <small id="profile-photo-help" class="register-photo-help">JPEG, PNG, or WebP - 5 MB max</small>
 
-      <label for="password">Password (at least 8 characters)</label>
+      <label for="password">Password</label>
       <input type="password" id="password" name="password">
 
       <label for="confirm_password">Confirm password</label>

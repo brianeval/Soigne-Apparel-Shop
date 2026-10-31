@@ -1,72 +1,54 @@
 <?php
-// Brand listings
-include_once ('includes/config.php');
+session_start();
+include_once('includes/config.php');
+require_once('includes/product_images.php');
 
-$brand_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$brand_name = isset($_GET['brand']) && is_string($_GET['brand']) ? trim($_GET['brand']) : '';
-$brand    = null;
-$brands   = [];
+$brand_id = (int)($_GET['id'] ?? 0);
+$brand = null;
+$brands = [];
 $products = [];
 
-
-if ($brand_name !== '') {
-    $brand_stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE name = ?");
-    mysqli_stmt_bind_param($brand_stmt, 's', $brand_name);
-    mysqli_stmt_execute($brand_stmt);
-    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($brand_stmt));
-
-    if (!$brand) {
-        http_response_code(404);
-        exit('Brand not found.');
+if (!empty($_GET['brand'])) {
+    $brand_name = mysqli_real_escape_string($conn, trim($_GET['brand']));
+    $row = mysqli_fetch_assoc(mysqli_query($conn, "SELECT supplier_id FROM suppliers WHERE name = '$brand_name'"));
+    if ($row) {
+        $brand_id = (int)$row['supplier_id'];
     }
-
-    $brand_id = (int)$brand['supplier_id'];
 }
 
 if ($brand_id > 0) {
-    // Brand details
-    $brand_stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE supplier_id = ?");
-    mysqli_stmt_bind_param($brand_stmt, 'i', $brand_id);
-    mysqli_stmt_execute($brand_stmt);
-    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($brand_stmt));
-
+    $brand = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM suppliers WHERE supplier_id = $brand_id"));
     if (!$brand) {
         http_response_code(404);
         exit('Brand not found.');
     }
 
-    // Brand products
-    $products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
-                 pc.product_color_id AS first_color_id,
-                 (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
-          FROM products p
-          LEFT JOIN categories c ON c.category_id = p.category_id
-          LEFT JOIN product_colors pc
-            ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
-          WHERE p.supplier_id = ?
-          ORDER BY p.product_id DESC";
-    $products_stmt = mysqli_prepare($conn, $products_sql);
-    mysqli_stmt_bind_param($products_stmt, 'i', $brand_id);
-    mysqli_stmt_execute($products_stmt);
-    $products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
+    $products = mysqli_fetch_all(mysqli_query($conn,
+        "SELECT p.product_id, p.name, p.price, c.name AS category,
+                pc.product_color_id AS first_color_id,
+                (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
+         FROM products p
+         LEFT JOIN categories c ON c.category_id = p.category_id
+         LEFT JOIN product_colors pc
+           ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
+         WHERE p.supplier_id = $brand_id
+         ORDER BY p.product_id DESC"), MYSQLI_ASSOC);
 
-    $page_title = $brand['name'] . " | Soigné";
+    $page_title = $brand['name'] . ' | Soigné';
 } else {
-    // All brands
-    $result = mysqli_query($conn,
+    $brands = mysqli_fetch_all(mysqli_query($conn,
         "SELECT s.supplier_id, s.name, s.image, COUNT(p.product_id) AS product_count
          FROM suppliers s
          LEFT JOIN products p ON p.supplier_id = s.supplier_id
          GROUP BY s.supplier_id, s.name, s.image
-         ORDER BY s.name");
-    $brands = mysqli_fetch_all($result, MYSQLI_ASSOC);
+         ORDER BY s.name"), MYSQLI_ASSOC);
 
-    $page_title = "Brands | Soigné";
+    $page_title = 'Brands | Soigné';
 }
 
-$extra_css  = "department.css";
-$nav_active = "brands";
-include_once ('includes/header.php');
+$extra_css = 'department.css';
+$nav_active = 'brands';
+include_once('includes/header.php');
 ?>
 
 <main class="dept-page">
@@ -76,10 +58,9 @@ include_once ('includes/header.php');
   <p class="brand-back"><a href="<?php echo BASE_URL; ?>brands.php">&larr; All brands</a></p>
 
   <div class="brand-head">
-    <?php $brand_logo = $brand['image']; ?>
-    <?php if ($brand_logo !== null) { ?>
+    <?php if ($brand['image'] !== null) { ?>
       <img class="brand-head-logo"
-           src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($brand_logo); ?>"
+           src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($brand['image']); ?>"
            alt="<?php echo htmlspecialchars($brand['name']); ?>">
     <?php } ?>
     <h1><?php echo htmlspecialchars($brand['name']); ?></h1>
@@ -88,7 +69,7 @@ include_once ('includes/header.php');
 
   <?php
   $empty_message = 'This brand has no products yet.';
-  include ('includes/product_grid.php');
+  include('includes/product_grid.php');
   ?>
 
 <?php } else { ?>
@@ -103,11 +84,10 @@ include_once ('includes/header.php');
   <?php } else { ?>
     <div class="brand-grid">
       <?php foreach ($brands as $b) { ?>
-        <?php $brand_logo = $b['image']; ?>
         <a class="brand-card" href="<?php echo BASE_URL; ?>brands.php?id=<?php echo (int)$b['supplier_id']; ?>">
           <div class="brand-logo-box">
-            <?php if ($brand_logo !== null) { ?>
-              <img src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($brand_logo); ?>"
+            <?php if ($b['image'] !== null) { ?>
+              <img src="<?php echo BASE_URL; ?>images/brands/<?php echo htmlspecialchars($b['image']); ?>"
                    alt="<?php echo htmlspecialchars($b['name']); ?>" loading="lazy">
             <?php } else { ?>
               <span class="brand-initial"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($b['name'], 0, 1))); ?></span>
@@ -124,4 +104,4 @@ include_once ('includes/header.php');
 
 </main>
 
-<?php include_once ('includes/footer.php'); ?>
+<?php include_once('includes/footer.php'); ?>

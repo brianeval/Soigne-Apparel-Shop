@@ -1,28 +1,25 @@
 <?php
-require_once("../includes/bootstrap.php");
+require_once "../includes/bootstrap.php";
 
-$restock_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
-if ($restock_id === false || $restock_id < 1) {
+$restock_id = (int)($_GET['id'] ?? 0);
+if ($restock_id < 1) {
     http_response_code(400);
     exit('Choose a valid restock.');
 }
 
-$restock_stmt = mysqli_prepare($conn,
-    'SELECT r.restock_id, r.batch_number, r.restock_date, s.name AS supplier_name
+$restock = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT r.restock_id, r.batch_number, r.restock_date, s.name AS supplier_name
      FROM restocks r
      JOIN suppliers s ON s.supplier_id = r.supplier_id
-     WHERE r.restock_id = ?'
-);
-mysqli_stmt_bind_param($restock_stmt, 'i', $restock_id);
-mysqli_stmt_execute($restock_stmt);
-$restock = mysqli_fetch_assoc(mysqli_stmt_get_result($restock_stmt));
+     WHERE r.restock_id = $restock_id"
+));
 if (!$restock) {
     http_response_code(404);
     exit('Restock not found.');
 }
 
-$items_stmt = mysqli_prepare($conn,
-    'SELECT p.name AS product_name, COALESCE(c.name, \'Uncategorized\') AS category_name,
+$items = mysqli_fetch_all(mysqli_query($conn,
+    "SELECT p.name AS product_name, COALESCE(c.name, 'Uncategorized') AS category_name,
             pc.color, v.size, ri.quantity, ri.unit_cost,
             ri.quantity * ri.unit_cost AS line_total
      FROM restock_items ri
@@ -30,12 +27,9 @@ $items_stmt = mysqli_prepare($conn,
      JOIN product_colors pc ON pc.product_color_id = v.product_color_id
      JOIN products p ON p.product_id = pc.product_id
      LEFT JOIN categories c ON c.category_id = p.category_id
-     WHERE ri.restock_id = ?
-     ORDER BY p.name, pc.color, v.size'
-);
-mysqli_stmt_bind_param($items_stmt, 'i', $restock_id);
-mysqli_stmt_execute($items_stmt);
-$items = mysqli_fetch_all(mysqli_stmt_get_result($items_stmt), MYSQLI_ASSOC);
+     WHERE ri.restock_id = $restock_id
+     ORDER BY p.name, pc.color, v.size"
+), MYSQLI_ASSOC);
 $total_cost = 0.0;
 $total_units = 0;
 foreach ($items as $item) {
@@ -45,7 +39,7 @@ foreach ($items as $item) {
 
 $admin_page_title = 'Restock ' . ($restock['batch_number'] ?? '');
 $admin_active_page = 'inventory';
-include("../includes/header.php");
+include "../includes/header.php";
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">RESTOCK HISTORY</p><h1><?php echo admin_escape($restock['batch_number'] ?? 'Restock details'); ?></h1><p><?php echo admin_escape($restock['supplier_name']); ?> · <?php echo admin_escape($restock['restock_date']); ?></p></div>
@@ -71,4 +65,4 @@ include("../includes/header.php");
     </table></div>
   <?php } else { ?><p class="manage-empty">This restock has no recorded variant lines.</p><?php } ?>
 </section>
-<?php include("../includes/footer.php"); ?>
+<?php include "../includes/footer.php"; ?>

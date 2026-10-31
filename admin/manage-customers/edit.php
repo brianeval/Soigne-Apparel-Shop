@@ -1,21 +1,18 @@
 <?php
-require_once("../includes/bootstrap.php");
+require_once "../includes/bootstrap.php";
 
-$user_id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
-if ($user_id === false || $user_id < 1) {
+$user_id = (int)($_GET['id'] ?? 0);
+if ($user_id < 1) {
     http_response_code(404);
     exit('Customer not found.');
 }
 
-$customer_lookup_statement = mysqli_prepare($conn,
+$customer = mysqli_fetch_assoc(mysqli_query($conn,
     "SELECT u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone, c.address
      FROM users u
      LEFT JOIN customers c ON c.user_id = u.user_id
-     WHERE u.user_id = ? AND u.role IN ('customer', 'vip')"
-);
-mysqli_stmt_bind_param($customer_lookup_statement, 'i', $user_id);
-mysqli_stmt_execute($customer_lookup_statement);
-$customer = mysqli_fetch_assoc(mysqli_stmt_get_result($customer_lookup_statement));
+     WHERE u.user_id = $user_id AND u.role IN ('customer', 'vip')"
+));
 if (!$customer) {
     http_response_code(404);
     exit('Customer not found.');
@@ -23,80 +20,67 @@ if (!$customer) {
 
 $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $customer_name = trim(is_string($_POST['customer_name'] ?? null) ? $_POST['customer_name'] : '');
-        $username = trim(is_string($_POST['username'] ?? null) ? $_POST['username'] : '');
-        $email = trim(is_string($_POST['email'] ?? null) ? $_POST['email'] : '');
-        $phone = trim(is_string($_POST['phone'] ?? null) ? $_POST['phone'] : '');
-        $address = trim(is_string($_POST['address'] ?? null) ? $_POST['address'] : '');
-        $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
-        $role = is_string($_POST['role'] ?? null) ? $_POST['role'] : '';
-        $renew_vip = ($_POST['renew_vip'] ?? '') === '1';
+    $customer_name = trim($_POST['customer_name'] ?? '');
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+    $password = (string)($_POST['password'] ?? '');
+    $role = $_POST['role'] ?? '';
+    $renew_vip = ($_POST['renew_vip'] ?? '') === '1';
 
-        if ($customer_name === '' || mb_strlen($customer_name) > 120) {
-            $errors[] = 'Enter a customer name up to 120 characters.';
-        }
-        if (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) {
-            $errors[] = 'Username must be 3–50 letters, numbers, or underscores.';
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 120) {
-            $errors[] = 'Enter a valid email address.';
-        }
-        if (mb_strlen($phone) > 30 || mb_strlen($address) > 255) {
-            $errors[] = 'Phone or address is longer than the allowed limit.';
-        }
-        if ($password !== '' && (strlen($password) < 8 || strlen($password) > 72)) {
-            $errors[] = 'A new password must be 8–72 characters.';
-        }
-        if (!in_array($role, ['customer', 'vip'], true)) {
-            $errors[] = 'Choose a valid customer role.';
+    if ($customer_name === '' || $username === '' || $email === '') {
+        $errors[] = 'Enter the customer name, username, and email.';
+    }
+    if (!in_array($role, ['customer', 'vip'], true)) {
+        $errors[] = 'Choose a valid customer role.';
+    }
+
+    if (!$errors) {
+        $vip_expires_at = null;
+        if ($role === 'vip') {
+            $current_expiry = $customer['vip_expires_at'] ? strtotime($customer['vip_expires_at']) : 0;
+            $extend = $renew_vip || $customer['role'] !== 'vip' || $current_expiry <= time();
+            $base = $current_expiry > time() ? $current_expiry : time();
+            $vip_expires_at = $extend ? date('Y-m-d H:i:s', strtotime('+1 month', $base)) : $customer['vip_expires_at'];
         }
 
-        if (!$errors) {
-            mysqli_begin_transaction($conn);
-            try {
-                $user_stmt = mysqli_prepare($conn,
-                    "UPDATE users
-                     SET username = ?, email = ?,
-                         vip_expires_at = CASE
-                           WHEN ? = 'vip' AND (? = 1 OR role <> 'vip' OR vip_expires_at IS NULL OR vip_expires_at <= CURRENT_TIMESTAMP)
-                             THEN DATE_ADD(GREATEST(COALESCE(vip_expires_at, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP), INTERVAL 1 MONTH)
-                           WHEN ? = 'vip' THEN vip_expires_at
-                           ELSE NULL
-                         END,
-                         role = ?
-                     WHERE user_id = ? AND role IN ('customer', 'vip')"
-                );
-                mysqli_stmt_bind_param($user_stmt, 'sssissi', $username, $email, $role, $renew_vip, $role, $role, $user_id);
-                mysqli_stmt_execute($user_stmt);
-                $customer_stmt = mysqli_prepare($conn,
-                    "INSERT INTO customers (user_id, customer_name, phone, address)
-                     VALUES (?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE customer_name = VALUES(customer_name), phone = VALUES(phone), address = VALUES(address)"
-                );
-                mysqli_stmt_bind_param($customer_stmt, 'isss', $user_id, $customer_name, $phone, $address);
-                mysqli_stmt_execute($customer_stmt);
-                if ($password !== '') {
-                    $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                    $password_stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE user_id = ? AND role IN ('customer', 'vip')");
-                    mysqli_stmt_bind_param($password_stmt, 'si', $password_hash, $user_id);
-                    mysqli_stmt_execute($password_stmt);
-                }
-                mysqli_commit($conn);
-                if ($role === 'vip' && $renew_vip) {
-                    $message = 'Customer updated. Soigné Premium VIP has been renewed for one month.';
-                } elseif ($role === 'vip' && $customer['role'] === 'vip' && $customer['vip_expires_at'] && strtotime($customer['vip_expires_at']) > time()) {
-                    $message = 'Customer updated. VIP remains active until ' . date('M j, Y', strtotime($customer['vip_expires_at'])) . '.';
-                } elseif ($role === 'vip') {
-                    $message = 'Customer updated. Soigné Premium VIP is active for one month.';
-                } else {
-                    $message = 'Customer details updated.';
-                }
-                admin_set_flash('success', $message);
-                header('Location: ' . BASE_URL . 'admin/manage-customers/');
-                exit;
-            } catch (mysqli_sql_exception $exception) {
-                mysqli_rollback($conn);
-                $errors[] = $exception->getCode() === 1062 ? 'That username or email is already in use.' : 'Could not update this customer.';
+        $name_sql = mysqli_real_escape_string($conn, $customer_name);
+        $username_sql = mysqli_real_escape_string($conn, $username);
+        $email_sql = mysqli_real_escape_string($conn, $email);
+        $phone_sql = mysqli_real_escape_string($conn, $phone);
+        $address_sql = mysqli_real_escape_string($conn, $address);
+        $vip_sql = $vip_expires_at === null ? 'NULL' : "'" . mysqli_real_escape_string($conn, $vip_expires_at) . "'";
+
+        try {
+            mysqli_query($conn,
+                "UPDATE users SET username = '$username_sql', email = '$email_sql',
+                        role = '$role', vip_expires_at = $vip_sql
+                 WHERE user_id = $user_id AND role IN ('customer', 'vip')"
+            );
+            mysqli_query($conn,
+                "INSERT INTO customers (user_id, customer_name, phone, address)
+                 VALUES ($user_id, '$name_sql', '$phone_sql', '$address_sql')
+                 ON DUPLICATE KEY UPDATE customer_name = VALUES(customer_name),
+                     phone = VALUES(phone), address = VALUES(address)"
+            );
+            if ($password !== '') {
+                $password_hash = password_hash($password, PASSWORD_DEFAULT);
+                mysqli_query($conn, "UPDATE users SET password = '$password_hash' WHERE user_id = $user_id");
+            }
+
+            if ($role === 'vip' && $renew_vip) {
+                $message = 'Customer updated. Soigné Premium VIP has been renewed for one month.';
+            } elseif ($role === 'vip' && $vip_expires_at) {
+                $message = 'Customer updated. VIP is active until ' . date('M j, Y', strtotime($vip_expires_at)) . '.';
+            } else {
+                $message = 'Customer details updated.';
+            }
+            admin_set_flash('success', $message);
+            header('Location: ' . BASE_URL . 'admin/manage-customers/');
+            exit;
+        } catch (mysqli_sql_exception $exception) {
+            $errors[] = 'That username or email is already in use.';
         }
     }
 }
@@ -104,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash = admin_take_flash();
 $admin_page_title = 'Edit Customer';
 $admin_active_page = 'customers';
-include("../includes/header.php");
+include "../includes/header.php";
 ?>
 <section class="admin-page-heading">
   <div><p class="admin-eyebrow">CUSTOMER DIRECTORY</p><h1>Edit Customer</h1><p>Update this account’s name, login details, and contact information.</p></div>
@@ -139,4 +123,4 @@ include("../includes/header.php");
     <div class="manage-form-wide manage-form-buttons"><button class="admin-button" type="submit">Save customer</button><a class="manage-small-button" href="<?php echo BASE_URL; ?>admin/manage-customers/">Cancel</a></div>
   </form>
 </section>
-<?php include("../includes/footer.php"); ?>
+<?php include "../includes/footer.php"; ?>
