@@ -17,7 +17,7 @@ if (!$product) {
 $edit_url = BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id;
 
 $errors = [];
-include(__DIR__ . '/products_edit_actions.php');
+include('products_edit_actions.php');
 
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
 $categories = mysqli_fetch_all(mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name"), MYSQLI_ASSOC);

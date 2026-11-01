@@ -26,7 +26,7 @@ if (isset($_POST['remove_line'])) {
     array_splice($posted_unit_costs, $remove_line_index, 1);
 }
 
-include(__DIR__ . '/inventory_create.php');
+include('inventory_create.php');
 
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
 $categories = mysqli_fetch_all(mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name"), MYSQLI_ASSOC);

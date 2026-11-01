@@ -20,7 +20,7 @@ if (!$order) {
 }
 
 $errors = [];
-include(__DIR__ . '/orders_update.php');
+include('orders_update.php');
 
 $items_result = mysqli_execute_query($conn, "SELECT quantity, unit_price AS price, product_name, color, size
      FROM order_transaction_details

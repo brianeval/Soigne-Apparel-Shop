@@ -54,4 +54,4 @@ $mail_to = $email_order['email'];
 $mail_name = $email_order['customer_name'];
 $mail_subject = 'Soigné order confirmation #' . (int)$email_order['order_id'];
 $mail_attachments = [];
-include(__DIR__ . '/send_email.php');
+include('../includes/send_email.php');

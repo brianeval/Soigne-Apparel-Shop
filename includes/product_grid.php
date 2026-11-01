@@ -7,7 +7,7 @@ $empty_message = $empty_message ?? 'No products found.';
 <?php } else { ?>
   <?php
   $image_color_ids = array_column($products, 'first_color_id');
-  include(__DIR__ . '/color_images.php');
+  include('includes/color_images.php');
   ?>
   <div class="dept-grid">
     <?php foreach ($products as $product) { ?>

@@ -1,3 +1,4 @@
+<?php
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
     $send_email = false;   // becomes true when the customer should be told about the change

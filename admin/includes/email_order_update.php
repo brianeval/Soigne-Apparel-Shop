@@ -43,7 +43,7 @@ $email_update = $email_updates[$email_type];
 $mail_attachments = [];
 if ($email_type == 'mark_paid') {
     $receipt_order = $email_order;
-    include(__DIR__ . '/receipt_pdf.php');
+    include('../includes/receipt_pdf.php');
     $mail_attachments[] = [
         'content' => $receipt_pdf,
         'name' => 'soigne-order-receipt-' . (int)$email_order['order_id'] . '.pdf',
@@ -85,4 +85,4 @@ $mail_text = 'SOIGNÉ - ' . $email_update['title'] . "\n\n"
 $mail_to = $email_order['email'];
 $mail_name = $email_order['customer_name'];
 $mail_subject = $email_update['subject'] . ' (#' . (int)$email_order['order_id'] . ')';
-include(__DIR__ . '/../../includes/send_email.php');
+include('../../includes/send_email.php');

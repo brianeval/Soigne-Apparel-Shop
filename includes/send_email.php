@@ -11,12 +11,17 @@ require_once(APP_ROOT . '/vendor/autoload.php');
 $mail_error = '';
 $mail_attachments = $mail_attachments ?? [];
 
-$mail_username = getenv('MAILTRAP_USERNAME');
-$mail_password = getenv('MAILTRAP_PASSWORD');
-$mail_host = getenv('MAILTRAP_HOST') ?: 'sandbox.smtp.mailtrap.io';
-$mail_port = getenv('MAILTRAP_PORT') ?: '2525';
-$mail_from_email = getenv('MAILTRAP_FROM_EMAIL') ?: 'no-reply@soigne-apparel.test';
-$mail_from_name = getenv('MAILTRAP_FROM_NAME') ?: 'Soigné';
+// rexter, lagay mo mailtrap creds mo, icomment mo akin
+// $mail_username = '';
+// $mail_password = '';
+
+$mail_username = '93e59f7a6faeb2';
+$mail_password = '55e233769a958c';
+
+$mail_host = 'sandbox.smtp.mailtrap.io';
+$mail_port = '2525';
+$mail_from_email = 'no-reply@soigne-apparel.com';
+$mail_from_name = 'Soigné';
 
 if (!$mail_username || !$mail_password) {
     $mail_error = 'Mailtrap SMTP credentials are not configured.';

@@ -1,3 +1,4 @@
+<?php
 // Delete an order (only unpaid pending, cancelled or failed-delivery orders)
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'delete') {
     $order_id = (int)($_POST['order_id'] ?? 0);

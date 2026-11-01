@@ -2,7 +2,7 @@
 require_once("../includes/bootstrap.php");
 
 $errors = [];
-include(__DIR__ . '/premium_payments_update.php');
+include('premium_payments_update.php');
 
 $payments_result = mysqli_query($conn,
     "SELECT pp.payment_id, pp.user_id, pp.amount, pp.receipt_filename, pp.receipt_mime,

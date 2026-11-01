@@ -7,7 +7,7 @@ if (!in_array($order_view, ['ongoing', 'history'])) {
     $order_view = 'ongoing';
 }
 
-include(__DIR__ . '/orders_delete.php');
+include('orders_delete.php');
 
 // Order counts for the two tabs
 $ongoing_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE payment_status = 'unpaid' AND fulfillment_status IN ('pending', 'shipped')"))['total'];

@@ -7,7 +7,7 @@ if (!in_array($customer_view, ['directory', 'create'])) {
     $customer_view = 'directory';
 }
 
-include(__DIR__ . '/customers_actions.php');
+include('customers_actions.php');
 
 // Expired VIP memberships go back to normal customers
 mysqli_query($conn, "UPDATE users SET role = 'customer', vip_expires_at = NULL

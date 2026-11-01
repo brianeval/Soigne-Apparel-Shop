@@ -33,7 +33,7 @@ if ($size_group) {
     ));
 }
 
-include(__DIR__ . '/products_actions.php');
+include('products_actions.php');
 
 // Product list with the filters
 $product_search = trim($_GET['search'] ?? '');

@@ -17,7 +17,7 @@ if (!$customer) {
 }
 
 $errors = [];
-include(__DIR__ . '/customers_update.php');
+include('customers_update.php');
 
 $admin_page_title = 'Edit Customer';
 $admin_active_page = 'customers';

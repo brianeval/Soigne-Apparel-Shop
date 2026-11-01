@@ -1,7 +1,7 @@
 <?php
 require_once("../includes/bootstrap.php");
 
-include(__DIR__ . '/reviews_delete.php');
+include('reviews_delete.php');
 
 // Filters
 $product_search = trim($_GET['product_search'] ?? '');
