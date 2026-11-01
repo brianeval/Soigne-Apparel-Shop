@@ -85,4 +85,4 @@ $mail_text = 'SOIGNÉ - ' . $email_update['title'] . "\n\n"
 $mail_to = $email_order['email'];
 $mail_name = $email_order['customer_name'];
 $mail_subject = $email_update['subject'] . ' (#' . (int)$email_order['order_id'] . ')';
-include(__DIR__ . '/send_email.php');
+include(__DIR__ . '/../../includes/send_email.php');

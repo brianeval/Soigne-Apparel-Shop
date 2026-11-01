@@ -31,7 +31,7 @@ $order['items'] = mysqli_fetch_all($items_result, MYSQLI_ASSOC);
 // Build the PDF
 $receipt_order = $order;
 try {
-    include("../../includes/receipt_pdf.php");
+    include("../includes/receipt_pdf.php");
 } catch (Exception $e) {
     error_log('Could not generate receipt for order #' . $order_id . ': ' . $e->getMessage());
     http_response_code(500);

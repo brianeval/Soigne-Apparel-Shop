@@ -8,7 +8,7 @@ $admin_header_name = $_SESSION['username'] ?? 'Administrator';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?php echo htmlspecialchars($admin_page_title); ?> | Soigné Admin</title>
+  <title><?php echo $admin_page_title; ?> | Soigné Admin</title>
   <link rel="stylesheet" href="<?php echo BASE_URL; ?>admin/styles/admin.css?v=<?php echo filemtime(APP_ROOT . '/admin/styles/admin.css'); ?>">
   <link rel="stylesheet" href="<?php echo BASE_URL; ?>admin/styles/manage.css?v=<?php echo filemtime(APP_ROOT . '/admin/styles/manage.css'); ?>">
 </head>
@@ -29,7 +29,7 @@ $admin_header_name = $_SESSION['username'] ?? 'Administrator';
         <a class="<?php echo $admin_active_page === 'customers' ? 'active' : ''; ?>" href="<?php echo BASE_URL; ?>admin/manage-customers/"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 20v-1.5a5.5 5.5 0 0 1 11 0V20M16 5.5a3 3 0 0 1 0 5.8M17 14a4.5 4.5 0 0 1 3.5 4.4V20"></path></svg><span class="nav-label-text">Manage Customers</span></a>
       </nav>
       <div class="admin-sidebar-bottom">
-        <a href="<?php echo BASE_URL; ?>admin/storefront.php" aria-label="View storefront"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 7-5 5 5 5M5 12h14"></path></svg><span class="nav-label-text">View storefront</span></a>
+        <a href="<?php echo BASE_URL; ?>index.php" aria-label="View storefront"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m10 7-5 5 5 5M5 12h14"></path></svg><span class="nav-label-text">View storefront</span></a>
         <a href="<?php echo BASE_URL; ?>admin/logout.php" aria-label="Sign out"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10"></path></svg><span class="nav-label-text">Sign out</span></a>
       </div>
     </aside>
