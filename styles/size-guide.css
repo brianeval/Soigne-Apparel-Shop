@@ -50,8 +50,28 @@
   color: var(--ink);
 }
 
-.women-size-guide[hidden] {
+#department-men:checked ~ .department-guide-tabs label[for="department-men"],
+#department-women:checked ~ .department-guide-tabs label[for="department-women"],
+#department-kids:checked ~ .department-guide-tabs label[for="department-kids"] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+#department-men:focus-visible ~ .department-guide-tabs label[for="department-men"],
+#department-women:focus-visible ~ .department-guide-tabs label[for="department-women"],
+#department-kids:focus-visible ~ .department-guide-tabs label[for="department-kids"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.size-guide-page > .size-guide-card {
   display: none;
+}
+
+#department-men:checked ~ #men-size-guide,
+#department-women:checked ~ #women-size-guide,
+#department-kids:checked ~ #kids-size-guide {
+  display: block;
 }
 
 .women-fit-label {
@@ -367,6 +387,97 @@
 .measurement-section { border-color: var(--line); }
 .measurement-table th, .measurement-table td { border-color: var(--line); font-size: 13px; }
 .measurement-table thead th { font-size: 11px; }
+
+.guide-type-tab,
+.top-fit-tab {
+  cursor: pointer;
+}
+
+#men-size-guide > .guide-type-tabs,
+#women-size-guide > .guide-type-tabs,
+#kids-size-guide > .guide-type-tabs {
+  margin: 0 28px;
+}
+
+#top-guide,
+#bottom-guide,
+#women-top-guide,
+#women-bottom-guide,
+#kids-top-guide,
+#kids-bottom-guide {
+  display: none;
+}
+
+#men-type-top:checked ~ .guide-type-tabs label[for="men-type-top"],
+#men-type-bottom:checked ~ .guide-type-tabs label[for="men-type-bottom"],
+#women-type-top:checked ~ .guide-type-tabs label[for="women-type-top"],
+#women-type-bottom:checked ~ .guide-type-tabs label[for="women-type-bottom"],
+#kids-type-top:checked ~ .guide-type-tabs label[for="kids-type-top"],
+#kids-type-bottom:checked ~ .guide-type-tabs label[for="kids-type-bottom"] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+#men-type-top:checked ~ #top-guide,
+#men-type-bottom:checked ~ #bottom-guide,
+#women-type-top:checked ~ #women-top-guide,
+#women-type-bottom:checked ~ #women-bottom-guide,
+#kids-type-top:checked ~ #kids-top-guide,
+#kids-type-bottom:checked ~ #kids-bottom-guide {
+  display: block;
+}
+
+#men-type-top:focus-visible ~ .guide-type-tabs label[for="men-type-top"],
+#men-type-bottom:focus-visible ~ .guide-type-tabs label[for="men-type-bottom"],
+#women-type-top:focus-visible ~ .guide-type-tabs label[for="women-type-top"],
+#women-type-bottom:focus-visible ~ .guide-type-tabs label[for="women-type-bottom"],
+#kids-type-top:focus-visible ~ .guide-type-tabs label[for="kids-type-top"],
+#kids-type-bottom:focus-visible ~ .guide-type-tabs label[for="kids-type-bottom"],
+#men-fit-regular:focus-visible ~ .top-fit-tabs label[for="men-fit-regular"],
+#men-fit-long:focus-visible ~ .top-fit-tabs label[for="men-fit-long"] {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.top-fit-panel {
+  display: none;
+}
+
+#men-fit-regular:checked ~ .top-fit-tabs label[for="men-fit-regular"],
+#men-fit-long:checked ~ .top-fit-tabs label[for="men-fit-long"] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+#men-fit-regular:checked ~ #men-fit-panel-regular,
+#men-fit-long:checked ~ #men-fit-panel-long {
+  display: block;
+}
+
+.measurement-section .measurement-panel {
+  display: none;
+}
+
+.measurement-heading {
+  margin: 0;
+}
+
+.measurement-radio:checked ~ .measurement-heading .measurement-toggle {
+  color: var(--ink);
+}
+
+.measurement-radio:checked ~ .measurement-heading .toggle-mark::after {
+  transform: rotate(0);
+}
+
+.measurement-radio:checked ~ .measurement-panel {
+  display: block;
+}
+
+.measurement-radio:focus-visible + .measurement-heading .measurement-toggle {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
 
 @media (max-width: 600px) {
   .size-guide-page { width: min(100% - 36px, 1080px); padding: 34px 0 56px; }

@@ -24,7 +24,7 @@
         <div class="hero-text">
           <h1>Clothes made to be worn every day</h1>
           <p>Clean cuts and breathable fabrics for the Manila heat. The new season is here.</p>
-          <a href="product_view.php" class="btn">Shop new arrivals</a>
+          <a href="product_view.php" class="btn">View all products</a>
         </div>
         <div class="hero-img" role="img" aria-label="Model wearing a linen shirt"></div>
       </div>

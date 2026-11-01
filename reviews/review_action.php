@@ -59,14 +59,14 @@ if ($error != '') {
     exit;
 }
 
-// Hide bad words (each one is replaced by ****)
+// Hide bad words without masking the rest of the word they appear in
 $bad_words = ['putang ina', 'tangina', 'putragis', 'tarantado', 'punyemas', 'punyeta', 'hinayupak',
               'motherfucker', 'bullshit', 'asshole', 'bastard', 'fuck', 'shit', 'bitch', 'cunt', 'dick',
               'cock', 'piss', 'whore', 'slut', 'wanker', 'twat', 'prick', 'douche', 'crap', 'damn',
               'gago', 'gaga', 'puta', 'tanga', 'ulol', 'bobo', 'kupal', 'bwisit', 'bwesit', 'leche',
               'lintik', 'pakshet', 'pakshit', 'pakyu', 'taena', 'teena', 'ogag'];
 foreach ($bad_words as $bad_word) {
-    $review_text = preg_replace('/\b' . $bad_word . '\w*/i', '****', $review_text);
+    $review_text = preg_replace('/' . $bad_word . '/i', str_repeat('*', strlen($bad_word)), $review_text);
 }
 
 try {

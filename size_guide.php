@@ -3,404 +3,207 @@ session_start();
 
 $page_title = "Size Guide | Soigné";
 $extra_css = 'size-guide.css';
-$dept = 'men';
-$product_size_guide = require("includes/product_size_guide.php");
-
-$size_ranges = [
-    '25-27' => [
-        'label' => $product_size_guide['bottom_ranges']['men']['25-27']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['men']['25-27']['sizes'],
-        'waist' => ['64-67', '67-70', '70-73'],
-        'low_hip' => ['84-86', '86-88', '88-90'],
-        'inside_leg' => [
-            ['label' => '30" length cm', 'values' => ['75-77', '75-77', '76-78']],
-            ['label' => '32" length cm', 'values' => ['79-81', '79-81', '80-82']],
-            ['label' => '34" length cm', 'values' => ['83-85', '83-85', '84-86']],
-        ],
-    ],
-    '28-30' => [
-        'label' => $product_size_guide['bottom_ranges']['men']['28-30']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['men']['28-30']['sizes'],
-        'waist' => ['73-76', '76-79', '79-82'],
-        'low_hip' => ['90-92', '92-94', '94-96'],
-        'inside_leg' => [
-            ['label' => '30" length cm', 'values' => ['76-78', '77-79', '77-79']],
-            ['label' => '32" length cm', 'values' => ['80-82', '81-83', '81-83']],
-            ['label' => '34" length cm', 'values' => ['84-86', '85-87', '85-87']],
-        ],
-    ],
-    '31-33' => [
-        'label' => $product_size_guide['bottom_ranges']['men']['31-33']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['men']['31-33']['sizes'],
-        'waist' => ['82-85', '85-88', '88-91'],
-        'low_hip' => ['96-98', '98-100', '100-102'],
-        'inside_leg' => [
-            ['label' => '30" length cm', 'values' => ['78-80', '78-80', '79-81']],
-            ['label' => '32" length cm', 'values' => ['82-84', '82-84', '83-85']],
-            ['label' => '34" length cm', 'values' => ['86-88', '86-88', '87-89']],
-        ],
-    ],
-    '34-38' => [
-        'label' => $product_size_guide['bottom_ranges']['men']['34-38']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['men']['34-38']['sizes'],
-        'waist' => ['91-94', '97-100', '103-106'],
-        'low_hip' => ['102-104', '106-108', '110-112'],
-        'inside_leg' => [
-            ['label' => '30" length cm', 'values' => ['79-81', '80-82', '81-83']],
-            ['label' => '32" length cm', 'values' => ['83-85', '84-86', '85-87']],
-            ['label' => '34" length cm', 'values' => ['87-89', '88-90', '89-91']],
-        ],
-    ],
-    '40-44' => [
-        'label' => $product_size_guide['bottom_ranges']['men']['40-44']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['men']['40-44']['sizes'],
-        'waist' => ['109-112', '115-118', '121-124'],
-        'low_hip' => ['114-116', '118-120', '122-124'],
-        'inside_leg' => [
-            ['label' => '30" length cm', 'values' => ['82-84', '83-85', '84-86']],
-            ['label' => '32" length cm', 'values' => ['86-88', '87-89', '88-90']],
-            ['label' => '34" length cm', 'values' => ['90-92', '91-93', '92-94']],
-        ],
-    ],
-];
-
-$top_ranges = [
-    'regular' => [
-        'label' => 'Regular',
-        'groups' => [
-            'xxs-s' => [
-                'label' => 'XXS-S',
-                'sizes' => ['XXS', 'XS', 'S'],
-                'size_reference' => [
-                    ['label' => 'EUR', 'values' => ['38S', '40-42', '44-46']],
-                    ['label' => 'US', 'values' => ['XXS', '30R-32R', '34R-36R']],
-                ],
-                'measurements' => [
-                    'chest' => ['74-78', '78-86', '86-90'],
-                    'waist' => ['62-66', '66-74', '74-78'],
-                    'arm_length' => ['59', '59', '59-60'],
-                    'neckline' => ['33', '34-35', '36'],
-                ],
-                'estimated' => false,
-            ],
-            'm-xl' => [
-                'label' => 'M-XL',
-                'sizes' => ['M', 'L', 'XL'],
-                'size_reference' => [
-                    ['label' => 'EUR', 'values' => ['48-50', '52', '54-56']],
-                    ['label' => 'US', 'values' => ['38R-40R', '42R', '44R-46R']],
-                ],
-                'measurements' => [
-                    'chest' => ['90-94', '94-98', '98-102'],
-                    'waist' => ['78-82', '82-86', '86-90'],
-                    'arm_length' => ['60-61', '61-62', '62-63'],
-                    'neckline' => ['38', '39-40', '41'],
-                ],
-                'estimated' => true,
-            ],
-            'xxl-3xl' => [
-                'label' => 'XXL-3XL',
-                'sizes' => ['XXL', '3XL'],
-                'size_reference' => [
-                    ['label' => 'EUR', 'values' => ['56-58', '62-64']],
-                    ['label' => 'US', 'values' => ['46R-48R', '52R-54R']],
-                ],
-                'measurements' => [
-                    'chest' => ['102-106', '110-114'],
-                    'waist' => ['90-94', '98-102'],
-                    'arm_length' => ['63-64', '65-66'],
-                    'neckline' => ['42', '45'],
-                ],
-                'estimated' => true,
-            ],
-        ],
-    ],
-    'long' => [
-        'label' => 'Long',
-        'groups' => [
-            'xs-m' => [
-                'label' => 'XS/L-M/L',
-                'sizes' => ['XS/L', 'S/L', 'M/L'],
-                'size_reference' => [
-                    ['label' => 'EUR', 'values' => ['40L-42L', '44L-46L', '48L-50L']],
-                    ['label' => 'US', 'values' => ['30L-32L', '34L-36L', '38L-40L']],
-                ],
-                'measurements' => [
-                    'chest' => ['78-86', '86-94', '94-102'],
-                    'waist' => ['66-74', '74-82', '82-90'],
-                    'arm_length' => ['62', '62-63', '63-64'],
-                    'neckline' => ['34-35', '36-37', '38-39'],
-                ],
-                'estimated' => false,
-            ],
-            'l-xxl' => [
-                'label' => 'L/L-XXL/L',
-                'sizes' => ['L/L', 'XL/L', 'XXL/L'],
-                'size_reference' => [
-                    ['label' => 'EUR', 'values' => ['52L', '54L-56L', '58L-60L']],
-                    ['label' => 'US', 'values' => ['42L', '44L-46L', '48L-50L']],
-                ],
-                'measurements' => [
-                    'chest' => ['98-102', '102-110', '110-118'],
-                    'waist' => ['86-90', '90-98', '98-106'],
-                    'arm_length' => ['64-65', '65-66', '66-67'],
-                    'neckline' => ['40-41', '42-43', '44-45'],
-                ],
-                'estimated' => true,
-            ],
-            '3xl' => [
-                'label' => '3XL/L',
-                'sizes' => ['3XL/L'],
-                'size_reference' => [
-                    ['label' => 'EUR', 'values' => ['62L-64L']],
-                    ['label' => 'US', 'values' => ['52L-54L']],
-                ],
-                'measurements' => [
-                    'chest' => ['118-126'],
-                    'waist' => ['106-114'],
-                    'arm_length' => ['67-68'],
-                    'neckline' => ['46-47'],
-                ],
-                'estimated' => true,
-            ],
-        ],
-    ],
-];
-
-$women_top_ranges = [
-    'xxs-s' => [
-        'label' => 'XXS-S',
-        'sizes' => ['XXS', 'XS', 'S'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['32', '34', '36-38']],
-            ['label' => 'US', 'values' => ['0', '2', '4-6']],
-        ],
-        'measurements' => [
-            'chest' => ['74-78', '78-82', '82-90'],
-            'waist' => ['58-62', '62-66', '66-74'],
-            'arm_length' => ['56', '56', '57'],
-            'low_hip' => ['79-83', '83-87', '87-94.5'],
-        ],
-        'estimated' => false,
-    ],
-    'm-xl' => [
-        'label' => 'M-XL',
-        'sizes' => ['M', 'L', 'XL'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['40', '42', '44-46']],
-            ['label' => 'US', 'values' => ['8', '10', '12-14']],
-        ],
-        'measurements' => [
-            'chest' => ['90-94', '94-102', '102-110'],
-            'waist' => ['74-78', '78-86', '86-94'],
-            'arm_length' => ['58', '59', '60'],
-            'low_hip' => ['94.5-98.5', '98.5-106.5', '106.5-114.5'],
-        ],
-        'estimated' => true,
-    ],
-    'xxl-4xl' => [
-        'label' => 'XXL-4XL',
-        'sizes' => ['XXL', '3XL', '4XL'],
-        'size_reference' => [
-            ['label' => 'EUR', 'values' => ['48-50', '52-54', '56-58']],
-            ['label' => 'US', 'values' => ['16-18', '20-22', '24-26']],
-        ],
-        'measurements' => [
-            'chest' => ['110-118', '118-126', '126-134'],
-            'waist' => ['94-102', '102-110', '110-118'],
-            'arm_length' => ['61', '62', '63'],
-            'low_hip' => ['114.5-122.5', '122.5-130.5', '130.5-138.5'],
-        ],
-        'estimated' => true,
-    ],
-];
-
-$women_bottom_ranges = [
-    '32-36' => [
-        'label' => $product_size_guide['bottom_ranges']['women']['32-36']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['women']['32-36']['sizes'],
-        'measurements' => [
-            'waist' => ['58-62', '62-66', '66-70'],
-            'low_hip' => ['79-83', '83-87', '87-91'],
-            'inside_leg' => ['74.5', '74.5', '74'],
-        ],
-        'estimated' => false,
-    ],
-    '38-42' => [
-        'label' => $product_size_guide['bottom_ranges']['women']['38-42']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['women']['38-42']['sizes'],
-        'measurements' => [
-            'waist' => ['70-74', '74-78', '78-82'],
-            'low_hip' => ['91-95', '95-99', '99-103'],
-            'inside_leg' => ['73.5', '73', '72.5'],
-        ],
-        'estimated' => true,
-    ],
-    '44-48' => [
-        'label' => $product_size_guide['bottom_ranges']['women']['44-48']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['women']['44-48']['sizes'],
-        'measurements' => [
-            'waist' => ['82-86', '86-90', '90-94'],
-            'low_hip' => ['103-107', '107-111', '111-115'],
-            'inside_leg' => ['72', '71.5', '71'],
-        ],
-        'estimated' => true,
-    ],
-    '50-54' => [
-        'label' => $product_size_guide['bottom_ranges']['women']['50-54']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['women']['50-54']['sizes'],
-        'measurements' => [
-            'waist' => ['94-100', '100-106', '106-112'],
-            'low_hip' => ['115-121', '121-127', '127-133'],
-            'inside_leg' => ['70.5', '70', '69.5'],
-        ],
-        'estimated' => true,
-    ],
-    '56-60' => [
-        'label' => $product_size_guide['bottom_ranges']['women']['56-60']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['women']['56-60']['sizes'],
-        'measurements' => [
-            'waist' => ['112-118', '118-124', '124-130'],
-            'low_hip' => ['133-139', '139-145', '145-151'],
-            'inside_leg' => ['69', '68.5', '68'],
-        ],
-        'estimated' => true,
-    ],
-    '62' => [
-        'label' => $product_size_guide['bottom_ranges']['women']['62']['label'],
-        'sizes' => $product_size_guide['bottom_ranges']['women']['62']['sizes'],
-        'measurements' => [
-            'waist' => ['130-136'],
-            'low_hip' => ['151-157'],
-            'inside_leg' => ['67.5'],
-        ],
-        'estimated' => true,
-    ],
-];
-
-$kids_top_guide = [
-    'sizes' => ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
-    'size_ranges' => [
-        'xxs-s' => ['label' => 'XXS-S', 'indexes' => [0, 1, 2]],
-        'm-xl' => ['label' => 'M-XL', 'indexes' => [3, 4, 5]],
-        'xxl-3xl' => ['label' => 'XXL-3XL', 'indexes' => [6, 7]],
-    ],
-    'measurements' => [
-        ['label' => 'Numeric size', 'values' => ['6-7', '8-9', '8-9 Plus', '10-12', '14-16', '10-12 Plus', '18-20', '14-16 Plus']],
-        ['label' => 'Age', 'values' => ['7-8', '8-10', '8-10', '10-12', '12-13', '10-12', '13-15', '12-13']],
-        ['label' => 'Height (cm)', 'values' => ['122-128', '128-137', '131-140', '137-147', '147-158', '140-150', '158-170', '150-160']],
-        ['label' => 'Chest (cm)', 'values' => ['61.5-65', '65-70', '70-78', '70-77', '77-84', '78-86', '84-91.5', '86-94']],
-        ['label' => 'Waist (cm)', 'values' => ['50-56', '56-62', '61-67', '62-68', '68-74', '67-73', '74-80', '73-79']],
-        ['label' => 'Hip (cm)', 'values' => ['63-67', '67-74', '78-82', '74-80', '80-88', '82-88', '88-96', '88-95']],
-    ],
-];
-
-$women_top_measurements = [
-    'chest' => 'Chest',
-    'waist' => 'Waist',
-    'arm_length' => 'Arm length',
-    'low_hip' => 'Low hip',
-];
+$dept = $_GET['dept'] ?? 'men';
+if (!is_string($dept) || !in_array($dept, ['men', 'women', 'kids'], true)) {
+    $dept = 'men';
+}
+$type = $_GET['type'] ?? 'top';
+if (!is_string($type) || !in_array($type, ['top', 'bottom'], true)) {
+    $type = 'top';
+}
 
 include_once('includes/header.php');
 ?>
-
 <main class="size-guide-page">
   <header class="size-guide-heading">
     <h1>Size Guide</h1>
   </header>
 
+  <input class="visually-hidden department-guide-radio" type="radio" name="size-guide-department" id="department-men" <?php echo $dept === 'men' ? 'checked' : ''; ?>>
+  <input class="visually-hidden department-guide-radio" type="radio" name="size-guide-department" id="department-women" <?php echo $dept === 'women' ? 'checked' : ''; ?>>
+  <input class="visually-hidden department-guide-radio" type="radio" name="size-guide-department" id="department-kids" <?php echo $dept === 'kids' ? 'checked' : ''; ?>>
+
   <nav class="department-guide-tabs" aria-label="Size guide departments">
-    <a href="#men-size-guide">Men</a>
-    <a href="#women-size-guide">Women</a>
-    <a href="#kids-size-guide">Kids</a>
+    <label class="department-guide-tab" for="department-men">Men</label>
+    <label class="department-guide-tab" for="department-women">Women</label>
+    <label class="department-guide-tab" for="department-kids">Kids</label>
   </nav>
 
   <section class="size-guide-card" id="men-size-guide" aria-label="Men's size guide">
+    <input class="visually-hidden guide-type-radio" type="radio" name="men-guide-type" id="men-type-top" <?php echo $type === 'top' ? 'checked' : ''; ?>>
+    <input class="visually-hidden guide-type-radio" type="radio" name="men-guide-type" id="men-type-bottom" <?php echo $type === 'bottom' ? 'checked' : ''; ?>>
+    <nav class="guide-type-tabs" aria-label="Men's size guide type">
+      <label class="guide-type-tab" for="men-type-top">Tops</label>
+      <label class="guide-type-tab" for="men-type-bottom">Bottoms</label>
+    </nav>
 
     <div class="top-guide bottom-guide" id="top-guide">
       <h2>Men's tops</h2>
 
-      <?php foreach ($top_ranges as $fit_key => $fit) { ?>
-        <section class="top-fit-panel">
-          <h3><?php echo htmlspecialchars($fit['label']); ?> fit</h3>
+      <input class="visually-hidden top-fit-radio" type="radio" name="men-top-fit" id="men-fit-regular" checked>
+      <input class="visually-hidden top-fit-radio" type="radio" name="men-top-fit" id="men-fit-long">
+      <nav class="top-fit-tabs" aria-label="Men's top fit">
+        <label class="top-fit-tab" for="men-fit-regular">Regular</label>
+        <label class="top-fit-tab" for="men-fit-long">Long</label>
+      </nav>
+
+              <section class="top-fit-panel" id="men-fit-panel-regular">
           <div class="measurement-accordions">
-            <?php
-            $top_measurements = [
-                'chest' => 'Chest',
-                'waist' => 'Waist',
-                'arm_length' => 'Arm length',
-                'neckline' => 'Neckline',
-            ];
-            ?>
-            <?php foreach ($top_measurements as $measurement_key => $measurement_label) { ?>
-              <?php $panel_id = 'top-' . $fit_key . '-' . str_replace('_', '-', $measurement_key) . '-panel'; ?>
-              <section class="measurement-section">
-                <h4><?php echo htmlspecialchars($measurement_label); ?></h4>
-                <div class="measurement-panel" id="<?php echo $panel_id; ?>">
+                                                    <section class="measurement-section">
+                <input class="visually-hidden measurement-radio" type="radio" name="men-top-regular-measurement" id="control-top-regular-chest-panel" checked>
+                <h4 class="measurement-heading"><label class="measurement-toggle" for="control-top-regular-chest-panel">
+                  Chest<span class="toggle-mark"></span>
+                </label></h4>
+                <div class="measurement-panel" id="top-regular-chest-panel">
                   <div class="measurement-table-wrap">
-                    <?php foreach ($fit['groups'] as $group) { ?>
-                      <table class="measurement-table">
-                        <caption><?php echo htmlspecialchars($measurement_label . ' · ' . $group['label']); ?></caption>
-                        <thead><tr><th scope="col">Size</th><?php foreach ($group['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
-                        <tbody><tr><th scope="row"><?php echo htmlspecialchars($measurement_label); ?> (cm)</th><?php foreach ($group['measurements'][$measurement_key] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
-                      </table>
-                    <?php } ?>
-                  </div>
+                                          <table class="measurement-table"><caption class="visually-hidden">Chest · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>74-78</td><td>78-86</td><td>86-90</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Chest · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>90-94</td><td>94-98</td><td>98-102</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Chest · XXL-3XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>102-106</td><td>110-114</td></tr></tbody></table>
+                                      </div>
                 </div>
               </section>
-            <?php } ?>
-          </div>
+                                        <section class="measurement-section">
+                <input class="visually-hidden measurement-radio" type="radio" name="men-top-regular-measurement" id="control-top-regular-waist-panel" >
+                <h4 class="measurement-heading"><label class="measurement-toggle" for="control-top-regular-waist-panel">
+                  Waist<span class="toggle-mark"></span>
+                </label></h4>
+                <div class="measurement-panel" id="top-regular-waist-panel">
+                  <div class="measurement-table-wrap">
+                                          <table class="measurement-table"><caption class="visually-hidden">Waist · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>62-66</td><td>66-74</td><td>74-78</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Waist · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>78-82</td><td>82-86</td><td>86-90</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Waist · XXL-3XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>90-94</td><td>98-102</td></tr></tbody></table>
+                                      </div>
+                </div>
+              </section>
+                                        <section class="measurement-section">
+                <input class="visually-hidden measurement-radio" type="radio" name="men-top-regular-measurement" id="control-top-regular-arm-length-panel" >
+                <h4 class="measurement-heading"><label class="measurement-toggle" for="control-top-regular-arm-length-panel">
+                  Arm length<span class="toggle-mark"></span>
+                </label></h4>
+                <div class="measurement-panel" id="top-regular-arm-length-panel">
+                  <div class="measurement-table-wrap">
+                                          <table class="measurement-table"><caption class="visually-hidden">Arm length · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>59</td><td>59</td><td>59-60</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Arm length · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>60-61</td><td>61-62</td><td>62-63</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Arm length · XXL-3XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>63-64</td><td>65-66</td></tr></tbody></table>
+                                      </div>
+                </div>
+              </section>
+                                        <section class="measurement-section">
+                <input class="visually-hidden measurement-radio" type="radio" name="men-top-regular-measurement" id="control-top-regular-neckline-panel" >
+                <h4 class="measurement-heading"><label class="measurement-toggle" for="control-top-regular-neckline-panel">
+                  Neckline<span class="toggle-mark"></span>
+                </label></h4>
+                <div class="measurement-panel" id="top-regular-neckline-panel">
+                  <div class="measurement-table-wrap">
+                                          <table class="measurement-table"><caption class="visually-hidden">Neckline · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Neckline (cm)</th><td>33</td><td>34-35</td><td>36</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Neckline · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Neckline (cm)</th><td>38</td><td>39-40</td><td>41</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Neckline · XXL-3XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th scope="row">Neckline (cm)</th><td>42</td><td>45</td></tr></tbody></table>
+                                      </div>
+                </div>
+              </section>
+                      </div>
         </section>
-      <?php } ?>
-    </div>
+              <section class="top-fit-panel" id="men-fit-panel-long">
+          <div class="measurement-accordions">
+                                                    <section class="measurement-section">
+                <input class="visually-hidden measurement-radio" type="radio" name="men-top-long-measurement" id="control-top-long-chest-panel" checked>
+                <h4 class="measurement-heading"><label class="measurement-toggle" for="control-top-long-chest-panel">
+                  Chest<span class="toggle-mark"></span>
+                </label></h4>
+                <div class="measurement-panel" id="top-long-chest-panel">
+                  <div class="measurement-table-wrap">
+                                          <table class="measurement-table"><caption class="visually-hidden">Chest · XS/L-M/L</caption><thead><tr><th scope="col">Size</th><th scope="col">XS/L</th><th scope="col">S/L</th><th scope="col">M/L</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>78-86</td><td>86-94</td><td>94-102</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Chest · L/L-XXL/L</caption><thead><tr><th scope="col">Size</th><th scope="col">L/L</th><th scope="col">XL/L</th><th scope="col">XXL/L</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>98-102</td><td>102-110</td><td>110-118</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Chest · 3XL/L</caption><thead><tr><th scope="col">Size</th><th scope="col">3XL/L</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>118-126</td></tr></tbody></table>
+                                      </div>
+                </div>
+              </section>
+                                        <section class="measurement-section">
+                <input class="visually-hidden measurement-radio" type="radio" name="men-top-long-measurement" id="control-top-long-waist-panel" >
+                <h4 class="measurement-heading"><label class="measurement-toggle" for="control-top-long-waist-panel">
+                  Waist<span class="toggle-mark"></span>
+                </label></h4>
+                <div class="measurement-panel" id="top-long-waist-panel">
+                  <div class="measurement-table-wrap">
+                                          <table class="measurement-table"><caption class="visually-hidden">Waist · XS/L-M/L</caption><thead><tr><th scope="col">Size</th><th scope="col">XS/L</th><th scope="col">S/L</th><th scope="col">M/L</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>66-74</td><td>74-82</td><td>82-90</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Waist · L/L-XXL/L</caption><thead><tr><th scope="col">Size</th><th scope="col">L/L</th><th scope="col">XL/L</th><th scope="col">XXL/L</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>86-90</td><td>90-98</td><td>98-106</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Waist · 3XL/L</caption><thead><tr><th scope="col">Size</th><th scope="col">3XL/L</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>106-114</td></tr></tbody></table>
+                                      </div>
+                </div>
+              </section>
+                                        <section class="measurement-section">
+                <input class="visually-hidden measurement-radio" type="radio" name="men-top-long-measurement" id="control-top-long-arm-length-panel" >
+                <h4 class="measurement-heading"><label class="measurement-toggle" for="control-top-long-arm-length-panel">
+                  Arm length<span class="toggle-mark"></span>
+                </label></h4>
+                <div class="measurement-panel" id="top-long-arm-length-panel">
+                  <div class="measurement-table-wrap">
+                                          <table class="measurement-table"><caption class="visually-hidden">Arm length · XS/L-M/L</caption><thead><tr><th scope="col">Size</th><th scope="col">XS/L</th><th scope="col">S/L</th><th scope="col">M/L</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>62</td><td>62-63</td><td>63-64</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Arm length · L/L-XXL/L</caption><thead><tr><th scope="col">Size</th><th scope="col">L/L</th><th scope="col">XL/L</th><th scope="col">XXL/L</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>64-65</td><td>65-66</td><td>66-67</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Arm length · 3XL/L</caption><thead><tr><th scope="col">Size</th><th scope="col">3XL/L</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>67-68</td></tr></tbody></table>
+                                      </div>
+                </div>
+              </section>
+                                        <section class="measurement-section">
+                <input class="visually-hidden measurement-radio" type="radio" name="men-top-long-measurement" id="control-top-long-neckline-panel" >
+                <h4 class="measurement-heading"><label class="measurement-toggle" for="control-top-long-neckline-panel">
+                  Neckline<span class="toggle-mark"></span>
+                </label></h4>
+                <div class="measurement-panel" id="top-long-neckline-panel">
+                  <div class="measurement-table-wrap">
+                                          <table class="measurement-table"><caption class="visually-hidden">Neckline · XS/L-M/L</caption><thead><tr><th scope="col">Size</th><th scope="col">XS/L</th><th scope="col">S/L</th><th scope="col">M/L</th></tr></thead><tbody><tr><th scope="row">Neckline (cm)</th><td>34-35</td><td>36-37</td><td>38-39</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Neckline · L/L-XXL/L</caption><thead><tr><th scope="col">Size</th><th scope="col">L/L</th><th scope="col">XL/L</th><th scope="col">XXL/L</th></tr></thead><tbody><tr><th scope="row">Neckline (cm)</th><td>40-41</td><td>42-43</td><td>44-45</td></tr></tbody></table>
+                                          <table class="measurement-table"><caption class="visually-hidden">Neckline · 3XL/L</caption><thead><tr><th scope="col">Size</th><th scope="col">3XL/L</th></tr></thead><tbody><tr><th scope="row">Neckline (cm)</th><td>46-47</td></tr></tbody></table>
+                                      </div>
+                </div>
+              </section>
+                      </div>
+        </section>
+          </div>
 
     <div class="bottom-guide" id="bottom-guide">
       <h2>Men's bottoms</h2>
 
       <div class="measurement-accordions">
         <section class="measurement-section">
-          <h3>Waist</h3>
+          <input class="visually-hidden measurement-radio" type="radio" name="men-bottom-measurement" id="control-waist-panel" checked>
+          <h3 class="measurement-heading"><label class="measurement-toggle" for="control-waist-panel">Waist<span class="toggle-mark"></span></label></h3>
           <div class="measurement-panel" id="waist-panel">
             <div class="measurement-table-wrap">
-              <?php foreach ($size_ranges as $range) { ?>
-              <table class="measurement-table">
-                <caption class="visually-hidden">Waist measurements in centimeters by alpha clothing size</caption>
-                <thead><tr><th scope="col"><?php echo htmlspecialchars($range['label']); ?> · Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
-                <tbody><tr><th scope="row">Waist (cm)</th><?php foreach ($range['waist'] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
-              </table>
-              <?php } ?>
-            </div>
+                            <table class="measurement-table"><caption class="visually-hidden">Waist measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">XS-M · Size</th><th scope="col">XS</th><th scope="col">S</th><th scope="col">M</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>64-67</td><td>67-70</td><td>70-73</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Waist measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">S-L · Size</th><th scope="col">S</th><th scope="col">M</th><th scope="col">L</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>73-76</td><td>76-79</td><td>79-82</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Waist measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">M-XL · Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>82-85</td><td>85-88</td><td>88-91</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Waist measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">L-XXL · Size</th><th scope="col">L</th><th scope="col">XL</th><th scope="col">XXL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>91-94</td><td>97-100</td><td>103-106</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Waist measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">3XL-5XL · Size</th><th scope="col">3XL</th><th scope="col">4XL</th><th scope="col">5XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>109-112</td><td>115-118</td><td>121-124</td></tr></tbody></table>
+                          </div>
           </div>
         </section>
 
         <section class="measurement-section">
-          <h3>Low hip</h3>
+          <input class="visually-hidden measurement-radio" type="radio" name="men-bottom-measurement" id="control-low-hip-panel">
+          <h3 class="measurement-heading"><label class="measurement-toggle" for="control-low-hip-panel">Low hip<span class="toggle-mark"></span></label></h3>
           <div class="measurement-panel" id="low-hip-panel">
             <div class="measurement-table-wrap">
-              <?php foreach ($size_ranges as $range) { ?>
-              <table class="measurement-table">
-                <caption class="visually-hidden">Low hip measurements in centimeters by alpha clothing size</caption>
-                <thead><tr><th scope="col"><?php echo htmlspecialchars($range['label']); ?> · Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
-                <tbody><tr><th scope="row">Low hip (cm)</th><?php foreach ($range['low_hip'] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
-              </table>
-              <?php } ?>
-            </div>
+                            <table class="measurement-table"><caption class="visually-hidden">Low hip measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">XS-M · Size</th><th scope="col">XS</th><th scope="col">S</th><th scope="col">M</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>84-86</td><td>86-88</td><td>88-90</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Low hip measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">S-L · Size</th><th scope="col">S</th><th scope="col">M</th><th scope="col">L</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>90-92</td><td>92-94</td><td>94-96</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Low hip measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">M-XL · Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>96-98</td><td>98-100</td><td>100-102</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Low hip measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">L-XXL · Size</th><th scope="col">L</th><th scope="col">XL</th><th scope="col">XXL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>102-104</td><td>106-108</td><td>110-112</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Low hip measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">3XL-5XL · Size</th><th scope="col">3XL</th><th scope="col">4XL</th><th scope="col">5XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>114-116</td><td>118-120</td><td>122-124</td></tr></tbody></table>
+                          </div>
           </div>
         </section>
 
         <section class="measurement-section">
-          <h3>Inside leg length</h3>
+          <input class="visually-hidden measurement-radio" type="radio" name="men-bottom-measurement" id="control-inside-leg-panel">
+          <h3 class="measurement-heading"><label class="measurement-toggle" for="control-inside-leg-panel">Inside leg length<span class="toggle-mark"></span></label></h3>
           <div class="measurement-panel" id="inside-leg-panel">
             <div class="measurement-table-wrap">
-              <?php foreach ($size_ranges as $range) { ?>
-              <table class="measurement-table">
-                <caption class="visually-hidden">Inside leg length measurements in centimeters by alpha clothing size</caption>
-                <thead><tr><th scope="col"><?php echo htmlspecialchars($range['label']); ?> · Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
-                <tbody><?php foreach ($range['inside_leg'] as $measurement_row) { ?><tr><th scope="row"><?php echo htmlspecialchars($measurement_row['label']); ?></th><?php foreach ($measurement_row['values'] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr><?php } ?></tbody>
-              </table>
-              <?php } ?>
-            </div>
+                            <table class="measurement-table"><caption class="visually-hidden">Inside leg length measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">XS-M · Size</th><th scope="col">XS</th><th scope="col">S</th><th scope="col">M</th></tr></thead><tbody><tr><th scope="row">30&quot; length cm</th><td>75-77</td><td>75-77</td><td>76-78</td></tr><tr><th scope="row">32&quot; length cm</th><td>79-81</td><td>79-81</td><td>80-82</td></tr><tr><th scope="row">34&quot; length cm</th><td>83-85</td><td>83-85</td><td>84-86</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Inside leg length measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">S-L · Size</th><th scope="col">S</th><th scope="col">M</th><th scope="col">L</th></tr></thead><tbody><tr><th scope="row">30&quot; length cm</th><td>76-78</td><td>77-79</td><td>77-79</td></tr><tr><th scope="row">32&quot; length cm</th><td>80-82</td><td>81-83</td><td>81-83</td></tr><tr><th scope="row">34&quot; length cm</th><td>84-86</td><td>85-87</td><td>85-87</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Inside leg length measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">M-XL · Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">30&quot; length cm</th><td>78-80</td><td>78-80</td><td>79-81</td></tr><tr><th scope="row">32&quot; length cm</th><td>82-84</td><td>82-84</td><td>83-85</td></tr><tr><th scope="row">34&quot; length cm</th><td>86-88</td><td>86-88</td><td>87-89</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Inside leg length measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">L-XXL · Size</th><th scope="col">L</th><th scope="col">XL</th><th scope="col">XXL</th></tr></thead><tbody><tr><th scope="row">30&quot; length cm</th><td>79-81</td><td>80-82</td><td>81-83</td></tr><tr><th scope="row">32&quot; length cm</th><td>83-85</td><td>84-86</td><td>85-87</td></tr><tr><th scope="row">34&quot; length cm</th><td>87-89</td><td>88-90</td><td>89-91</td></tr></tbody></table>
+                            <table class="measurement-table"><caption class="visually-hidden">Inside leg length measurements in centimeters by alpha clothing size</caption><thead><tr><th scope="col">3XL-5XL · Size</th><th scope="col">3XL</th><th scope="col">4XL</th><th scope="col">5XL</th></tr></thead><tbody><tr><th scope="row">30&quot; length cm</th><td>82-84</td><td>83-85</td><td>84-86</td></tr><tr><th scope="row">32&quot; length cm</th><td>86-88</td><td>87-89</td><td>88-90</td></tr><tr><th scope="row">34&quot; length cm</th><td>90-92</td><td>91-93</td><td>92-94</td></tr></tbody></table>
+                          </div>
           </div>
         </section>
       </div>
@@ -408,31 +211,71 @@ include_once('includes/header.php');
   </section>
 
   <section class="size-guide-card women-size-guide" id="women-size-guide" aria-label="Women's size guide">
+    <input class="visually-hidden guide-type-radio" type="radio" name="women-guide-type" id="women-type-top" <?php echo $type === 'top' ? 'checked' : ''; ?>>
+    <input class="visually-hidden guide-type-radio" type="radio" name="women-guide-type" id="women-type-bottom" <?php echo $type === 'bottom' ? 'checked' : ''; ?>>
+    <nav class="guide-type-tabs" aria-label="Women's size guide type">
+      <label class="guide-type-tab" for="women-type-top">Tops</label>
+      <label class="guide-type-tab" for="women-type-bottom">Bottoms</label>
+    </nav>
+
     <div class="bottom-guide" id="women-top-guide">
       <h2>Women's tops</h2>
       <p class="women-fit-label">Regular</p>
 
       <div class="measurement-accordions">
-        <?php foreach ($women_top_measurements as $measurement_key => $measurement_label) { ?>
-          <?php $panel_id = 'women-' . str_replace('_', '-', $measurement_key) . '-panel'; ?>
-          <section class="measurement-section">
-            <h3>
-              <?php echo htmlspecialchars($measurement_label); ?>
-            </h3>
-            <div class="measurement-panel" id="<?php echo $panel_id; ?>">
+                            <section class="measurement-section">
+            <input class="visually-hidden measurement-radio" type="radio" name="women-top-measurement" id="control-women-chest-panel" checked>
+            <h3 class="measurement-heading"><label class="measurement-toggle" for="control-women-chest-panel">
+              Chest<span class="toggle-mark"></span>
+            </label></h3>
+            <div class="measurement-panel" id="women-chest-panel">
               <div class="measurement-table-wrap">
-                <?php foreach ($women_top_ranges as $range) { ?>
-                  <table class="measurement-table">
-                    <caption><?php echo htmlspecialchars($measurement_label . ' · ' . $range['label']); ?></caption>
-                    <thead><tr><th scope="col">Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
-                    <tbody><tr><th scope="row"><?php echo htmlspecialchars($measurement_label); ?> (cm)</th><?php foreach ($range['measurements'][$measurement_key] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
-                  </table>
-                <?php } ?>
-              </div>
+                                  <table class="measurement-table"><caption class="visually-hidden">Chest · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>74-78</td><td>78-82</td><td>82-90</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Chest · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>90-94</td><td>94-102</td><td>102-110</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Chest · XXL-4XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th><th scope="col">4XL</th></tr></thead><tbody><tr><th scope="row">Chest (cm)</th><td>110-118</td><td>118-126</td><td>126-134</td></tr></tbody></table>
+                              </div>
             </div>
           </section>
-        <?php } ?>
-      </div>
+                            <section class="measurement-section">
+            <input class="visually-hidden measurement-radio" type="radio" name="women-top-measurement" id="control-women-waist-panel" >
+            <h3 class="measurement-heading"><label class="measurement-toggle" for="control-women-waist-panel">
+              Waist<span class="toggle-mark"></span>
+            </label></h3>
+            <div class="measurement-panel" id="women-waist-panel">
+              <div class="measurement-table-wrap">
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>58-62</td><td>62-66</td><td>66-74</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>74-78</td><td>78-86</td><td>86-94</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · XXL-4XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th><th scope="col">4XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>94-102</td><td>102-110</td><td>110-118</td></tr></tbody></table>
+                              </div>
+            </div>
+          </section>
+                            <section class="measurement-section">
+            <input class="visually-hidden measurement-radio" type="radio" name="women-top-measurement" id="control-women-arm-length-panel" >
+            <h3 class="measurement-heading"><label class="measurement-toggle" for="control-women-arm-length-panel">
+              Arm length<span class="toggle-mark"></span>
+            </label></h3>
+            <div class="measurement-panel" id="women-arm-length-panel">
+              <div class="measurement-table-wrap">
+                                  <table class="measurement-table"><caption class="visually-hidden">Arm length · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>56</td><td>56</td><td>57</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Arm length · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>58</td><td>59</td><td>60</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Arm length · XXL-4XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th><th scope="col">4XL</th></tr></thead><tbody><tr><th scope="row">Arm length (cm)</th><td>61</td><td>62</td><td>63</td></tr></tbody></table>
+                              </div>
+            </div>
+          </section>
+                            <section class="measurement-section">
+            <input class="visually-hidden measurement-radio" type="radio" name="women-top-measurement" id="control-women-low-hip-panel" >
+            <h3 class="measurement-heading"><label class="measurement-toggle" for="control-women-low-hip-panel">
+              Low hip<span class="toggle-mark"></span>
+            </label></h3>
+            <div class="measurement-panel" id="women-low-hip-panel">
+              <div class="measurement-table-wrap">
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>79-83</td><td>83-87</td><td>87-94.5</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>94.5-98.5</td><td>98.5-106.5</td><td>106.5-114.5</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · XXL-4XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th><th scope="col">4XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>114.5-122.5</td><td>122.5-130.5</td><td>130.5-138.5</td></tr></tbody></table>
+                              </div>
+            </div>
+          </section>
+              </div>
     </div>
 
     <div class="bottom-guide" id="women-bottom-guide">
@@ -440,66 +283,194 @@ include_once('includes/header.php');
       <p class="women-fit-label">Regular</p>
 
       <div class="measurement-accordions">
-        <?php
-        $women_bottom_measurements = [
-            'waist' => 'Waist',
-            'low_hip' => 'Low hip',
-            'inside_leg' => 'Inside leg length',
-        ];
-        ?>
-        <?php foreach ($women_bottom_measurements as $measurement_key => $measurement_label) { ?>
-          <?php $panel_id = 'women-bottom-' . str_replace('_', '-', $measurement_key) . '-panel'; ?>
-          <section class="measurement-section">
-            <h3>
-              <?php echo htmlspecialchars($measurement_label); ?>
-            </h3>
-            <div class="measurement-panel" id="<?php echo $panel_id; ?>">
+                                    <section class="measurement-section">
+            <input class="visually-hidden measurement-radio" type="radio" name="women-bottom-measurement" id="control-women-bottom-waist-panel" checked>
+            <h3 class="measurement-heading"><label class="measurement-toggle" for="control-women-bottom-waist-panel">
+              Waist<span class="toggle-mark"></span>
+            </label></h3>
+            <div class="measurement-panel" id="women-bottom-waist-panel">
               <div class="measurement-table-wrap">
-                <?php foreach ($women_bottom_ranges as $range) { ?>
-                  <table class="measurement-table">
-                    <caption><?php echo htmlspecialchars($measurement_label . ' · ' . $range['label']); ?></caption>
-                    <thead><tr><th scope="col">Size</th><?php foreach ($range['sizes'] as $size) { ?><th scope="col"><?php echo htmlspecialchars($size); ?></th><?php } ?></tr></thead>
-                    <tbody><tr><th scope="row"><?php echo htmlspecialchars($measurement_label); ?><?php echo $measurement_key === 'inside_leg' ? ' (cm)' : ' (cm)'; ?></th><?php foreach ($range['measurements'][$measurement_key] as $value) { ?><td><?php echo htmlspecialchars($value); ?></td><?php } ?></tr></tbody>
-                  </table>
-                <?php } ?>
-              </div>
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>58-62</td><td>62-66</td><td>66-70</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>70-74</td><td>74-78</td><td>78-82</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · XXL-4XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th><th scope="col">4XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>82-86</td><td>86-90</td><td>90-94</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · 5XL-7XL</caption><thead><tr><th scope="col">Size</th><th scope="col">5XL</th><th scope="col">6XL</th><th scope="col">7XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>94-100</td><td>100-106</td><td>106-112</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · 8XL-10XL</caption><thead><tr><th scope="col">Size</th><th scope="col">8XL</th><th scope="col">9XL</th><th scope="col">10XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>112-118</td><td>118-124</td><td>124-130</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Waist · 11XL</caption><thead><tr><th scope="col">Size</th><th scope="col">11XL</th></tr></thead><tbody><tr><th scope="row">Waist (cm)</th><td>130-136</td></tr></tbody></table>
+                              </div>
             </div>
           </section>
-        <?php } ?>
-      </div>
+                            <section class="measurement-section">
+            <input class="visually-hidden measurement-radio" type="radio" name="women-bottom-measurement" id="control-women-bottom-low-hip-panel" >
+            <h3 class="measurement-heading"><label class="measurement-toggle" for="control-women-bottom-low-hip-panel">
+              Low hip<span class="toggle-mark"></span>
+            </label></h3>
+            <div class="measurement-panel" id="women-bottom-low-hip-panel">
+              <div class="measurement-table-wrap">
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>79-83</td><td>83-87</td><td>87-91</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>91-95</td><td>95-99</td><td>99-103</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · XXL-4XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th><th scope="col">4XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>103-107</td><td>107-111</td><td>111-115</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · 5XL-7XL</caption><thead><tr><th scope="col">Size</th><th scope="col">5XL</th><th scope="col">6XL</th><th scope="col">7XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>115-121</td><td>121-127</td><td>127-133</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · 8XL-10XL</caption><thead><tr><th scope="col">Size</th><th scope="col">8XL</th><th scope="col">9XL</th><th scope="col">10XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>133-139</td><td>139-145</td><td>145-151</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Low hip · 11XL</caption><thead><tr><th scope="col">Size</th><th scope="col">11XL</th></tr></thead><tbody><tr><th scope="row">Low hip (cm)</th><td>151-157</td></tr></tbody></table>
+                              </div>
+            </div>
+          </section>
+                            <section class="measurement-section">
+            <input class="visually-hidden measurement-radio" type="radio" name="women-bottom-measurement" id="control-women-bottom-inside-leg-panel" >
+            <h3 class="measurement-heading"><label class="measurement-toggle" for="control-women-bottom-inside-leg-panel">
+              Inside leg length<span class="toggle-mark"></span>
+            </label></h3>
+            <div class="measurement-panel" id="women-bottom-inside-leg-panel">
+              <div class="measurement-table-wrap">
+                                  <table class="measurement-table"><caption class="visually-hidden">Inside leg length · XXS-S</caption><thead><tr><th scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th scope="row">Inside leg length (cm)</th><td>74.5</td><td>74.5</td><td>74</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Inside leg length · M-XL</caption><thead><tr><th scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th scope="row">Inside leg length (cm)</th><td>73.5</td><td>73</td><td>72.5</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Inside leg length · XXL-4XL</caption><thead><tr><th scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th><th scope="col">4XL</th></tr></thead><tbody><tr><th scope="row">Inside leg length (cm)</th><td>72</td><td>71.5</td><td>71</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Inside leg length · 5XL-7XL</caption><thead><tr><th scope="col">Size</th><th scope="col">5XL</th><th scope="col">6XL</th><th scope="col">7XL</th></tr></thead><tbody><tr><th scope="row">Inside leg length (cm)</th><td>70.5</td><td>70</td><td>69.5</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Inside leg length · 8XL-10XL</caption><thead><tr><th scope="col">Size</th><th scope="col">8XL</th><th scope="col">9XL</th><th scope="col">10XL</th></tr></thead><tbody><tr><th scope="row">Inside leg length (cm)</th><td>69</td><td>68.5</td><td>68</td></tr></tbody></table>
+                                  <table class="measurement-table"><caption class="visually-hidden">Inside leg length · 11XL</caption><thead><tr><th scope="col">Size</th><th scope="col">11XL</th></tr></thead><tbody><tr><th scope="row">Inside leg length (cm)</th><td>67.5</td></tr></tbody></table>
+                              </div>
+            </div>
+          </section>
+              </div>
     </div>
   </section>
 
   <section class="size-guide-card kids-size-guide" id="kids-size-guide" aria-label="Kids' size guide">
-    <div class="bottom-guide">
-      <h2>Top</h2>
-      <div class="measurement-table-wrap kids-basic-table-wrap">
-        <?php foreach ($kids_top_guide['size_ranges'] as $range) { ?>
-        <table class="measurement-table kids-basic-table">
-          <caption>Kids' top sizes and measurements · <?php echo htmlspecialchars($range['label']); ?></caption>
-          <thead>
-            <tr>
-              <th class="measurement-label" scope="col">Measurement</th>
-              <?php foreach ($range['indexes'] as $size_index) { ?>
-                <th scope="col"><?php echo htmlspecialchars($kids_top_guide['sizes'][$size_index]); ?></th>
-              <?php } ?>
-            </tr>
-          </thead>
-          <tbody>
-            <?php foreach ($kids_top_guide['measurements'] as $measurement) { ?>
-              <tr>
-                <th class="measurement-label" scope="row"><?php echo htmlspecialchars($measurement['label']); ?></th>
-                <?php foreach ($range['indexes'] as $size_index) { ?>
-                  <td><?php echo htmlspecialchars($measurement['values'][$size_index]); ?></td>
-                <?php } ?>
-              </tr>
-            <?php } ?>
-          </tbody>
-        </table>
-        <?php } ?>
+    <input class="visually-hidden guide-type-radio" type="radio" name="kids-guide-type" id="kids-type-top" <?php echo $type === 'top' ? 'checked' : ''; ?>>
+    <input class="visually-hidden guide-type-radio" type="radio" name="kids-guide-type" id="kids-type-bottom" <?php echo $type === 'bottom' ? 'checked' : ''; ?>>
+    <nav class="guide-type-tabs" aria-label="Kids' size guide type">
+      <label class="guide-type-tab" for="kids-type-top">Tops</label>
+      <label class="guide-type-tab" for="kids-type-bottom">Bottoms</label>
+    </nav>
+
+          <div class="bottom-guide" id="kids-top-guide">
+        <h2>Kids' tops</h2>
+        <div class="measurement-accordions">
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-top-measurement" id="control-kids-top-measurement-0" checked>
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-top-measurement-0">
+                Numeric size<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Numeric size measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Numeric size</th><td>6-7</td><td>8-9</td><td>8-9 Plus</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Numeric size measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Numeric size</th><td>10-12</td><td>14-16</td><td>10-12 Plus</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Numeric size measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Numeric size</th><td>18-20</td><td>14-16 Plus</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-top-measurement" id="control-kids-top-measurement-1" >
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-top-measurement-1">
+                Age<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Age measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Age</th><td>7-8</td><td>8-10</td><td>8-10</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Age measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Age</th><td>10-12</td><td>12-13</td><td>10-12</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Age measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Age</th><td>13-15</td><td>12-13</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-top-measurement" id="control-kids-top-measurement-2" >
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-top-measurement-2">
+                Height (cm)<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Height (cm) measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Height (cm)</th><td>122-128</td><td>128-137</td><td>131-140</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Height (cm) measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Height (cm)</th><td>137-147</td><td>147-158</td><td>140-150</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Height (cm) measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Height (cm)</th><td>158-170</td><td>150-160</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-top-measurement" id="control-kids-top-measurement-3" >
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-top-measurement-3">
+                Chest (cm)<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Chest (cm) measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Chest (cm)</th><td>61.5-65</td><td>65-70</td><td>70-78</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Chest (cm) measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Chest (cm)</th><td>70-77</td><td>77-84</td><td>78-86</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Chest (cm) measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Chest (cm)</th><td>84-91.5</td><td>86-94</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                  </div>
       </div>
-    </div>
-  </section>
+          <div class="bottom-guide" id="kids-bottom-guide">
+        <h2>Kids' bottoms</h2>
+        <div class="measurement-accordions">
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-bottom-measurement" id="control-kids-bottom-measurement-0" checked>
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-bottom-measurement-0">
+                Numeric size<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Numeric size measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Numeric size</th><td>6-7</td><td>8-9</td><td>8-9 Plus</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Numeric size measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Numeric size</th><td>10-12</td><td>14-16</td><td>10-12 Plus</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Numeric size measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Numeric size</th><td>18-20</td><td>14-16 Plus</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-bottom-measurement" id="control-kids-bottom-measurement-1" >
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-bottom-measurement-1">
+                Age<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Age measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Age</th><td>7-8</td><td>8-10</td><td>8-10</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Age measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Age</th><td>10-12</td><td>12-13</td><td>10-12</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Age measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Age</th><td>13-15</td><td>12-13</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-bottom-measurement" id="control-kids-bottom-measurement-2" >
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-bottom-measurement-2">
+                Height (cm)<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Height (cm) measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Height (cm)</th><td>122-128</td><td>128-137</td><td>131-140</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Height (cm) measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Height (cm)</th><td>137-147</td><td>147-158</td><td>140-150</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Height (cm) measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Height (cm)</th><td>158-170</td><td>150-160</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-bottom-measurement" id="control-kids-bottom-measurement-3" >
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-bottom-measurement-3">
+                Waist (cm)<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Waist (cm) measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Waist (cm)</th><td>50-56</td><td>56-62</td><td>61-67</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Waist (cm) measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Waist (cm)</th><td>62-68</td><td>68-74</td><td>67-73</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Waist (cm) measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Waist (cm)</th><td>74-80</td><td>73-79</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                                  <section class="measurement-section">
+              <input class="visually-hidden measurement-radio" type="radio" name="kids-bottom-measurement" id="control-kids-bottom-measurement-4" >
+              <h3 class="measurement-heading"><label class="measurement-toggle" for="control-kids-bottom-measurement-4">
+                Hip (cm)<span class="toggle-mark"></span>
+              </label></h3>
+              <div class="measurement-panel">
+                <div class="measurement-table-wrap kids-basic-table-wrap">
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Hip (cm) measurements · XXS-S</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXS</th><th scope="col">XS</th><th scope="col">S</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Hip (cm)</th><td>63-67</td><td>67-74</td><td>78-82</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Hip (cm) measurements · M-XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">M</th><th scope="col">L</th><th scope="col">XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Hip (cm)</th><td>74-80</td><td>80-88</td><td>82-88</td></tr></tbody></table>
+                                      <table class="measurement-table kids-basic-table"><caption class="visually-hidden">Kids' Hip (cm) measurements · XXL-3XL</caption><thead><tr><th class="measurement-label" scope="col">Size</th><th scope="col">XXL</th><th scope="col">3XL</th></tr></thead><tbody><tr><th class="measurement-label" scope="row">Hip (cm)</th><td>88-96</td><td>88-95</td></tr></tbody></table>
+                                  </div>
+              </div>
+            </section>
+                  </div>
+      </div>
+      </section>
 </main>
 
 <?php include_once('includes/footer.php'); ?>

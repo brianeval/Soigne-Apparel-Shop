@@ -33,6 +33,15 @@
   border-bottom: 1px solid #e5e5e5;
 }
 
+.orders-tab-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .orders-tabs::-webkit-scrollbar {
   display: none;
 }
@@ -52,22 +61,41 @@
   cursor: pointer;
 }
 
-.orders-tab:hover,
-.orders-tab[aria-selected="true"] {
+.orders-tab:hover {
   color: #1c1c1c;
 }
 
-.orders-tab[aria-selected="true"] {
+#orders-tab-input-to-pack:checked ~ .orders-tabs #orders-tab-to-pack,
+#orders-tab-input-shipped:checked ~ .orders-tabs #orders-tab-shipped,
+#orders-tab-input-received:checked ~ .orders-tabs #orders-tab-received,
+#orders-tab-input-failed-delivery:checked ~ .orders-tabs #orders-tab-failed-delivery,
+#orders-tab-input-review-me:checked ~ .orders-tabs #orders-tab-review-me,
+#orders-tab-input-cancellations:checked ~ .orders-tabs #orders-tab-cancellations {
+  color: #1c1c1c;
   border-bottom-color: #1c1c1c;
 }
 
-.orders-tab:focus-visible {
+#orders-tab-input-to-pack:focus-visible ~ .orders-tabs #orders-tab-to-pack,
+#orders-tab-input-shipped:focus-visible ~ .orders-tabs #orders-tab-shipped,
+#orders-tab-input-received:focus-visible ~ .orders-tabs #orders-tab-received,
+#orders-tab-input-failed-delivery:focus-visible ~ .orders-tabs #orders-tab-failed-delivery,
+#orders-tab-input-review-me:focus-visible ~ .orders-tabs #orders-tab-review-me,
+#orders-tab-input-cancellations:focus-visible ~ .orders-tabs #orders-tab-cancellations {
   outline: 2px solid #1d4f91;
   outline-offset: -2px;
 }
 
-.orders-tab-panel[hidden] {
+.orders-tab-panel {
   display: none;
+}
+
+#orders-tab-input-to-pack:checked ~ #orders-panel-to-pack,
+#orders-tab-input-shipped:checked ~ #orders-panel-shipped,
+#orders-tab-input-received:checked ~ #orders-panel-received,
+#orders-tab-input-failed-delivery:checked ~ #orders-panel-failed-delivery,
+#orders-tab-input-review-me:checked ~ #orders-panel-review-me,
+#orders-tab-input-cancellations:checked ~ #orders-panel-cancellations {
+  display: block;
 }
 
 .orders-message {
@@ -373,7 +401,9 @@
 
 .rate-review-stars {
   display: flex;
+  justify-content: center;
   gap: 9px;
+  flex-direction: row-reverse;
   margin: 8px 0;
   padding: 0;
   border: 0;
@@ -384,6 +414,10 @@
   margin-bottom: 7px;
   font-size: 13px;
   font-weight: 600;
+}
+
+.rate-review-stars legend {
+  width: 100%;
 }
 
 .rate-review-stars label {
@@ -404,12 +438,13 @@
   line-height: 1;
 }
 
-.rate-review-stars label.is-selected > span:first-of-type,
+.rate-review-stars input:checked + label > span:first-of-type,
+.rate-review-stars input:checked ~ label > span:first-of-type,
 .rate-review-stars label:hover > span:first-of-type {
   color: #ffb52e;
 }
 
-.rate-review-stars input:focus-visible + span {
+.rate-review-stars input:focus-visible + label > span:first-of-type {
   outline: 2px solid #1c1c1c;
 }
 
@@ -555,7 +590,15 @@
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-.orders-tab[aria-selected="true"] { border-bottom-color: var(--ink); color: var(--ink); }
+#orders-tab-input-to-pack:checked ~ .orders-tabs #orders-tab-to-pack,
+#orders-tab-input-shipped:checked ~ .orders-tabs #orders-tab-shipped,
+#orders-tab-input-received:checked ~ .orders-tabs #orders-tab-received,
+#orders-tab-input-failed-delivery:checked ~ .orders-tabs #orders-tab-failed-delivery,
+#orders-tab-input-review-me:checked ~ .orders-tabs #orders-tab-review-me,
+#orders-tab-input-cancellations:checked ~ .orders-tabs #orders-tab-cancellations {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
 .orders-list { gap: 14px; }
 .order-card { border-color: var(--line); background: var(--paper); padding: clamp(18px, 2.5vw, 28px); }
 .order-header, .order-summary, .order-details, .order-actions { border-color: var(--line); }

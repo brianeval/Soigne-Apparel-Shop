@@ -213,18 +213,23 @@ include_once("../includes/header.php");
         <h1 id="orders-title">My Orders</h1>
       </div>
 
-      <nav class="orders-tabs" aria-label="Order status">
-        <?php foreach ($order_tabs as $tab) { ?>
-          <a class="orders-tab"
-                  href="#orders-panel-<?php echo htmlspecialchars($tab['id']); ?>"
-                  id="orders-tab-<?php echo htmlspecialchars($tab['id']); ?>"
-                  >
-            <?php echo htmlspecialchars($tab['label']); ?>
-          </a>
+      <div class="orders-tab-set" role="radiogroup" aria-label="Order status">
+        <?php foreach ($order_tabs as $tab_index => $tab) { ?>
+          <input class="orders-tab-input" type="radio" name="order_status_tab"
+                 id="orders-tab-input-<?php echo htmlspecialchars($tab['id']); ?>"
+                 <?php echo $tab_index === 0 ? 'checked' : ''; ?>>
         <?php } ?>
-      </nav>
+        <nav class="orders-tabs" aria-label="Order status">
+          <?php foreach ($order_tabs as $tab) { ?>
+            <label class="orders-tab"
+                   for="orders-tab-input-<?php echo htmlspecialchars($tab['id']); ?>"
+                   id="orders-tab-<?php echo htmlspecialchars($tab['id']); ?>">
+              <?php echo htmlspecialchars($tab['label']); ?>
+            </label>
+          <?php } ?>
+        </nav>
 
-      <?php foreach ($order_tabs as $tab) { ?>
+        <?php foreach ($order_tabs as $tab) { ?>
         <?php
           // Orders that belong in this tab
           $tab_orders = [];
@@ -352,13 +357,14 @@ include_once("../includes/header.php");
                             <input type="hidden" name="action" value="<?php echo $has_review ? 'update' : 'create'; ?>">
                             <fieldset class="rate-review-stars">
                               <legend>Your rating</legend>
-                              <?php for ($star = 1; $star <= 5; $star++) { ?>
-                                <label>
-                                  <input type="radio" name="rating" value="<?php echo $star; ?>" <?php echo $has_review && (int)$item['review_rating'] === $star ? 'checked' : ''; ?>>
+                              <?php for ($star = 5; $star >= 1; $star--) { ?>
+                                <input id="rating-<?php echo (int)$item['order_item_id']; ?>-<?php echo $star; ?>" type="radio" name="rating" value="<?php echo $star; ?>" <?php echo $has_review && (int)$item['review_rating'] === $star ? 'checked' : ''; ?>>
+                                <label for="rating-<?php echo (int)$item['order_item_id']; ?>-<?php echo $star; ?>">
                                   <span aria-hidden="true">&#9733;</span>
                                   <span class="rate-review-sr-only"><?php echo $star; ?> stars</span>
                                 </label>
                               <?php } ?>
+
                             </fieldset>
                             <label class="rate-review-comment-label">Your comment
                               <textarea name="review_text" rows="5" placeholder="Share your experience with this product"><?php echo $has_review ? htmlspecialchars((string)$item['review_text']) : ''; ?></textarea>
