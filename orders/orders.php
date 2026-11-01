@@ -415,4 +415,19 @@ include_once("../includes/header.php");
 
 </main>
 
+<script>
+  document.querySelectorAll('.rate-review-stars').forEach((rating) => {
+    const updateSelectedStars = () => {
+      const selectedRating = Number(rating.querySelector('input:checked')?.value || 0);
+
+      rating.querySelectorAll('label').forEach((star, index) => {
+        star.classList.toggle('is-selected', index < selectedRating);
+      });
+    };
+
+    rating.addEventListener('change', updateSelectedStars);
+    updateSelectedStars();
+  });
+</script>
+
 <?php include_once("../includes/footer.php"); ?>
