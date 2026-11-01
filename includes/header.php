@@ -1,6 +1,6 @@
 <?php
-include_once(__DIR__ . "/config.php");
-include_once(__DIR__ . "/customer_auth.php");   // sets $customer_role
+include_once("config.php");
+include_once("customer_auth.php");
 
 // Cart badge
 $cart_count = 0;

@@ -6,7 +6,7 @@
 // Result: $receipt_pdf holds the PDF file content.
 use Dompdf\Dompdf;
 
-require_once(APP_ROOT . '/vendor/autoload.php');
+require_once(APP_ROOT . '/vendor/dompdf/autoload.inc.php');
 
 $receipt_rows = '';
 $receipt_total = 0;
