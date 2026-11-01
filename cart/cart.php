@@ -89,7 +89,6 @@ include_once ('../includes/header.php');
         <h1>Your cart</h1>
         <form method="post" action="<?php echo BASE_URL; ?>cart/cart.php" class="cart-select-all-form" id="cart-bulk-actions">
           <button type="submit" name="action" value="remove_selected" class="cart-remove-all">Remove selected</button>
-          <span>Select items below to remove or check out.</span>
         </form>
       </div>
     </div>

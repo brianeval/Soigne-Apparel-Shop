@@ -6,7 +6,10 @@
 // Result: $mail_error is empty when the email was sent, otherwise it holds the problem.
 use PHPMailer\PHPMailer\PHPMailer;
 
-require_once(APP_ROOT . '/vendor/autoload.php');
+require_once APP_ROOT . '/vendor/phpmailer/phpmailer/src/Exception.php';
+require_once APP_ROOT . '/vendor/phpmailer/phpmailer/src/PHPMailer.php';
+require_once APP_ROOT . '/vendor/phpmailer/phpmailer/src/SMTP.php';
+$mailer = new PHPMailer();
 
 $mail_error = '';
 $mail_attachments = $mail_attachments ?? [];
