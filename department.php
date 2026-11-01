@@ -22,10 +22,8 @@ $products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
         ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
       WHERE p.department = ?
       ORDER BY p.product_id DESC";
-$products_stmt = mysqli_prepare($conn, $products_sql);
-mysqli_stmt_bind_param($products_stmt, 's', $dept);
-mysqli_stmt_execute($products_stmt);
-$products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
+$products_result = mysqli_execute_query($conn, $products_sql, [$dept]);
+$products = mysqli_fetch_all($products_result, MYSQLI_ASSOC);
 
 $page_title = $dept_label . " | Soigné";
 $extra_css  = "department.css";

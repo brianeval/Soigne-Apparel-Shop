@@ -1,60 +1,29 @@
 <?php
-if (session_status() !== PHP_SESSION_ACTIVE) {
+if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once(__DIR__ . "/../../includes/config.php");
-require_once(__DIR__ . "/../../includes/admin_redirect.php");
+include_once(__DIR__ . "/../../includes/config.php");
 
-if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
-    $return_path = safe_admin_return_path($_SERVER['REQUEST_URI'] ?? '');
-    $_SESSION['admin_login_notice'] = 'Please sign in with an active administrator account to access that page.';
+// Only signed-in administrators can open admin pages
+$return_path = $_SERVER['REQUEST_URI'] ?? '';
+$admin_account = null;
+
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') == 'admin') {
+    $admin_user_id = (int)$_SESSION['user_id'];
+    $admin_result = mysqli_query($conn, "SELECT status FROM users WHERE user_id = $admin_user_id AND role = 'admin'");
+    $admin_account = mysqli_fetch_assoc($admin_result);
+}
+
+if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') != 'admin') {
+    $_SESSION['message'] = 'Please sign in with an active administrator account to access that page.';
     header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
     exit;
 }
 
-$admin_status_stmt = mysqli_prepare($conn, "SELECT status FROM users WHERE user_id = ? AND role = 'admin'");
-$admin_user_id = (int)$_SESSION['user_id'];
-mysqli_stmt_bind_param($admin_status_stmt, 'i', $admin_user_id);
-mysqli_stmt_execute($admin_status_stmt);
-$admin_account = mysqli_fetch_assoc(mysqli_stmt_get_result($admin_status_stmt));
-
-if (!$admin_account || $admin_account['status'] !== 'active') {
+if (!$admin_account || $admin_account['status'] != 'active') {
     unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
-    $return_path = safe_admin_return_path($_SERVER['REQUEST_URI'] ?? '');
-    $_SESSION['admin_login_notice'] = 'Your administrator account is inactive. Contact another administrator for assistance.';
+    $_SESSION['message'] = 'Your administrator account is inactive. Contact another administrator for assistance.';
     header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
     exit;
-}
-
-function admin_escape($value): string
-{
-    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-}
-
-function admin_csrf_token(): string
-{
-    if (empty($_SESSION['admin_csrf'])) {
-        $_SESSION['admin_csrf'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['admin_csrf'];
-}
-
-function admin_verify_csrf($token): bool
-{
-    return is_string($token)
-        && isset($_SESSION['admin_csrf'])
-        && hash_equals($_SESSION['admin_csrf'], $token);
-}
-
-function admin_set_flash(string $type, string $message): void
-{
-    $_SESSION['admin_flash'] = ['type' => $type, 'message' => $message];
-}
-
-function admin_take_flash(): ?array
-{
-    $flash = $_SESSION['admin_flash'] ?? null;
-    unset($_SESSION['admin_flash']);
-    return is_array($flash) ? $flash : null;
 }

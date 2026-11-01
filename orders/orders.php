@@ -1,182 +1,103 @@
 <?php
 session_start();
 include_once("../includes/config.php");
-require_once("../includes/customer_auth.php");
 
-require_active_customer($conn, BASE_URL . 'orders/orders.php');
+$login_redirect = BASE_URL . 'orders/orders.php';
+include("../includes/require_customer.php");
 
 $user_id = (int)$_SESSION['user_id'];
-$orders = [];
 
-if (!isset($_SESSION['orders_csrf'])) {
-    $_SESSION['orders_csrf'] = bin2hex(random_bytes(32));
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Customer actions: change an order or cancel it
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
-    $order_id = filter_var($_POST['order_id'] ?? null, FILTER_VALIDATE_INT);
-    $csrf_token = $_POST['csrf_token'] ?? '';
+    $order_id = (int)($_POST['order_id'] ?? 0);
 
-    if (!is_string($csrf_token) || !hash_equals($_SESSION['orders_csrf'], $csrf_token)) {
-        $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Your session expired. Please try again.'];
-    } elseif ($order_id === false || $order_id < 1 || !in_array($action, ['edit_order', 'cancel_order'], true)) {
-        $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'That order action is invalid.'];
+    if ($order_id < 1 || !in_array($action, ['edit_order', 'cancel_order'])) {
+        $_SESSION['message'] = 'That order action is invalid.';
     } else {
         try {
             mysqli_begin_transaction($conn);
 
-            // Lock order
-            $locked_order_stmt = mysqli_prepare($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = ? AND user_id = ? FOR UPDATE");
-            mysqli_stmt_bind_param($locked_order_stmt, 'ii', $order_id, $user_id);
-            mysqli_stmt_execute($locked_order_stmt);
-            $locked_order = mysqli_fetch_assoc(mysqli_stmt_get_result($locked_order_stmt));
+            // Only the customer's own pending orders can be changed
+            $order_result = mysqli_query($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = $order_id AND user_id = $user_id");
+            $order = mysqli_fetch_assoc($order_result);
 
-            if (!$locked_order || $locked_order['fulfillment_status'] !== 'pending') {
+            // Items of this order
+            $current_result = mysqli_query($conn,
+                "SELECT oi.order_item_id, oi.variant_id, oi.quantity, pc.product_id
+                 FROM order_items oi
+                 JOIN product_variants v ON v.variant_id = oi.variant_id
+                 JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+                 WHERE oi.order_id = $order_id"
+            );
+            $current_items = mysqli_fetch_all($current_result, MYSQLI_ASSOC);
+
+            if (!$order || $order['fulfillment_status'] != 'pending') {
                 mysqli_rollback($conn);
-                $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Only pending orders can be changed or cancelled.'];
-            } elseif ($action === 'cancel_order') {
-                // Load order items
-                $order_items_stmt = mysqli_prepare($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ? FOR UPDATE");
-                mysqli_stmt_bind_param($order_items_stmt, 'i', $order_id);
-                mysqli_stmt_execute($order_items_stmt);
-                $order_items = mysqli_fetch_all(mysqli_stmt_get_result($order_items_stmt), MYSQLI_ASSOC);
-
-                // Restore stock
-                $stock_stmt = mysqli_prepare($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?");
-                foreach ($order_items as $item) {
-                    $quantity = (int)$item['quantity'];
-                    $variant_id = (int)$item['variant_id'];
-                    mysqli_stmt_bind_param($stock_stmt, 'ii', $quantity, $variant_id);
-                    mysqli_stmt_execute($stock_stmt);
+                $_SESSION['message'] = 'Only pending orders can be changed or cancelled.';
+            } elseif ($action == 'cancel_order') {
+                // Give the stock back
+                foreach ($current_items as $item) {
+                    mysqli_query($conn, "UPDATE product_variants SET stock = stock + " . (int)$item['quantity'] . " WHERE variant_id = " . (int)$item['variant_id']);
                 }
-
                 // Cancel order
-                $cancel_order_stmt = mysqli_prepare($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = ? AND user_id = ? AND fulfillment_status = 'pending' AND payment_status = 'unpaid'");
-                mysqli_stmt_bind_param($cancel_order_stmt, 'ii', $order_id, $user_id);
-                mysqli_stmt_execute($cancel_order_stmt);
-                if (mysqli_stmt_affected_rows($cancel_order_stmt) !== 1) {
-                    throw new mysqli_sql_exception('Order status changed during cancellation.');
+                mysqli_query($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = $order_id AND user_id = $user_id");
+                mysqli_commit($conn);
+                $_SESSION['success'] = 'Your order has been cancelled.';
+            } else {
+                // Edit order: read the new size and quantity of every item
+                $valid = true;
+                $new_variant_ids = [];
+                $new_quantities = [];
+                foreach ($current_items as $item) {
+                    $item_id = $item['order_item_id'];
+                    $new_variant_ids[$item_id] = (int)($_POST['items'][$item_id]['variant_id'] ?? 0);
+                    $new_quantities[$item_id] = (int)($_POST['items'][$item_id]['quantity'] ?? 0);
+
+                    // The new size must belong to the same product
+                    $variant_result = mysqli_query($conn,
+                        "SELECT v.variant_id
+                         FROM product_variants v
+                         JOIN product_colors pc ON pc.product_color_id = v.product_color_id
+                         WHERE v.variant_id = " . $new_variant_ids[$item_id] . " AND pc.product_id = " . (int)$item['product_id']
+                    );
+                    if ($new_quantities[$item_id] < 1 || mysqli_num_rows($variant_result) == 0) {
+                        $valid = false;
+                    }
                 }
 
-                mysqli_commit($conn);
-                $_SESSION['orders_flash'] = ['type' => 'success', 'text' => 'Your order has been cancelled.'];
-            } else {
-                $submitted_items = $_POST['items'] ?? null;
-                if (!is_array($submitted_items)) {
+                if (!$valid) {
                     mysqli_rollback($conn);
-                    $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Order changes were invalid. Please try again.'];
+                    $_SESSION['message'] = 'Choose a valid size and quantity for every order item.';
                 } else {
-                    // Load current order items
-                    $current_items_stmt = mysqli_prepare($conn,
-                        "SELECT oi.order_item_id, oi.variant_id, oi.quantity, pc.product_id
-                         FROM order_items oi
-                         JOIN product_variants v ON v.variant_id = oi.variant_id
-                         JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                         WHERE oi.order_id = ?
-                         FOR UPDATE"
-                    );
-                    mysqli_stmt_bind_param($current_items_stmt, 'i', $order_id);
-                    mysqli_stmt_execute($current_items_stmt);
-                    $current_items = mysqli_fetch_all(mysqli_stmt_get_result($current_items_stmt), MYSQLI_ASSOC);
-
-                    $current_by_id = [];
-                    foreach ($current_items as $current_item) {
-                        $current_by_id[(int)$current_item['order_item_id']] = $current_item;
+                    // Give back the old stock, then take the new stock
+                    foreach ($current_items as $item) {
+                        mysqli_query($conn, "UPDATE product_variants SET stock = stock + " . (int)$item['quantity'] . " WHERE variant_id = " . (int)$item['variant_id']);
+                    }
+                    $stock_ok = true;
+                    foreach ($current_items as $item) {
+                        $item_id = $item['order_item_id'];
+                        $new_variant_id = $new_variant_ids[$item_id];
+                        $new_quantity = $new_quantities[$item_id];
+                        mysqli_query($conn, "UPDATE product_variants SET stock = stock - $new_quantity WHERE variant_id = $new_variant_id AND stock >= $new_quantity");
+                        if (mysqli_affected_rows($conn) != 1) {
+                            $stock_ok = false;
+                        }
+                        mysqli_query($conn, "UPDATE order_items SET variant_id = $new_variant_id, quantity = $new_quantity WHERE order_item_id = " . (int)$item_id . " AND order_id = $order_id");
                     }
 
-                    $changes = [];
-                    $seen_variants = [];
-                    $valid = count($submitted_items) === count($current_by_id);
-                    foreach ($submitted_items as $item_id => $values) {
-                        $item_id = filter_var($item_id, FILTER_VALIDATE_INT);
-                        if ($item_id === false || !isset($current_by_id[$item_id]) || !is_array($values)) {
-                            $valid = false;
-                            break;
-                        }
-
-                        $requested_variant = filter_var($values['variant_id'] ?? null, FILTER_VALIDATE_INT);
-                        $requested_quantity = filter_var($values['quantity'] ?? null, FILTER_VALIDATE_INT);
-                        if ($requested_variant === false || $requested_variant < 1
-                            || $requested_quantity === false || $requested_quantity < 1 || $requested_quantity > 1000
-                            || isset($seen_variants[$requested_variant])) {
-                            $valid = false;
-                            break;
-                        }
-                        $seen_variants[$requested_variant] = true;
-
-                        $product_id = (int)$current_by_id[$item_id]['product_id'];
-                        // Validate requested variant
-                        $variant_stmt = mysqli_prepare($conn,
-                            "SELECT v.variant_id
-                             FROM product_variants v
-                             JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                             WHERE v.variant_id = ? AND pc.product_id = ?"
-                        );
-                        mysqli_stmt_bind_param($variant_stmt, 'ii', $requested_variant, $product_id);
-                        mysqli_stmt_execute($variant_stmt);
-                        if (!mysqli_fetch_assoc(mysqli_stmt_get_result($variant_stmt))) {
-                            $valid = false;
-                            break;
-                        }
-
-                        $changes[] = [
-                            'order_item_id' => (int)$item_id,
-                            'old_variant_id' => (int)$current_by_id[$item_id]['variant_id'],
-                            'old_quantity' => (int)$current_by_id[$item_id]['quantity'],
-                            'variant_id' => (int)$requested_variant,
-                            'quantity' => (int)$requested_quantity,
-                        ];
-                    }
-
-                    if (!$valid) {
-                        mysqli_rollback($conn);
-                        $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Choose a valid size and quantity for every order item.'];
+                    if ($stock_ok) {
+                        mysqli_commit($conn);
+                        $_SESSION['success'] = 'Your order has been updated.';
                     } else {
-                        // Restore previous stock
-                        $stock_add_stmt = mysqli_prepare($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?");
-                        foreach ($changes as $change) {
-                            $old_quantity = $change['old_quantity'];
-                            $old_variant_id = $change['old_variant_id'];
-                            mysqli_stmt_bind_param($stock_add_stmt, 'ii', $old_quantity, $old_variant_id);
-                            mysqli_stmt_execute($stock_add_stmt);
-                        }
-
-                        // Reserve replacement stock
-                        $stock_take_stmt = mysqli_prepare($conn, "UPDATE product_variants SET stock = stock - ? WHERE variant_id = ? AND stock >= ?");
-                        $item_update_stmt = mysqli_prepare($conn, "UPDATE order_items SET variant_id = ?, quantity = ? WHERE order_item_id = ? AND order_id = ?");
-                        $inventory_ok = true;
-                        foreach ($changes as $change) {
-                            $quantity = $change['quantity'];
-                            $variant_id = $change['variant_id'];
-                            mysqli_stmt_bind_param($stock_take_stmt, 'iii', $quantity, $variant_id, $quantity);
-                            mysqli_stmt_execute($stock_take_stmt);
-                            if (mysqli_stmt_affected_rows($stock_take_stmt) !== 1) {
-                                $inventory_ok = false;
-                                break;
-                            }
-                        }
-
-                        if (!$inventory_ok) {
-                            mysqli_rollback($conn);
-                            $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'The requested quantity is no longer in stock. Your order was not changed.'];
-                        } else {
-                            foreach ($changes as $change) {
-                                $variant_id = $change['variant_id'];
-                                $quantity = $change['quantity'];
-                                $item_id = $change['order_item_id'];
-                                mysqli_stmt_bind_param($item_update_stmt, 'iiii', $variant_id, $quantity, $item_id, $order_id);
-                                mysqli_stmt_execute($item_update_stmt);
-                            }
-
-                            mysqli_commit($conn);
-                            $_SESSION['orders_flash'] = ['type' => 'success', 'text' => 'Your order has been updated.'];
-                        }
+                        mysqli_rollback($conn);
+                        $_SESSION['message'] = 'The requested quantity is no longer in stock. Your order was not changed.';
                     }
                 }
             }
         } catch (mysqli_sql_exception $e) {
             mysqli_rollback($conn);
-            $_SESSION['orders_flash'] = ['type' => 'error', 'text' => 'Could not process that order change. Please try again.'];
+            $_SESSION['message'] = 'Could not process that order change. Please try again.';
         }
     }
 
@@ -184,30 +105,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-$flash = $_SESSION['orders_flash'] ?? null;
-unset($_SESSION['orders_flash']);
-
 // Customer orders
-$orders_stmt = mysqli_prepare($conn,
-    "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at,
+$orders_result = mysqli_execute_query($conn, "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at,
             COALESCE(SUM(details.line_subtotal), 0) AS order_total,
             COALESCE(SUM(details.quantity), 0) AS item_count
      FROM orders o
      LEFT JOIN order_transaction_details details ON details.order_id = o.order_id
      WHERE o.user_id = ?
      GROUP BY o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at
-     ORDER BY o.order_id DESC"
-);
-mysqli_stmt_bind_param($orders_stmt, 'i', $user_id);
-mysqli_stmt_execute($orders_stmt);
-$orders = mysqli_fetch_all(mysqli_stmt_get_result($orders_stmt), MYSQLI_ASSOC);
+     ORDER BY o.order_id DESC", [$user_id]);
+$orders = mysqli_fetch_all($orders_result, MYSQLI_ASSOC);
 
-foreach ($orders as &$order) {
+foreach ($orders as $order_key => $order) {
     $order_id = (int)$order['order_id'];
 
     // Order item details
-    $item_stmt = mysqli_prepare($conn,
-        "SELECT details.order_item_id, details.variant_id, details.quantity,
+    $item_result = mysqli_execute_query($conn, "SELECT details.order_item_id, details.variant_id, details.quantity,
                 details.unit_price AS price, details.product_id, details.product_name,
                 (SELECT pci.image_path
                  FROM product_color_images AS pci
@@ -221,41 +134,31 @@ foreach ($orders as &$order) {
                                    AND r.user_id = ?
          WHERE details.order_id = ?
            AND details.user_id = ?
-         ORDER BY details.order_item_id ASC"
-    );
-    mysqli_stmt_bind_param($item_stmt, 'iii', $user_id, $order_id, $user_id);
-    mysqli_stmt_execute($item_stmt);
-    $order['items'] = mysqli_fetch_all(mysqli_stmt_get_result($item_stmt), MYSQLI_ASSOC);
+         ORDER BY details.order_item_id ASC", [$user_id, $order_id, $user_id]);
+    $order_items = mysqli_fetch_all($item_result, MYSQLI_ASSOC);
 
-    foreach ($order['items'] as &$item) {
-        $product_id = (int)$item['product_id'];
-        $current_variant_id = (int)$item['variant_id'];
-        $current_quantity = (int)$item['quantity'];
-        $variant_stmt = mysqli_prepare($conn,
+    // Every size the customer can switch to (used when the order is still pending)
+    foreach ($order_items as $item_key => $item) {
+        $variants_result = mysqli_query($conn,
             "SELECT v.variant_id, v.size, v.stock, pc.color
              FROM product_variants v
              JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-             WHERE pc.product_id = ?
+             WHERE pc.product_id = " . (int)$item['product_id'] . "
              ORDER BY pc.color, v.size"
         );
-        mysqli_stmt_bind_param($variant_stmt, 'i', $product_id);
-        mysqli_stmt_execute($variant_stmt);
-        $variants = mysqli_fetch_all(mysqli_stmt_get_result($variant_stmt), MYSQLI_ASSOC);
-        foreach ($variants as &$variant) {
-            $variant['available_stock'] = (int)$variant['stock'];
-            if ((int)$variant['variant_id'] === $current_variant_id) {
-                $variant['available_stock'] += $current_quantity;
+        $variants = mysqli_fetch_all($variants_result, MYSQLI_ASSOC);
+        foreach ($variants as $variant_key => $variant) {
+            // The stock already reserved by this order counts as available
+            $variants[$variant_key]['available_stock'] = (int)$variant['stock'];
+            if ($variant['variant_id'] == $item['variant_id']) {
+                $variants[$variant_key]['available_stock'] += (int)$item['quantity'];
             }
         }
-        unset($variant);
-        $item['variants'] = $variants;
+        $order_items[$item_key]['variants'] = $variants;
     }
-    unset($item);
 
-    $order['order_total'] = (float)$order['order_total'];
-    $order['item_count'] = (int)$order['item_count'];
+    $orders[$order_key]['items'] = $order_items;
 }
-unset($order);
 
 $order_tabs = [
     [
@@ -302,11 +205,7 @@ include_once("../includes/header.php");
 ?>
 
 <main class="orders-page">
-  <?php if ($flash) { ?>
-    <p class="orders-message is-<?php echo $flash['type'] === 'error' ? 'error' : 'success'; ?>" role="status">
-      <?php echo htmlspecialchars($flash['text']); ?>
-    </p>
-  <?php } ?>
+  <?php include("../includes/alert.php"); ?>
 
   <div class="orders-layout">
     <section class="orders-main" aria-labelledby="orders-title">
@@ -327,17 +226,20 @@ include_once("../includes/header.php");
 
       <?php foreach ($order_tabs as $tab) { ?>
         <?php
-          $tab_orders = array_filter($orders, function ($order) use ($tab) {
-              $fulfillment_status = strtolower((string)($order['fulfillment_status'] ?? 'pending'));
-              $payment_status = strtolower((string)($order['payment_status'] ?? 'unpaid'));
-              if ($tab['id'] === 'review-me') {
-                  return $payment_status === 'paid';
+          // Orders that belong in this tab
+          $tab_orders = [];
+          foreach ($orders as $order) {
+              $fulfillment_status = $order['fulfillment_status'];
+              $payment_status = $order['payment_status'];
+              if ($tab['id'] == 'review-me' && $payment_status == 'paid') {
+                  $tab_orders[] = $order;
+              } elseif ($tab['id'] == 'cancellations' && $fulfillment_status == 'cancelled') {
+                  $tab_orders[] = $order;
+              } elseif ($tab['id'] != 'review-me' && $tab['id'] != 'cancellations'
+                        && $payment_status != 'paid' && in_array($fulfillment_status, $tab['statuses'])) {
+                  $tab_orders[] = $order;
               }
-              if ($tab['id'] === 'cancellations') {
-                  return $fulfillment_status === 'cancelled';
-              }
-              return $payment_status !== 'paid' && in_array($fulfillment_status, $tab['statuses'], true);
-          });
+          }
         ?>
         <section class="orders-tab-panel" role="tabpanel"
                  id="orders-panel-<?php echo htmlspecialchars($tab['id']); ?>"
@@ -354,8 +256,8 @@ include_once("../includes/header.php");
         <div class="orders-list">
           <?php foreach ($tab_orders as $order) { ?>
             <?php
-              $status = strtolower((string)($order['fulfillment_status'] ?? 'pending'));
-              $payment_status = strtolower((string)($order['payment_status'] ?? 'unpaid'));
+              $status = $order['fulfillment_status'];
+              $payment_status = $order['payment_status'];
               $status_label = ucwords(str_replace('_', ' ', $status));
               $created = date('M j, Y', strtotime($order['created_at']));
             ?>
@@ -382,7 +284,7 @@ include_once("../includes/header.php");
             </div>
             <div class="summary-total-wrap">
               <p class="summary-label">Total</p>
-              <p class="summary-total"><?php echo htmlspecialchars(peso((float)$order['order_total'])); ?></p>
+              <p class="summary-total"><?php echo '₱' . number_format($order['order_total'], 2); ?></p>
             </div>
           </div>
 
@@ -393,7 +295,6 @@ include_once("../includes/header.php");
                 <?php if ($status === 'pending') { ?>
                   <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
                         class="order-edit-form" id="edit-order-<?php echo (int)$order['order_id']; ?>" novalidate>
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                     <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                     <input type="hidden" name="action" value="edit_order">
                 <?php } ?>
@@ -431,7 +332,7 @@ include_once("../includes/header.php");
                           </label>
                         <?php } else { ?>
                           <p><?php echo htmlspecialchars($item['color']); ?> · Size <?php echo htmlspecialchars($item['size']); ?></p>
-                          <p>Qty: <?php echo (int)$item['quantity']; ?> · <?php echo htmlspecialchars(peso((float)$item['price'])); ?> each</p>
+                          <p>Qty: <?php echo (int)$item['quantity']; ?> · <?php echo '₱' . number_format($item['price'], 2); ?> each</p>
                         <?php } ?>
                       </div>
                       <?php if ($payment_status === 'paid') { ?>
@@ -442,7 +343,6 @@ include_once("../includes/header.php");
                             <p class="rate-review-eyebrow">YOUR PURCHASE</p>
                             <h3><?php echo htmlspecialchars($item['product_name']); ?></h3>
                             <p>Quantity bought: <?php echo (int)$item['quantity']; ?></p>
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                             <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                             <input type="hidden" name="order_item_id" value="<?php echo (int)$item['order_item_id']; ?>">
                             <input type="hidden" name="product_id" value="<?php echo (int)$item['product_id']; ?>">
@@ -461,14 +361,13 @@ include_once("../includes/header.php");
                               <?php } ?>
                             </fieldset>
                             <label class="rate-review-comment-label">Your comment
-                              <textarea name="review_text" rows="5" placeholder="Share your experience with this product"><?php echo $has_review ? htmlspecialchars((string)$item['review_text'], ENT_QUOTES, 'UTF-8') : ''; ?></textarea>
+                              <textarea name="review_text" rows="5" placeholder="Share your experience with this product"><?php echo $has_review ? htmlspecialchars((string)$item['review_text']) : ''; ?></textarea>
                             </label>
                             <p class="rate-review-hint">Please keep your review respectful and helpful.</p>
                             <button class="btn rate-review-submit" type="submit"><?php echo $has_review ? 'Save changes' : 'Submit review'; ?></button>
                           </form>
                           <?php if ($has_review) { ?>
                             <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php">
-                              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf'], ENT_QUOTES, 'UTF-8'); ?>">
                               <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                               <input type="hidden" name="order_item_id" value="<?php echo (int)$item['order_item_id']; ?>">
                               <input type="hidden" name="product_id" value="<?php echo (int)$item['product_id']; ?>">
@@ -489,7 +388,6 @@ include_once("../includes/header.php");
                   </form>
                   <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
                         class="order-cancel-form order-cancel-form-expanded">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                     <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                     <input type="hidden" name="action" value="cancel_order">
                     <button class="order-cancel-button" type="submit">Cancel order</button>
@@ -500,7 +398,6 @@ include_once("../includes/header.php");
             <?php if ($status === 'pending') { ?>
               <form method="post" action="<?php echo BASE_URL; ?>orders/orders.php"
                     class="order-cancel-form order-cancel-form-collapsed">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['orders_csrf']); ?>">
                 <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
                 <input type="hidden" name="action" value="cancel_order">
                 <button class="order-cancel-button" type="submit">Cancel order</button>

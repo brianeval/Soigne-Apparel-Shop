@@ -1,18 +1,17 @@
 <?php
 // Product grid
-require_once("product_images.php");
 $empty_message = $empty_message ?? 'No products found.';
 ?>
 <?php if (empty($products)) { ?>
   <p class="dept-empty"><?php echo htmlspecialchars($empty_message); ?></p>
 <?php } else { ?>
   <?php
-  $product_color_ids = array_map('intval', array_column($products, 'first_color_id'));
-  $product_images_by_color = product_color_image_paths($conn, $product_color_ids);
+  $image_color_ids = array_column($products, 'first_color_id');
+  include(__DIR__ . '/color_images.php');
   ?>
   <div class="dept-grid">
     <?php foreach ($products as $product) { ?>
-      <?php $card_images = $product_images_by_color[(int)($product['first_color_id'] ?? 0)] ?? []; ?>
+      <?php $card_images = $images_by_color[(int)($product['first_color_id'] ?? 0)] ?? []; ?>
       <article class="dept-card">
         <div class="dept-img">
           <?php if ($card_images) { ?>
@@ -29,7 +28,7 @@ $empty_message = $empty_message ?? 'No products found.';
           <?php echo htmlspecialchars($product['category'] ?? ''); ?>
           <?php if ((int)$product['color_count'] > 1) { ?> · <?php echo (int)$product['color_count']; ?> colors<?php } ?>
         </p>
-        <p class="dept-price"><?php echo store_product_price_markup((float)$product['price']); ?></p>
+        <p class="dept-price"><?php if (($_SESSION['role'] ?? '') == 'vip') { ?><span class="premium-product-price"><del>₱<?php echo number_format($product['price'], 2); ?></del> <strong>₱<?php echo number_format($product['price'] * 0.90, 2); ?></strong><small>VIP 10% off</small></span><?php } else { echo '₱' . number_format($product['price'], 2); } ?></p>
       </article>
     <?php } ?>
   </div>

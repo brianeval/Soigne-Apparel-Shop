@@ -1,8 +1,6 @@
 <?php
   session_start();
-  include_once("includes/header.php");
   include_once("includes/config.php");
-  require_once("includes/product_images.php");
 
   // Featured products
   $products_sql = "SELECT p.*, pc.product_color_id AS first_color_id
@@ -12,9 +10,15 @@
       ORDER BY p.product_id DESC
       LIMIT 5";
   $products = mysqli_fetch_all(mysqli_query($conn, $products_sql), MYSQLI_ASSOC);
-  $product_image_map = product_color_image_paths($conn, array_map('intval', array_column($products, 'first_color_id')));
+
+  // Pictures for the product cards
+  $image_color_ids = array_column($products, 'first_color_id');
+  include("includes/color_images.php");
+
+  include_once("includes/header.php");
 ?>
   <main>
+    <?php include("includes/alert.php"); ?>
     <section class="hero" aria-label="Featured collections">
       <div class="hero-slide is-active">
         <div class="hero-text">
@@ -49,7 +53,7 @@
       </div>
       <div class="product-row">
         <?php foreach ($products as $p) {
-          $card_images = $product_image_map[(int)($p['first_color_id'] ?? 0)] ?? [];
+          $card_images = $images_by_color[(int)($p['first_color_id'] ?? 0)] ?? [];
           ?>
 
           <article class="product">
@@ -64,7 +68,7 @@
             </div>
             <a class="product-card-link" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$p['product_id']; ?>">
               <p class="name"><?php echo htmlspecialchars($p['name']); ?></p>
-              <p class="price"><?php echo store_product_price_markup((float)$p['price']); ?></p>
+              <p class="price"><?php if (($_SESSION['role'] ?? '') == 'vip') { ?><span class="premium-product-price"><del>₱<?php echo number_format($p['price'], 2); ?></del> <strong>₱<?php echo number_format($p['price'] * 0.90, 2); ?></strong><small>VIP 10% off</small></span><?php } else { echo '₱' . number_format($p['price'], 2); } ?></p>
             </a>
           </article>
 

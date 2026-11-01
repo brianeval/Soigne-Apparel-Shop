@@ -16,14 +16,13 @@ $categories = [
 ];
 
 $category_slug = $_GET['category'] ?? '';
-if (!is_string($category_slug) || !isset($categories[$category_slug])) {
+if (!isset($categories[$category_slug])) {
     http_response_code(404);
     exit('Category not found.');
 }
 
 $category_name = $categories[$category_slug];
-$products_stmt = mysqli_prepare($conn,
-    "SELECT p.product_id, p.name, p.price, c.name AS category,
+$products_result = mysqli_execute_query($conn, "SELECT p.product_id, p.name, p.price, c.name AS category,
             pc.product_color_id AS first_color_id,
             (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
      FROM products p
@@ -35,11 +34,8 @@ $products_stmt = mysqli_prepare($conn,
          WHERE product_id = p.product_id
        )
      WHERE c.name = ?
-     ORDER BY p.product_id DESC"
-);
-mysqli_stmt_bind_param($products_stmt, 's', $category_name);
-mysqli_stmt_execute($products_stmt);
-$products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
+     ORDER BY p.product_id DESC", [$category_name]);
+$products = mysqli_fetch_all($products_result, MYSQLI_ASSOC);
 
 $page_title = $category_name . ' | Soigné';
 $extra_css = 'department.css';

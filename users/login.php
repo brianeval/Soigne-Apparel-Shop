@@ -2,27 +2,24 @@
 session_start();
 include_once("../includes/config.php");
 
-// Redirect validation
-function safe_redirect($redirect_path) {
-    return preg_match('#^/(?!/)#', $redirect_path) ? $redirect_path : 'index.php';
+// Where to go after signing in (it must be a page of this website)
+$redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
+if (strpos($redirect, BASE_URL) !== 0) {
+    $redirect = BASE_URL . 'index.php';
 }
-
-$redirect = safe_redirect($_POST['redirect'] ?? $_GET['redirect'] ?? '');
 
 $cart_redirects = [
     BASE_URL . 'cart/cart.php',
     BASE_URL . 'cart/cart_add.php?resume=1',
 ];
-$is_cart_redirect = in_array($redirect, $cart_redirects, true);
+$is_cart_redirect = in_array($redirect, $cart_redirects);
 
-// Admin redirect
-if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
-    if (!$is_cart_redirect) {
-        header('Location: ' . BASE_URL . 'admin/manage-products/');
-        exit;
-    }
+// Already signed in
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') == 'admin' && !$is_cart_redirect) {
+    header('Location: ' . BASE_URL . 'admin/manage-products/');
+    exit;
 }
-if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
+if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'])) {
     header('Location: ' . $redirect);
     exit;
 }
@@ -30,51 +27,25 @@ if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer'
 $error = '';
 $login_value = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $submitted_login = $_POST['login'] ?? '';
-    $submitted_password = $_POST['password'] ?? '';
-    $login_value = is_string($submitted_login) ? trim($submitted_login) : '';
-    $password = is_string($submitted_password) ? $submitted_password : '';
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $login_value = trim($_POST['login'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if ($login_value === '' && $password === '') {
+    if ($login_value == '' || $password == '') {
         $error = 'Please enter your username or email and your password.';
-    } elseif ($login_value === '') {
-        $error = 'Please enter your username or email.';
-    } elseif ($password === '') {
-        $error = 'Please enter your password.';
     } else {
-        // Customer account lookup
-        $login_column = filter_var($login_value, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-        $user_lookup_sql = "SELECT user_id, username, password, role, vip_expires_at,
-                     (vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP) AS vip_expired
-              FROM users
-              WHERE $login_column = ? AND role IN ('customer', 'vip') AND status = 'active'
-              LIMIT 1";
-        $user_stmt = mysqli_prepare($conn, $user_lookup_sql);
-        mysqli_stmt_bind_param($user_stmt, 's', $login_value);
-        mysqli_stmt_execute($user_stmt);
-        $user = mysqli_fetch_assoc(mysqli_stmt_get_result($user_stmt));
+        // Customer account lookup (by username or email)
+        $user_result = mysqli_execute_query($conn, "SELECT user_id, username, password, role
+             FROM users
+             WHERE (username = ? OR email = ?) AND role IN ('customer', 'vip') AND status = 'active'
+             LIMIT 1", [$login_value, $login_value]);
+        $user = mysqli_fetch_assoc($user_result);
 
         if ($user && password_verify($password, $user['password'])) {
-            session_regenerate_id(true);   // Refresh session ID
-            if ($user['role'] === 'vip' && (int)$user['vip_expired'] === 1) {
-                $expire_stmt = mysqli_prepare($conn,
-                    "UPDATE users SET role = 'customer', vip_expires_at = NULL
-                     WHERE user_id = ? AND role = 'vip' AND vip_expires_at <= CURRENT_TIMESTAMP"
-                );
-                mysqli_stmt_bind_param($expire_stmt, 'i', $user['user_id']);
-                mysqli_stmt_execute($expire_stmt);
-                $user['role'] = 'customer';
-                $user['vip_expires_at'] = null;
-            }
+            session_regenerate_id(true);
             $_SESSION['user_id']  = (int)$user['user_id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role']     = $user['role'];
-            if ($user['role'] === 'vip') {
-                $_SESSION['vip_expires_at'] = $user['vip_expires_at'];
-            } else {
-                unset($_SESSION['vip_expires_at']);
-            }
             header('Location: ' . $redirect);
             exit;
         }

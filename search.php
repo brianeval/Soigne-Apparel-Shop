@@ -20,20 +20,16 @@ if ($search_term !== '') {
                     WHERE LOWER(p.name) LIKE LOWER(?)
                        OR LOWER(COALESCE(c.name, '')) LIKE LOWER(?)
                     ORDER BY p.product_id DESC";
-    $products_stmt = mysqli_prepare($conn, $products_sql);
-    mysqli_stmt_bind_param($products_stmt, 'ss', $like, $like);
-    mysqli_stmt_execute($products_stmt);
-    $products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
+    $products_result = mysqli_execute_query($conn, $products_sql, [$like, $like]);
+    $products = mysqli_fetch_all($products_result, MYSQLI_ASSOC);
 
     // Brand search
     $brand_sql = "SELECT supplier_id, name, image
                   FROM suppliers
                   WHERE LOWER(name) LIKE LOWER(?)
                   ORDER BY name";
-    $brands_stmt = mysqli_prepare($conn, $brand_sql);
-    mysqli_stmt_bind_param($brands_stmt, 's', $like);
-    mysqli_stmt_execute($brands_stmt);
-    $brands = mysqli_fetch_all(mysqli_stmt_get_result($brands_stmt), MYSQLI_ASSOC);
+    $brands_result = mysqli_execute_query($conn, $brand_sql, [$like]);
+    $brands = mysqli_fetch_all($brands_result, MYSQLI_ASSOC);
 }
 
 $page_title = $search_term !== '' ? 'Search results for "' . $search_term . '" | Soigné' : 'Search | Soigné';

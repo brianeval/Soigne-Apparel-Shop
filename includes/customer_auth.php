@@ -1,83 +1,38 @@
 <?php
-function clear_customer_session(): void
-{
-    unset(
-        $_SESSION['user_id'],
-        $_SESSION['username'],
-        $_SESSION['role'],
-        $_SESSION['vip_expires_at']
-    );
-}
+// Checks who is signed in and keeps the session up to date.
+// After this file runs, $customer_role is one of:
+// 'guest', 'admin', 'inactive', 'customer' or 'vip'
+$customer_role = 'guest';
 
-function sync_customer_session(mysqli $conn): string
-{
-    if (!isset($_SESSION['user_id'])) {
-        return 'guest';
-    }
-    if (($_SESSION['role'] ?? '') === 'admin') {
-        return 'admin';
-    }
-
-    $user_id = (int)$_SESSION['user_id'];
-    $account_statement = mysqli_prepare($conn,
-        "SELECT role, status, vip_expires_at,
-                (vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP) AS vip_expired
-         FROM users
-         WHERE user_id = ?"
-    );
-    mysqli_stmt_bind_param($account_statement, 'i', $user_id);
-    mysqli_stmt_execute($account_statement);
-    $account = mysqli_fetch_assoc(mysqli_stmt_get_result($account_statement));
-
-    if (!$account || $account['status'] !== 'active') {
-        clear_customer_session();
-        return 'inactive';
-    }
-
-    if ($account['role'] === 'vip' && (int)$account['vip_expired'] === 1) {
-        $expire_membership_statement = mysqli_prepare($conn,
-            "UPDATE users SET role = 'customer', vip_expires_at = NULL
-             WHERE user_id = ? AND role = 'vip' AND vip_expires_at <= CURRENT_TIMESTAMP"
-        );
-        mysqli_stmt_bind_param($expire_membership_statement, 'i', $user_id);
-        mysqli_stmt_execute($expire_membership_statement);
-        $account['role'] = 'customer';
-    }
-
-    if (!in_array($account['role'], ['customer', 'vip'], true)) {
-        clear_customer_session();
-        return 'invalid';
-    }
-
-    $_SESSION['role'] = $account['role'];
-    if ($account['role'] === 'vip') {
-        $_SESSION['vip_expires_at'] = $account['vip_expires_at'];
+if (isset($_SESSION['user_id'])) {
+    if (($_SESSION['role'] ?? '') == 'admin') {
+        $customer_role = 'admin';
     } else {
-        unset($_SESSION['vip_expires_at']);
+        $auth_user_id = (int)$_SESSION['user_id'];
+        $auth_result = mysqli_execute_query($conn, "SELECT role, status, vip_expires_at,
+                    (vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP) AS vip_expired
+             FROM users
+             WHERE user_id = ?", [$auth_user_id]);
+        $auth_account = mysqli_fetch_assoc($auth_result);
+
+        if (!$auth_account || $auth_account['status'] != 'active' || !in_array($auth_account['role'], ['customer', 'vip'])) {
+            // Account is missing, inactive or not a customer: sign the person out
+            unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role'], $_SESSION['vip_expires_at']);
+            $customer_role = 'inactive';
+        } else {
+            // An expired VIP membership turns back into a normal customer
+            if ($auth_account['role'] == 'vip' && $auth_account['vip_expired'] == 1) {
+                mysqli_query($conn, "UPDATE users SET role = 'customer', vip_expires_at = NULL WHERE user_id = $auth_user_id");
+                $auth_account['role'] = 'customer';
+            }
+
+            $_SESSION['role'] = $auth_account['role'];
+            if ($auth_account['role'] == 'vip') {
+                $_SESSION['vip_expires_at'] = $auth_account['vip_expires_at'];
+            } else {
+                unset($_SESSION['vip_expires_at']);
+            }
+            $customer_role = $auth_account['role'];
+        }
     }
-
-    return $account['role'];
-}
-
-function store_product_price_markup(float $price): string
-{
-    if (($_SESSION['role'] ?? '') !== 'vip') {
-        return htmlspecialchars(peso($price), ENT_QUOTES, 'UTF-8');
-    }
-
-    $discounted_price = round($price * 0.90, 2);
-    return '<span class="premium-product-price"><del>' . htmlspecialchars(peso($price), ENT_QUOTES, 'UTF-8')
-        . '</del> <strong>' . htmlspecialchars(peso($discounted_price), ENT_QUOTES, 'UTF-8')
-        . '</strong><small>VIP 10% off</small></span>';
-}
-
-function require_active_customer(mysqli $conn, string $redirect_path): void
-{
-    $customer_role = sync_customer_session($conn);
-    if (in_array($customer_role, ['customer', 'vip'], true)) {
-        return;
-    }
-
-    header('Location: ' . BASE_URL . 'users/login.php?redirect=' . urlencode($redirect_path));
-    exit;
 }

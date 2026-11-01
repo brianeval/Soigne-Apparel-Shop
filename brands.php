@@ -3,17 +3,15 @@
 include_once ('includes/config.php');
 
 $brand_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$brand_name = isset($_GET['brand']) && is_string($_GET['brand']) ? trim($_GET['brand']) : '';
+$brand_name = trim($_GET['brand'] ?? '');
 $brand    = null;
 $brands   = [];
 $products = [];
 
 
 if ($brand_name !== '') {
-    $brand_stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE name = ?");
-    mysqli_stmt_bind_param($brand_stmt, 's', $brand_name);
-    mysqli_stmt_execute($brand_stmt);
-    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($brand_stmt));
+    $brand_result = mysqli_execute_query($conn, "SELECT supplier_id, name, image FROM suppliers WHERE name = ?", [$brand_name]);
+    $brand = mysqli_fetch_assoc($brand_result);
 
     if (!$brand) {
         http_response_code(404);
@@ -25,10 +23,8 @@ if ($brand_name !== '') {
 
 if ($brand_id > 0) {
     // Brand details
-    $brand_stmt = mysqli_prepare($conn, "SELECT supplier_id, name, image FROM suppliers WHERE supplier_id = ?");
-    mysqli_stmt_bind_param($brand_stmt, 'i', $brand_id);
-    mysqli_stmt_execute($brand_stmt);
-    $brand = mysqli_fetch_assoc(mysqli_stmt_get_result($brand_stmt));
+    $brand_result = mysqli_execute_query($conn, "SELECT supplier_id, name, image FROM suppliers WHERE supplier_id = ?", [$brand_id]);
+    $brand = mysqli_fetch_assoc($brand_result);
 
     if (!$brand) {
         http_response_code(404);
@@ -45,10 +41,8 @@ if ($brand_id > 0) {
             ON pc.product_color_id = (SELECT MIN(product_color_id) FROM product_colors WHERE product_id = p.product_id)
           WHERE p.supplier_id = ?
           ORDER BY p.product_id DESC";
-    $products_stmt = mysqli_prepare($conn, $products_sql);
-    mysqli_stmt_bind_param($products_stmt, 'i', $brand_id);
-    mysqli_stmt_execute($products_stmt);
-    $products = mysqli_fetch_all(mysqli_stmt_get_result($products_stmt), MYSQLI_ASSOC);
+    $products_result = mysqli_execute_query($conn, $products_sql, [$brand_id]);
+    $products = mysqli_fetch_all($products_result, MYSQLI_ASSOC);
 
     $page_title = $brand['name'] . " | Soigné";
 } else {

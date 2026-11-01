@@ -1,23 +1,19 @@
 <?php
-include("config.php");
-require_once("profile_image.php");
-require_once("customer_auth.php");
-
-$customer_role = sync_customer_session($conn);
+include_once(__DIR__ . "/config.php");
+include_once(__DIR__ . "/customer_auth.php");   // sets $customer_role
 
 // Cart badge
 $cart_count = 0;
-if (isset($_SESSION['user_id']) && in_array($_SESSION['role'] ?? '', ['customer', 'vip'], true)) {
-    $cart_count_statement = mysqli_prepare($conn,
-        "SELECT COALESCE(SUM(c.quantity), 0) AS item_count
-         FROM cart c
-         JOIN users u ON u.user_id = c.user_id
-         WHERE c.user_id = ? AND u.role IN ('customer', 'vip') AND u.status = 'active'"
-    );
-    $user_id = (int)$_SESSION['user_id'];
-    mysqli_stmt_bind_param($cart_count_statement, 'i', $user_id);
-    mysqli_stmt_execute($cart_count_statement);
-    $cart_count = (int)mysqli_fetch_assoc(mysqli_stmt_get_result($cart_count_statement))['item_count'];
+if ($customer_role == 'customer' || $customer_role == 'vip') {
+    $cart_user_id = (int)$_SESSION['user_id'];
+    $cart_result = mysqli_query($conn, "SELECT COALESCE(SUM(quantity), 0) AS item_count FROM cart WHERE user_id = $cart_user_id");
+    $cart_count = (int)mysqli_fetch_assoc($cart_result)['item_count'];
+}
+
+// Profile picture of the signed-in user
+if (isset($_SESSION['user_id'])) {
+    $image_user_id = (int)$_SESSION['user_id'];
+    include(__DIR__ . "/profile_image.php");
 }
 
 // Default page title
@@ -57,7 +53,7 @@ if (!isset($page_title)) {
       <details class="account-menu">
         <summary class="account-toggle">
           <?php if (isset($_SESSION['user_id'])) { ?>
-            <img class="account-avatar" src="<?php echo htmlspecialchars(profile_image_url((int)$_SESSION['user_id'])); ?>"
+            <img class="account-avatar" src="<?php echo $profile_image_url; ?>"
                  alt="" width="28" height="28">
           <?php } ?>
           Account <span aria-hidden="true">&#9662;</span>

@@ -1,71 +1,47 @@
 <?php
 session_start();
 include_once("../includes/config.php");
-require_once("../includes/customer_auth.php");
-require_active_customer($conn, BASE_URL . 'cart/cart.php');
+
+$login_redirect = BASE_URL . 'cart/cart.php';
+include("../includes/require_customer.php");
 $user_id = (int)$_SESSION['user_id'];
 
 // Cart actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
+    $selected_ids = $_POST['selected_cart_ids'] ?? [];
 
-    if ($action === 'checkout_selected') {
-        $selected_ids = $_POST['selected_cart_ids'] ?? [];
+    if ($action == 'checkout_selected') {
+        // Keep only the selected items that belong to this customer
         $valid_ids = [];
-        if (is_array($selected_ids)) {
-            foreach ($selected_ids as $selected_id) {
-                if (is_string($selected_id) || is_int($selected_id)) {
-                    $cart_id = filter_var($selected_id, FILTER_VALIDATE_INT);
-                    if ($cart_id !== false && $cart_id > 0) {
-                        $valid_ids[] = (int)$cart_id;
-                    }
-                }
+        foreach ($selected_ids as $selected_id) {
+            $selected_id = (int)$selected_id;
+            $check_result = mysqli_query($conn, "SELECT cart_id FROM cart WHERE cart_id = $selected_id AND user_id = $user_id");
+            if (mysqli_num_rows($check_result) == 1) {
+                $valid_ids[] = $selected_id;
             }
         }
-        $valid_ids = array_values(array_unique($valid_ids));
 
         if ($valid_ids) {
-            // Validate selected items
-            $id_list = implode(',', $valid_ids);
-            $result = mysqli_query($conn, "SELECT cart_id FROM cart WHERE user_id = $user_id AND cart_id IN ($id_list)");
-            $owned_ids = array_map('intval', array_column(mysqli_fetch_all($result, MYSQLI_ASSOC), 'cart_id'));
-            if (count($owned_ids) === count($valid_ids)) {
-                $_SESSION['checkout_cart_ids'] = $owned_ids;
-                header('Location: ' . BASE_URL . 'orders/checkout.php');
-                exit;
-            }
+            $_SESSION['checkout_cart_ids'] = $valid_ids;
+            header('Location: ' . BASE_URL . 'orders/checkout.php');
+            exit;
         }
-        $_SESSION['flash'] = ['type' => 'error', 'text' => 'Select at least one item in your cart to check out.'];
-    } elseif ($action === 'remove_selected') {
-        $selected_ids = $_POST['selected_cart_ids'] ?? [];
-        if (is_array($selected_ids)) {
-            // Remove selected items
-            $stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
-            foreach ($selected_ids as $selected_id) {
-                if (!is_string($selected_id) && !is_int($selected_id)) {
-                    continue;
-                }
-                $cart_id = filter_var($selected_id, FILTER_VALIDATE_INT);
-                if ($cart_id !== false && $cart_id > 0) {
-                    mysqli_stmt_bind_param($stmt, 'ii', $cart_id, $user_id);
-                    mysqli_stmt_execute($stmt);
-                }
-            }
+        $_SESSION['message'] = 'Select at least one item in your cart to check out.';
+    } elseif ($action == 'remove_selected') {
+        // Remove all ticked items
+        foreach ($selected_ids as $selected_id) {
+            $selected_id = (int)$selected_id;
+            mysqli_query($conn, "DELETE FROM cart WHERE cart_id = $selected_id AND user_id = $user_id");
         }
-    } elseif ($action === 'remove') {
-        $cart_id = (int)($_POST['cart_id'] ?? 0);
+    } elseif ($action == 'remove') {
         // Remove one item
-        $stmt = mysqli_prepare($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?");
-        mysqli_stmt_bind_param($stmt, 'ii', $cart_id, $user_id);
-        mysqli_stmt_execute($stmt);
+        $cart_id = (int)($_POST['cart_id'] ?? 0);
+        mysqli_query($conn, "DELETE FROM cart WHERE cart_id = $cart_id AND user_id = $user_id");
     }
     header('Location: ' . BASE_URL . 'cart/cart.php');
     exit;
 }
-
-// Cart message
-$flash = $_SESSION['flash'] ?? null;
-unset($_SESSION['flash']);
 
 // Cart contents
 $cart_items_sql = "SELECT c.cart_id, c.quantity,
@@ -83,26 +59,23 @@ $cart_items_sql = "SELECT c.cart_id, c.quantity,
       JOIN products p         ON p.product_id = pc.product_id
       WHERE c.user_id = ?
       ORDER BY c.cart_id DESC";
-$cart_items_stmt = mysqli_prepare($conn, $cart_items_sql);
-mysqli_stmt_bind_param($cart_items_stmt, 'i', $user_id);
-mysqli_stmt_execute($cart_items_stmt);
-$items = mysqli_fetch_all(mysqli_stmt_get_result($cart_items_stmt), MYSQLI_ASSOC);
+$cart_items_result = mysqli_execute_query($conn, $cart_items_sql, [$user_id]);
+$items = mysqli_fetch_all($cart_items_result, MYSQLI_ASSOC);
 
 $vip_discount_rate = ($_SESSION['role'] ?? '') === 'vip' ? 0.10 : 0;
 $subtotal   = 0;
 $original_subtotal = 0;
 $item_count = 0;
 $has_issue  = false;
-foreach ($items as &$item) {
-    $item['discounted_price'] = round((float)$item['price'] * (1 - $vip_discount_rate), 2);
-    $original_subtotal += (float)$item['price'] * (int)$item['quantity'];
-    $subtotal += $item['discounted_price'] * (int)$item['quantity'];
+foreach ($items as $key => $item) {
+    $items[$key]['discounted_price'] = round($item['price'] * (1 - $vip_discount_rate), 2);
+    $original_subtotal += $item['price'] * $item['quantity'];
+    $subtotal += $items[$key]['discounted_price'] * $item['quantity'];
     $item_count += $item['quantity'];
     if ($item['stock'] < $item['quantity']) {
         $has_issue = true;
     }
 }
-unset($item);
 
 $page_title = "Your cart | Soigné";
 $extra_css  = "cart.css";
@@ -124,11 +97,7 @@ include_once ('../includes/header.php');
     <h1>Your cart</h1>
   <?php } ?>
 
-  <?php if ($flash) { ?>
-    <p class="cart-flash <?php echo $flash['type'] === 'error' ? 'is-error' : 'is-success'; ?>" role="status">
-      <?php echo htmlspecialchars($flash['text']); ?>
-    </p>
-  <?php } ?>
+  <?php include("../includes/alert.php"); ?>
 
   <?php if (!$items) { ?>
 
@@ -161,8 +130,8 @@ include_once ('../includes/header.php');
                 Color: <?php echo htmlspecialchars($item['color']); ?> &middot; Size: <?php echo htmlspecialchars($item['size']); ?> &middot; Qty: <?php echo (int)$item['quantity']; ?>
               </p>
               <p class="cart-unit">
-                <?php if ($vip_discount_rate > 0) { ?><del><?php echo peso($item['price']); ?></del> <?php } ?>
-                <?php echo peso($item['discounted_price']); ?> each
+                <?php if ($vip_discount_rate > 0) { ?><del><?php echo '₱' . number_format($item['price'], 2); ?></del> <?php } ?>
+                <?php echo '₱' . number_format($item['discounted_price'], 2); ?> each
               </p>
 
               <?php if ($item['stock'] < 1) { ?>
@@ -177,7 +146,7 @@ include_once ('../includes/header.php');
               </div>
             </div>
 
-            <p class="cart-line"><?php echo peso($item['discounted_price'] * $item['quantity']); ?></p>
+            <p class="cart-line"><?php echo '₱' . number_format($item['discounted_price'] * $item['quantity'], 2); ?></p>
 
             <form method="post" action="<?php echo BASE_URL; ?>cart/cart.php" class="cart-remove">
               <input type="hidden" name="cart_id" value="<?php echo (int)$item['cart_id']; ?>">
@@ -192,9 +161,9 @@ include_once ('../includes/header.php');
         <h2>Order summary</h2>
         <p class="sum-row"><span>Items</span><span><?php echo (int)$item_count; ?></span></p>
         <?php if ($vip_discount_rate > 0) { ?>
-          <p class="sum-row"><span>VIP discount (10%)</span><span>-<?php echo peso($original_subtotal - $subtotal); ?></span></p>
+          <p class="sum-row"><span>VIP discount (10%)</span><span>-<?php echo '₱' . number_format($original_subtotal - $subtotal, 2); ?></span></p>
         <?php } ?>
-        <p class="sum-row sum-total"><span>Subtotal</span><span><?php echo peso($subtotal); ?></span></p>
+        <p class="sum-row sum-total"><span>Subtotal</span><span><?php echo '₱' . number_format($subtotal, 2); ?></span></p>
         <?php if ($vip_discount_rate > 0) { ?><p class="sum-note">Soigné Premium discount applied.</p><?php } ?>
         <p class="sum-note">Shipping is calculated at checkout.</p>
 

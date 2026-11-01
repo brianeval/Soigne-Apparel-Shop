@@ -8,7 +8,7 @@ $admin_header_name = $_SESSION['username'] ?? 'Administrator';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><?php echo admin_escape($admin_page_title); ?> | Soigné Admin</title>
+  <title><?php echo htmlspecialchars($admin_page_title); ?> | Soigné Admin</title>
   <link rel="stylesheet" href="<?php echo BASE_URL; ?>admin/styles/admin.css?v=<?php echo filemtime(APP_ROOT . '/admin/styles/admin.css'); ?>">
   <link rel="stylesheet" href="<?php echo BASE_URL; ?>admin/styles/manage.css?v=<?php echo filemtime(APP_ROOT . '/admin/styles/manage.css'); ?>">
 </head>
@@ -39,11 +39,11 @@ $admin_header_name = $_SESSION['username'] ?? 'Administrator';
           <label class="admin-sidebar-toggle" for="admin-sidebar-toggle" aria-label="Toggle sidebar">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
           </label>
-          <div class="admin-breadcrumb">Workspace <span>/</span> <?php echo admin_escape($admin_page_title); ?></div>
+          <div class="admin-breadcrumb">Workspace <span>/</span> <?php echo htmlspecialchars($admin_page_title); ?></div>
         </div>
         <div class="admin-user">
-          <span class="admin-avatar" aria-hidden="true"><?php echo admin_escape(strtoupper(substr($admin_header_name, 0, 1))); ?></span>
-          <span><strong><?php echo admin_escape($admin_header_name); ?></strong><small>Administrator</small></span>
+          <span class="admin-avatar" aria-hidden="true"><?php echo htmlspecialchars(strtoupper(substr($admin_header_name, 0, 1))); ?></span>
+          <span><strong><?php echo htmlspecialchars($admin_header_name); ?></strong><small>Administrator</small></span>
         </div>
       </header>
       <div class="admin-content">

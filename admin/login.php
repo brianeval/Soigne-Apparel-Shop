@@ -1,55 +1,39 @@
 <?php
 session_start();
 include_once("../includes/config.php");
-require_once("../includes/admin_redirect.php");
 
-$redirect = safe_admin_return_path($_POST['redirect'] ?? $_GET['redirect'] ?? '');
-$login_notice = $_SESSION['admin_login_notice'] ?? '';
-unset($_SESSION['admin_login_notice']);
-
-if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'admin') {
-    header('Location: ' . BASE_URL . 'admin/manage-products/');
-    exit;
+// Where to go after signing in (it must be an admin page)
+$redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
+if (strpos($redirect, BASE_URL . 'admin/') !== 0) {
+    $redirect = BASE_URL . 'admin/manage-products/';
 }
 
-if (!isset($_SESSION['admin_login_csrf'])) {
-    $_SESSION['admin_login_csrf'] = bin2hex(random_bytes(32));
+if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') == 'admin') {
+    header('Location: ' . BASE_URL . 'admin/manage-products/');
+    exit;
 }
 
 $error = '';
 $login_value = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $posted_login = $_POST['login'] ?? '';
-    $posted_password = $_POST['password'] ?? '';
-    $csrf_token = $_POST['csrf_token'] ?? '';
-    $login_value = is_string($posted_login) ? trim($posted_login) : '';
-    $password = is_string($posted_password) ? $posted_password : '';
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $login_value = trim($_POST['login'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if (!is_string($csrf_token) || !hash_equals($_SESSION['admin_login_csrf'], $csrf_token)) {
-        $error = 'Your sign-in session expired. Please refresh the page and try again.';
-    } elseif ($login_value === '' && $password === '') {
+    if ($login_value == '' || $password == '') {
         $error = 'Enter your username or email and password.';
-    } elseif ($login_value === '') {
-        $error = 'Enter your username or email.';
-    } elseif ($password === '') {
-        $error = 'Enter your password.';
     } else {
-        $admin_lookup_query = "SELECT user_id, username, password, role
-                               FROM users
-                               WHERE (username = ? OR email = ?) AND role = 'admin' AND status = 'active'
-                               LIMIT 1";
-        $admin_lookup_statement = mysqli_prepare($conn, $admin_lookup_query);
-        mysqli_stmt_bind_param($admin_lookup_statement, 'ss', $login_value, $login_value);
-        mysqli_stmt_execute($admin_lookup_statement);
-        $admin = mysqli_fetch_assoc(mysqli_stmt_get_result($admin_lookup_statement));
+        $admin_result = mysqli_execute_query($conn, "SELECT user_id, username, password, role
+             FROM users
+             WHERE (username = ? OR email = ?) AND role = 'admin' AND status = 'active'
+             LIMIT 1", [$login_value, $login_value]);
+        $admin = mysqli_fetch_assoc($admin_result);
 
         if ($admin && password_verify($password, $admin['password'])) {
             session_regenerate_id(true);
             $_SESSION['user_id'] = (int)$admin['user_id'];
             $_SESSION['username'] = $admin['username'];
             $_SESSION['role'] = $admin['role'];
-            unset($_SESSION['admin_login_csrf']);
             header('Location: ' . $redirect);
             exit;
         }
@@ -87,16 +71,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>Sign in to your account</h2>
         <p class="admin-login-help">Use your administrator username or email.</p>
 
-        <?php if (is_string($login_notice) && $login_notice !== '') { ?>
-          <p class="admin-alert" role="status"><?php echo htmlspecialchars($login_notice, ENT_QUOTES, 'UTF-8'); ?></p>
-        <?php } ?>
+        <?php include("../includes/alert.php"); ?>
         <?php if ($error !== '') { ?>
-          <p class="admin-alert" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
+          <p class="admin-alert" role="alert"><?php echo htmlspecialchars($error); ?></p>
         <?php } ?>
 
         <form method="post" action="<?php echo BASE_URL; ?>admin/login.php" novalidate>
-          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['admin_login_csrf']); ?>">
-          <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect, ENT_QUOTES, 'UTF-8'); ?>">
+          <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($redirect); ?>">
 
           <label for="login">Username or email</label>
           <input type="text" id="login" name="login" value="<?php echo htmlspecialchars($login_value); ?>" autocomplete="username" autofocus>
