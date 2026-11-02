@@ -21,9 +21,3 @@ if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') != 'admin') {
     exit;
 }
 
-if (!$admin_account || $admin_account['status'] != 'active') {
-    unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role']);
-    $_SESSION['message'] = 'Your administrator account is inactive. Contact another administrator for assistance.';
-    header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
-    exit;
-}

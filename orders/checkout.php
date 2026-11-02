@@ -13,7 +13,7 @@ unset($_SESSION['checkout_success']);
 unset($_SESSION['checkout_email_sent']);
 
 // Cart items chosen in the cart page
-$checkout_cart_ids = array_map('intval', $_SESSION['checkout_cart_ids'] ?? []);
+$checkout_cart_ids = $_SESSION['checkout_cart_ids'] ?? [];
 
 if (!$checkout_cart_ids && !$success_order_id) {
     header('Location: ' . BASE_URL . 'cart/cart.php');
