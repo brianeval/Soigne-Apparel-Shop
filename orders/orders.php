@@ -343,7 +343,6 @@ include_once("../includes/header.php");
                         <?php } ?>
                       </div>
 
-                      //review
                       <?php if ($payment_status === 'paid') { ?>
                         <?php $has_review = in_array(($item['review_status'] ?? ''), ['pending', 'published'], true); ?>
                         <details class="rate-review-disclosure">
