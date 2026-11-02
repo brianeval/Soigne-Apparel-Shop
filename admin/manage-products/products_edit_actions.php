@@ -172,8 +172,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $color_id = (int)($_POST['product_color_id'] ?? 0);
         try {
             mysqli_begin_transaction($conn);
-            mysqli_query($conn, "DELETE FROM product_variants WHERE product_color_id = $color_id");
-            mysqli_query($conn, "DELETE FROM product_colors WHERE product_color_id = $color_id AND product_id = $product_id");
+            mysqli_execute_query($conn, "DELETE FROM product_variants WHERE product_color_id = ?", [$color_id]);
+            mysqli_execute_query($conn, "DELETE FROM product_colors WHERE product_color_id = ? AND product_id = ?", [$color_id, $product_id]);
             mysqli_commit($conn);
             $_SESSION['success'] = 'Color and its unused sizes deleted.';
             header('Location: ' . $edit_url . '&panel=options');

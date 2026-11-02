@@ -24,12 +24,13 @@ if ($post_action == 'create') {
         }
 
         // The variant must belong to the chosen supplier
-        $variant_result = mysqli_query($conn,
+        $variant_result = mysqli_execute_query($conn,
             "SELECT v.variant_id
              FROM product_variants v
              JOIN product_colors pc ON pc.product_color_id = v.product_color_id
              JOIN products p ON p.product_id = pc.product_id
-             WHERE v.variant_id = $variant_id AND p.supplier_id = $supplier_id"
+             WHERE v.variant_id = ? AND p.supplier_id = ?",
+            [$variant_id, $supplier_id]
         );
         if (mysqli_num_rows($variant_result) == 0) {
             $errors[] = 'Every selected variant must belong to the chosen supplier.';
@@ -52,13 +53,13 @@ if ($post_action == 'create') {
 
             // Batch number looks like RS-2026-00012
             $batch_number = sprintf('RS-%s-%05d', date('Y'), $restock_id);
-            mysqli_query($conn, "UPDATE restocks SET batch_number = '$batch_number' WHERE restock_id = $restock_id");
+            mysqli_execute_query($conn, "UPDATE restocks SET batch_number = ? WHERE restock_id = ?", [$batch_number, $restock_id]);
 
             foreach ($restock_lines as $line) {
                 mysqli_execute_query($conn, "INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost) VALUES (?, ?, ?, ?)", [$restock_id, $line['variant_id'], $line['quantity'], $line['unit_cost']]);
 
                 // Add the received quantity to the stock
-                mysqli_query($conn, "UPDATE product_variants SET stock = stock + " . $line['quantity'] . " WHERE variant_id = " . $line['variant_id']);
+                mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?", [$line['quantity'], $line['variant_id']]);
             }
 
             mysqli_commit($conn);

@@ -61,11 +61,11 @@ if ($cart_id < 1 || $variant_id < 1 || $quantity < 1) {
                 // Merge into the existing item and remove the old row
                 $merged_quantity = $duplicate['quantity'] + $quantity;
                 $duplicate_cart_id = (int)$duplicate['cart_id'];
-                mysqli_query($conn, "UPDATE cart SET quantity = $merged_quantity WHERE cart_id = $duplicate_cart_id AND user_id = $user_id");
-                mysqli_query($conn, "DELETE FROM cart WHERE cart_id = $cart_id AND user_id = $user_id");
+                mysqli_execute_query($conn, "UPDATE cart SET quantity = ? WHERE cart_id = ? AND user_id = ?", [$merged_quantity, $duplicate_cart_id, $user_id]);
+                mysqli_execute_query($conn, "DELETE FROM cart WHERE cart_id = ? AND user_id = ?", [$cart_id, $user_id]);
             } else {
                 // Update cart item
-                mysqli_query($conn, "UPDATE cart SET variant_id = $variant_id, quantity = $quantity WHERE cart_id = $cart_id AND user_id = $user_id");
+                mysqli_execute_query($conn, "UPDATE cart SET variant_id = ?, quantity = ? WHERE cart_id = ? AND user_id = ?", [$variant_id, $quantity, $cart_id, $user_id]);
             }
         }
 

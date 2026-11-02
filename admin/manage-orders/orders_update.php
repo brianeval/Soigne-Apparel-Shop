@@ -36,11 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_begin_transaction($conn);
 
             // Read the current status again
-            $status_result = mysqli_query($conn, "SELECT fulfillment_status, payment_status FROM orders WHERE order_id = $order_id");
+            $status_result = mysqli_execute_query($conn, "SELECT fulfillment_status, payment_status FROM orders WHERE order_id = ?", [$order_id]);
             $current = mysqli_fetch_assoc($status_result);
 
             if ($action == 'mark_paid' && $current['fulfillment_status'] == 'delivered' && $current['payment_status'] == 'unpaid') {
-                mysqli_query($conn, "UPDATE orders SET payment_status = 'paid' WHERE order_id = $order_id");
+                mysqli_execute_query($conn, "UPDATE orders SET payment_status = 'paid' WHERE order_id = ?", [$order_id]);
                 $order['payment_status'] = 'paid';
                 $allowed = true;
             } elseif ($action != 'mark_paid' && $current['payment_status'] == 'unpaid' && $current['fulfillment_status'] == $steps[$action][0]) {
@@ -48,12 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 // Failed delivery and cancelled orders give their stock back
                 if ($new_status == 'failed_delivery' || $new_status == 'cancelled') {
-                    $items_result = mysqli_query($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = $order_id");
+                    $items_result = mysqli_execute_query($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ?", [$order_id]);
                     foreach (mysqli_fetch_all($items_result, MYSQLI_ASSOC) as $item) {
-                        mysqli_query($conn, "UPDATE product_variants SET stock = stock + " . (int)$item['quantity'] . " WHERE variant_id = " . (int)$item['variant_id']);
+                        mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?", [(int)$item['quantity'], (int)$item['variant_id']]);
                     }
                 }
-                mysqli_query($conn, "UPDATE orders SET fulfillment_status = '$new_status' WHERE order_id = $order_id");
+                mysqli_execute_query($conn, "UPDATE orders SET fulfillment_status = ? WHERE order_id = ?", [$new_status, $order_id]);
                 $order['fulfillment_status'] = $new_status;
                 $allowed = true;
             } else {
@@ -82,9 +82,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $email_order = $order;
         if ($action == 'mark_paid') {
             // The paid email carries a PDF receipt, so it needs the order items
-            $receipt_items_result = mysqli_query($conn,
+            $receipt_items_result = mysqli_execute_query($conn,
                 "SELECT product_name, color, size, quantity, unit_price AS price
-                 FROM order_transaction_details WHERE order_id = $order_id ORDER BY order_item_id"
+                 FROM order_transaction_details WHERE order_id = ? ORDER BY order_item_id",
+                [$order_id]
             );
             $email_order['items'] = mysqli_fetch_all($receipt_items_result, MYSQLI_ASSOC);
         }

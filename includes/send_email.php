@@ -14,15 +14,13 @@ $mailer = new PHPMailer();
 $mail_error = '';
 $mail_attachments = $mail_attachments ?? [];
 
-// rexter, lagay mo mailtrap creds mo, icomment mo akin
-// $mail_username = '';
-// $mail_password = '';
+//esta
+$mail_username = '93e59f7a6faeb2';
+$mail_password = '55e233769a958c';
 
-//$mail_username = '93e59f7a6faeb2';
-//$mail_password = '55e233769a958c';
-
-$mail_username = 'dd98c16486056d';
-$mail_password = '876a4f8e2b729b';
+//rexter
+// $mail_username = 'dd98c16486056d';
+// $mail_password = '876a4f8e2b729b';
 
 $mail_host = 'sandbox.smtp.mailtrap.io';
 $mail_port = '2525';

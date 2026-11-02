@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
-            $payment_result = mysqli_query($conn, "SELECT user_id, status FROM premium_payments WHERE payment_id = $payment_id");
+            $payment_result = mysqli_execute_query($conn, "SELECT user_id, status FROM premium_payments WHERE payment_id = ?", [$payment_id]);
             $payment = mysqli_fetch_assoc($payment_result);
 
             if (!$payment || $payment['status'] != 'pending') {
@@ -22,11 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 // Approving gives the customer one more month of VIP
                 if ($action == 'approve') {
-                    mysqli_query($conn,
+                    mysqli_execute_query($conn,
                         "UPDATE users
                          SET vip_expires_at = DATE_ADD(GREATEST(COALESCE(vip_expires_at, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP), INTERVAL 1 MONTH),
                              role = 'vip'
-                         WHERE user_id = $payment_user_id AND status = 'active' AND role IN ('customer', 'vip')"
+                         WHERE user_id = ? AND status = 'active' AND role IN ('customer', 'vip')",
+                        [$payment_user_id]
                     );
                     if (mysqli_affected_rows($conn) != 1) {
                         $problem = 'The customer account is not active and eligible for VIP activation.';
@@ -35,10 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 if ($problem == '') {
                     $new_status = ($action == 'approve') ? 'approved' : 'rejected';
-                    mysqli_query($conn,
+                    mysqli_execute_query($conn,
                         "UPDATE premium_payments
-                         SET status = '$new_status', reviewed_at = CURRENT_TIMESTAMP, reviewed_by = $admin_id
-                         WHERE payment_id = $payment_id"
+                         SET status = ?, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = ?
+                         WHERE payment_id = ?",
+                        [$new_status, $admin_id, $payment_id]
                     );
                     mysqli_commit($conn);
 

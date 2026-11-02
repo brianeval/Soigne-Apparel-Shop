@@ -19,7 +19,7 @@ if (!$checkout_cart_ids && !$success_order_id) {
     header('Location: ' . BASE_URL . 'cart/cart.php');
     exit;
 }
-$checkout_id_list = $checkout_cart_ids ? implode(',', $checkout_cart_ids) : '0';
+$checkout_id_placeholders = $checkout_cart_ids ? implode(',', array_fill(0, count($checkout_cart_ids), '?')) : '0';
 
 $customer_name = '';
 $phone = '';
@@ -53,8 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                             JOIN product_variants v ON v.variant_id = c.variant_id
                                             JOIN product_colors pc ON pc.product_color_id = v.product_color_id
                                             JOIN products p ON p.product_id = pc.product_id
-                                            WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_list)
-                                            ORDER BY c.cart_id", [$user_id]);
+                                            WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_placeholders)
+                                            ORDER BY c.cart_id", array_merge([$user_id], $checkout_cart_ids));
             $items = mysqli_fetch_all($selected_items_result, MYSQLI_ASSOC);
 
             // Is everything still in stock?
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $errors[] = 'One or more items are no longer available in the requested quantity. Please review your cart.';
             } else {
                 $payment_method = 'Cash on delivery (COD)';
-                $email_result = mysqli_query($conn, "SELECT email FROM users WHERE user_id = $user_id");
+                $email_result = mysqli_execute_query($conn, "SELECT email FROM users WHERE user_id = ?", [$user_id]);
                 $recipient = mysqli_fetch_assoc($email_result);
 
                 // Create order
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
 
                 // Clear checked-out items from the cart
-                mysqli_query($conn, "DELETE FROM cart WHERE user_id = $user_id AND cart_id IN ($checkout_id_list)");
+                mysqli_execute_query($conn, "DELETE FROM cart WHERE user_id = ? AND cart_id IN ($checkout_id_placeholders)", array_merge([$user_id], $checkout_cart_ids));
 
                 mysqli_commit($conn);
 
@@ -167,8 +167,8 @@ $summary_result = mysqli_execute_query($conn, "SELECT c.cart_id, c.quantity, v.v
                                JOIN product_variants v ON v.variant_id = c.variant_id
                                JOIN product_colors pc ON pc.product_color_id = v.product_color_id
                                JOIN products p ON p.product_id = pc.product_id
-                               WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_list)
-                               ORDER BY c.cart_id DESC", [$user_id]);
+                               WHERE c.user_id = ? AND c.cart_id IN ($checkout_id_placeholders)
+                               ORDER BY c.cart_id DESC", array_merge([$user_id], $checkout_cart_ids));
 $items = mysqli_fetch_all($summary_result, MYSQLI_ASSOC);
 
 $vip_discount_rate = ($_SESSION['role'] ?? '') == 'vip' ? 0.10 : 0;

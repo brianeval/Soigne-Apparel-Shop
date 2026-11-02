@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'delete'
     try {
         mysqli_begin_transaction($conn);
 
-        $order_result = mysqli_query($conn, "SELECT fulfillment_status, payment_status FROM orders WHERE order_id = $order_id");
+        $order_result = mysqli_execute_query($conn, "SELECT fulfillment_status, payment_status FROM orders WHERE order_id = ?", [$order_id]);
         $order = mysqli_fetch_assoc($order_result);
 
         if (!$order) {
@@ -19,13 +19,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'delete'
         } else {
             // A pending order still holds stock, so give it back
             if ($order['fulfillment_status'] == 'pending') {
-                $items_result = mysqli_query($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = $order_id");
+                $items_result = mysqli_execute_query($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ?", [$order_id]);
                 foreach (mysqli_fetch_all($items_result, MYSQLI_ASSOC) as $item) {
-                    mysqli_query($conn, "UPDATE product_variants SET stock = stock + " . (int)$item['quantity'] . " WHERE variant_id = " . (int)$item['variant_id']);
+                    mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?", [(int)$item['quantity'], (int)$item['variant_id']]);
                 }
             }
-            mysqli_query($conn, "DELETE FROM order_items WHERE order_id = $order_id");
-            mysqli_query($conn, "DELETE FROM orders WHERE order_id = $order_id");
+            mysqli_execute_query($conn, "DELETE FROM order_items WHERE order_id = ?", [$order_id]);
+            mysqli_execute_query($conn, "DELETE FROM orders WHERE order_id = ?", [$order_id]);
             mysqli_commit($conn);
 
             $_SESSION['success'] = 'Order deleted.';

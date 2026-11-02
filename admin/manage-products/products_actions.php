@@ -185,11 +185,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $product_id = (int)($_POST['product_id'] ?? 0);
         try {
             mysqli_begin_transaction($conn);
-            mysqli_query($conn, "DELETE v FROM product_variants v
+            mysqli_execute_query($conn, "DELETE v FROM product_variants v
                                  JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                                 WHERE pc.product_id = $product_id");
-            mysqli_query($conn, "DELETE FROM product_colors WHERE product_id = $product_id");
-            mysqli_query($conn, "DELETE FROM products WHERE product_id = $product_id");
+                                 WHERE pc.product_id = ?", [$product_id]);
+            mysqli_execute_query($conn, "DELETE FROM product_colors WHERE product_id = ?", [$product_id]);
+            mysqli_execute_query($conn, "DELETE FROM products WHERE product_id = ?", [$product_id]);
             mysqli_commit($conn);
             $_SESSION['success'] = 'Product deleted.';
             header('Location: ' . BASE_URL . 'admin/manage-products/');

@@ -19,16 +19,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             mysqli_begin_transaction($conn);
 
             // Only the customer's own pending orders can be changed
-            $order_result = mysqli_query($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = $order_id AND user_id = $user_id");
+            $order_result = mysqli_execute_query($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = ? AND user_id = ?", [$order_id, $user_id]);
             $order = mysqli_fetch_assoc($order_result);
 
             // Items of this order
-            $current_result = mysqli_query($conn,
+            $current_result = mysqli_execute_query($conn,
                 "SELECT oi.order_item_id, oi.variant_id, oi.quantity, pc.product_id
                  FROM order_items oi
                  JOIN product_variants v ON v.variant_id = oi.variant_id
                  JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                 WHERE oi.order_id = $order_id"
+                 WHERE oi.order_id = ?",
+                [$order_id]
             );
             $current_items = mysqli_fetch_all($current_result, MYSQLI_ASSOC);
 
@@ -38,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } elseif ($action == 'cancel_order') {
                 // Give the stock back
                 foreach ($current_items as $item) {
-                    mysqli_query($conn, "UPDATE product_variants SET stock = stock + " . (int)$item['quantity'] . " WHERE variant_id = " . (int)$item['variant_id']);
+                    mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?", [(int)$item['quantity'], (int)$item['variant_id']]);
                 }
                 // Cancel order
-                mysqli_query($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = $order_id AND user_id = $user_id");
+                mysqli_execute_query($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = ? AND user_id = ?", [$order_id, $user_id]);
                 mysqli_commit($conn);
                 $_SESSION['success'] = 'Your order has been cancelled.';
             } else {
@@ -55,11 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $new_quantities[$item_id] = (int)($_POST['items'][$item_id]['quantity'] ?? 0);
 
                     // The new size must belong to the same product
-                    $variant_result = mysqli_query($conn,
+                    $variant_result = mysqli_execute_query($conn,
                         "SELECT v.variant_id
                          FROM product_variants v
                          JOIN product_colors pc ON pc.product_color_id = v.product_color_id
-                         WHERE v.variant_id = " . $new_variant_ids[$item_id] . " AND pc.product_id = " . (int)$item['product_id']
+                         WHERE v.variant_id = ? AND pc.product_id = ?",
+                        [$new_variant_ids[$item_id], (int)$item['product_id']]
                     );
                     if ($new_quantities[$item_id] < 1 || mysqli_num_rows($variant_result) == 0) {
                         $valid = false;
@@ -72,18 +74,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     // Give back the old stock, then take the new stock
                     foreach ($current_items as $item) {
-                        mysqli_query($conn, "UPDATE product_variants SET stock = stock + " . (int)$item['quantity'] . " WHERE variant_id = " . (int)$item['variant_id']);
+                        mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?", [(int)$item['quantity'], (int)$item['variant_id']]);
                     }
                     $stock_ok = true;
                     foreach ($current_items as $item) {
                         $item_id = $item['order_item_id'];
                         $new_variant_id = $new_variant_ids[$item_id];
                         $new_quantity = $new_quantities[$item_id];
-                        mysqli_query($conn, "UPDATE product_variants SET stock = stock - $new_quantity WHERE variant_id = $new_variant_id AND stock >= $new_quantity");
+                        mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock - ? WHERE variant_id = ? AND stock >= ?", [$new_quantity, $new_variant_id, $new_quantity]);
                         if (mysqli_affected_rows($conn) != 1) {
                             $stock_ok = false;
                         }
-                        mysqli_query($conn, "UPDATE order_items SET variant_id = $new_variant_id, quantity = $new_quantity WHERE order_item_id = " . (int)$item_id . " AND order_id = $order_id");
+                        mysqli_execute_query($conn, "UPDATE order_items SET variant_id = ?, quantity = ? WHERE order_item_id = ? AND order_id = ?", [$new_variant_id, $new_quantity, (int)$item_id, $order_id]);
                     }
 
                     if ($stock_ok) {
@@ -340,6 +342,8 @@ include_once("../includes/header.php");
                           <p>Qty: <?php echo (int)$item['quantity']; ?> · <?php echo '₱' . number_format($item['price'], 2); ?> each</p>
                         <?php } ?>
                       </div>
+
+                      //review
                       <?php if ($payment_status === 'paid') { ?>
                         <?php $has_review = in_array(($item['review_status'] ?? ''), ['pending', 'published'], true); ?>
                         <details class="rate-review-disclosure">
@@ -367,11 +371,12 @@ include_once("../includes/header.php");
 
                             </fieldset>
                             <label class="rate-review-comment-label">Your comment
-                              <textarea name="review_text" rows="5" placeholder="Share your experience with this product"><?php echo $has_review ? htmlspecialchars((string)$item['review_text']) : ''; ?></textarea>
+                              <textarea name="review_text" rows="5" placeholder="Share your experience with this product"> <?php echo $has_review ? htmlspecialchars((string)$item['review_text']) : ''; ?></textarea>
                             </label>
                             <p class="rate-review-hint">Please keep your review respectful and helpful.</p>
                             <button class="btn rate-review-submit" type="submit"><?php echo $has_review ? 'Save changes' : 'Submit review'; ?></button>
                           </form>
+
                           <?php if ($has_review) { ?>
                             <form method="post" action="<?php echo BASE_URL; ?>reviews/review_action.php">
                               <input type="hidden" name="order_id" value="<?php echo (int)$order['order_id']; ?>">
@@ -387,6 +392,7 @@ include_once("../includes/header.php");
                     </div>
                   <?php } ?>
                 </div>
+                
                 <?php if ($status === 'pending') { ?>
                     <div class="order-action-buttons">
                       <button class="btn order-save-button" type="submit">Save changes</button>

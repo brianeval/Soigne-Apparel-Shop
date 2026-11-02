@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     } elseif ($action == 'delete') {
         $user_id = (int)($_POST['user_id'] ?? 0);
-        $order_result = mysqli_query($conn, "SELECT COUNT(*) AS order_count FROM orders WHERE user_id = $user_id");
+        $order_result = mysqli_execute_query($conn, "SELECT COUNT(*) AS order_count FROM orders WHERE user_id = ?", [$user_id]);
         $order_count = (int)mysqli_fetch_assoc($order_result)['order_count'];
         if ($user_id < 1) {
             $errors[] = 'Choose a valid customer.';
@@ -77,9 +77,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             try {
                 mysqli_begin_transaction($conn);
-                mysqli_query($conn, "DELETE FROM cart WHERE user_id = $user_id");
-                mysqli_query($conn, "DELETE FROM customers WHERE user_id = $user_id");
-                mysqli_query($conn, "DELETE FROM users WHERE user_id = $user_id AND role IN ('customer', 'vip')");
+                mysqli_execute_query($conn, "DELETE FROM cart WHERE user_id = ?", [$user_id]);
+                mysqli_execute_query($conn, "DELETE FROM customers WHERE user_id = ?", [$user_id]);
+                mysqli_execute_query($conn, "DELETE FROM users WHERE user_id = ? AND role IN ('customer', 'vip')", [$user_id]);
                 mysqli_commit($conn);
                 $_SESSION['success'] = 'Customer account permanently deleted.';
                 header('Location: ' . BASE_URL . 'admin/manage-customers/');
