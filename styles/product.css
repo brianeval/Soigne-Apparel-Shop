@@ -213,6 +213,10 @@
   text-align: center;
 }
 
+.product-info .product-actions > button.btn {
+  color: #fffefa;
+}
+
 .product-info .product-actions .btn-outline {
   color: var(--ink);
 }

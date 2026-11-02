@@ -73,13 +73,13 @@ try {
     if ($action == 'delete') {
         $delete_result = mysqli_execute_query($conn, "UPDATE product_reviews SET status = 'deleted', updated_at = CURRENT_TIMESTAMP
              WHERE review_id = ? AND product_id = ? AND user_id = ?", [$review_id, $product_id, $user_id]);
-        $message = 'Your review was deleted. You can submit a new review for this product.';
+        $message = 'Your review was deleted. You can submit a new review for this product.'; 
     } elseif ($action == 'create') {
-        // A deleted review of the same product is brought back, otherwise a new one is added
         $restore_result = mysqli_execute_query($conn, "UPDATE product_reviews
              SET rating = ?, review_text = ?, order_item_id = ?, status = 'published',
                  published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
              WHERE product_id = ? AND user_id = ? AND status = 'deleted'", [$rating, $review_text, $order_item_id, $product_id, $user_id]);
+        //if no deleted review is found, create new
         if (mysqli_affected_rows($conn) == 0) {
             $create_result = mysqli_execute_query($conn, "INSERT INTO product_reviews (product_id, user_id, order_item_id, rating, review_text, status, published_at)
                  VALUES (?, ?, ?, ?, ?, 'published', CURRENT_TIMESTAMP)", [$product_id, $user_id, $order_item_id, $rating, $review_text]);

@@ -18,14 +18,14 @@ if (!$product) {
 }
 
 // Reviews: first read every published review to get the count and the filter choices
-$review_from_sql = "FROM product_reviews r
+$shared_sql = "FROM product_reviews r
      JOIN users u ON u.user_id = r.user_id
      LEFT JOIN order_items oi ON oi.order_item_id = r.order_item_id
      LEFT JOIN product_variants v ON v.variant_id = oi.variant_id
      LEFT JOIN product_colors pc ON pc.product_color_id = v.product_color_id";
 $all_reviews_result = mysqli_query($conn,
     "SELECT pc.color AS purchased_color, v.size AS purchased_size
-     $review_from_sql
+     $shared_sql
      WHERE r.product_id = $product_id AND r.status = 'published'"
 );
 $all_published_review_count = 0;
@@ -70,7 +70,7 @@ if (!in_array($review_size, $review_sizes)) {
 // Published reviews that match the filters
 $reviews_sql = "SELECT r.review_id, r.user_id, u.username, r.rating, r.review_text, r.created_at,
                        pc.color AS purchased_color, v.size AS purchased_size
-                $review_from_sql
+                $shared_sql
                 WHERE r.product_id = $product_id AND r.status = 'published'";
 if ($review_rating != '') {
     $reviews_sql .= " AND r.rating = " . (int)$review_rating;
@@ -91,7 +91,7 @@ if (($_SESSION['role'] ?? '') == 'admin' && isset($_GET['review_id'])) {
     $pending_review_result = mysqli_query($conn,
         "SELECT r.review_id, r.user_id, u.username, r.rating, r.review_text, r.created_at,
                 pc.color AS purchased_color, v.size AS purchased_size
-         $review_from_sql
+         $shared_sql
          WHERE r.review_id = $admin_review_id AND r.product_id = $product_id AND r.status = 'pending'"
     );
     $admin_pending_review = mysqli_fetch_assoc($pending_review_result);
