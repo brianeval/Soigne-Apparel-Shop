@@ -9,11 +9,11 @@ if (!in_array($order_view, ['ongoing', 'history'])) {
 
 include('orders_delete.php');
 
-// Order counts for the two tabs
+
 $ongoing_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE payment_status = 'unpaid' AND fulfillment_status IN ('pending', 'shipped')"))['total'];
 $history_order_count = (int)mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM orders WHERE payment_status = 'paid' OR fulfillment_status IN ('delivered', 'cancelled', 'failed_delivery')"))['total'];
 
-// Ongoing orders
+
 $ongoing_orders = mysqli_fetch_all(mysqli_query($conn,
     "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username,
             COALESCE(SUM(details.quantity), 0) AS item_count,
@@ -26,7 +26,7 @@ $ongoing_orders = mysqli_fetch_all(mysqli_query($conn,
      ORDER BY o.created_at DESC, o.order_id DESC"
 ), MYSQLI_ASSOC);
 
-// Order history (with the optional search)
+
 $history_search = trim($_GET['history_search'] ?? '');
 $history_sql = "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.created_at, o.shipping_address, u.username,
                        COALESCE(SUM(details.quantity), 0) AS item_count,

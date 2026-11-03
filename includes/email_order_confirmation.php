@@ -1,9 +1,9 @@
 <?php
-// Emails the order confirmation to the customer.
-// Set $email_order before including this file. It needs these keys:
-//   email, customer_name, shipping_address, payment_method, order_id, total
-//   and items (each item has name, color, size, quantity and price)
-// Result: $mail_error is empty when the email was sent.
+
+
+
+
+
 $confirm_rows = '';
 $confirm_text_rows = [];
 foreach ($email_order['items'] as $confirm_item) {

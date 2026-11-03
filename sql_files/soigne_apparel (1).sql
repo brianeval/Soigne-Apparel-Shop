@@ -1,43 +1,43 @@
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Generation Time: Oct 26, 2026 at 02:05 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+
+
+
+
+
+
+
+
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT;
+SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS;
+SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION;
+SET NAMES utf8mb4;
 
---
--- Database: `soigne_apparel`
---
 
--- --------------------------------------------------------
 
---
--- Stand-in structure for view `all_costs`
--- (See below for the actual view)
---
+
+
+
+
+
+
+
+
 CREATE TABLE `all_costs` (
 `cost_month` varchar(10)
 ,`category` varchar(11)
 ,`amount` decimal(42,2)
 );
 
--- --------------------------------------------------------
 
---
--- Table structure for table `cart`
---
+
+
+
+
 
 CREATE TABLE `cart` (
   `cart_id` int(11) NOT NULL,
@@ -46,27 +46,27 @@ CREATE TABLE `cart` (
   `quantity` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `cart`
---
+
+
+
 
 INSERT INTO `cart` (`cart_id`, `user_id`, `variant_id`, `quantity`) VALUES
 (27, 4, 339, 1);
 
--- --------------------------------------------------------
 
---
--- Table structure for table `categories`
---
+
+
+
+
 
 CREATE TABLE `categories` (
   `category_id` int(11) NOT NULL,
   `name` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `categories`
---
+
+
+
 
 INSERT INTO `categories` (`category_id`, `name`) VALUES
 (8, 'Chinos'),
@@ -80,11 +80,11 @@ INSERT INTO `categories` (`category_id`, `name`) VALUES
 (5, 'Sweaters'),
 (1, 'T-shirts');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `customers`
---
+
+
+
+
 
 CREATE TABLE `customers` (
   `customer_id` int(11) NOT NULL,
@@ -94,19 +94,19 @@ CREATE TABLE `customers` (
   `address` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `customers`
---
+
+
+
 
 INSERT INTO `customers` (`customer_id`, `user_id`, `customer_name`, `phone`, `address`) VALUES
 (1, 2, 'Juan Dela Cruz', '09171234567', '123 Sample St., Quezon City, Metro Manila'),
 (3, 4, 'rexter baldo triste', '09493201926', 'sahing st. western bicutan');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `expenses`
---
+
+
+
+
 
 CREATE TABLE `expenses` (
   `expense_id` int(11) NOT NULL,
@@ -117,18 +117,18 @@ CREATE TABLE `expenses` (
   `amount` decimal(10,2) NOT NULL
 ) ;
 
---
--- Dumping data for table `expenses`
---
+
+
+
 
 INSERT INTO `expenses` (`expense_id`, `expense_date`, `billing_month`, `category`, `description`, `amount`) VALUES
 (1, '2026-09-05', '2026-09-01', 'electricity', 'September electricity', 3200.00);
 
--- --------------------------------------------------------
 
---
--- Table structure for table `orders`
---
+
+
+
+
 
 CREATE TABLE `orders` (
   `order_id` int(11) NOT NULL,
@@ -139,18 +139,18 @@ CREATE TABLE `orders` (
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `orders`
---
+
+
+
 
 INSERT INTO `orders` (`order_id`, `user_id`, `fulfillment_status`, `payment_status`, `shipping_address`, `created_at`) VALUES
 (7, 4, 'pending', 'unpaid', 'sahing st. western bicutan', '2026-10-22 11:08:17');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `order_items`
---
+
+
+
+
 
 CREATE TABLE `order_items` (
   `order_item_id` int(11) NOT NULL,
@@ -160,29 +160,29 @@ CREATE TABLE `order_items` (
   `price` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `order_items`
---
+
+
+
 
 INSERT INTO `order_items` (`order_item_id`, `order_id`, `variant_id`, `quantity`, `price`) VALUES
 (8, 7, 342, 2, 499.00);
 
--- --------------------------------------------------------
 
---
--- Stand-in structure for view `order_totals`
--- (See below for the actual view)
---
+
+
+
+
+
 CREATE TABLE `order_totals` (
 `order_id` int(11)
 ,`total` decimal(42,2)
 );
 
--- --------------------------------------------------------
 
---
--- Table structure for table `premium_payments`
---
+
+
+
+
 
 CREATE TABLE `premium_payments` (
   `payment_id` int(11) NOT NULL,
@@ -196,11 +196,11 @@ CREATE TABLE `premium_payments` (
   `reviewed_by` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Table structure for table `products`
---
+
+
+
+
 
 CREATE TABLE `products` (
   `product_id` int(11) NOT NULL,
@@ -213,9 +213,9 @@ CREATE TABLE `products` (
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `products`
---
+
+
+
 
 INSERT INTO `products` (`product_id`, `supplier_id`, `name`, `category_id`, `department`, `price`, `description`, `created_at`) VALUES
 (6, 5, 'WINDPROOF AND WATER-REPELLENT JACKET', 10, 'men', 2490.00, NULL, '2026-10-15 10:57:27'),
@@ -287,11 +287,11 @@ INSERT INTO `products` (`product_id`, `supplier_id`, `name`, `category_id`, `dep
 (72, 3, 'Essentials Relaxed Striped T-Shirt', 1, 'women', 499.00, NULL, '2026-10-21 14:39:04'),
 (73, 3, 'Long Sleeve Striped Button-Down Top with Bows', 2, 'women', 1199.00, NULL, '2026-10-21 14:39:04');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `product_colors`
---
+
+
+
+
 
 CREATE TABLE `product_colors` (
   `product_color_id` int(11) NOT NULL,
@@ -300,9 +300,9 @@ CREATE TABLE `product_colors` (
   `image` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `product_colors`
---
+
+
+
 
 INSERT INTO `product_colors` (`product_color_id`, `product_id`, `color`, `image`) VALUES
 (11, 61, 'Black', 'Penshoppe_T-Shirt_PBG_BLK.jpg'),
@@ -392,11 +392,11 @@ INSERT INTO `product_colors` (`product_color_id`, `product_id`, `color`, `image`
 (95, 73, 'Blush', 'Penshoppe_Shirt_LSSBDTB_BLU.jpg'),
 (98, 43, 'Space Purple', 'Nike_Shorts_NMDF10_SPBB.jpg');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `product_color_images`
---
+
+
+
+
 
 CREATE TABLE `product_color_images` (
   `image_id` int(11) NOT NULL,
@@ -406,9 +406,9 @@ CREATE TABLE `product_color_images` (
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `product_color_images`
---
+
+
+
 
 INSERT INTO `product_color_images` (`image_id`, `product_color_id`, `image_path`, `sort_order`, `created_at`) VALUES
 (1, 11, 'Penshoppe_T-Shirt_PBG_BLK.jpg', 0, '2026-10-26 08:47:39'),
@@ -495,11 +495,11 @@ INSERT INTO `product_color_images` (`image_id`, `product_color_id`, `image_path`
 (82, 94, 'Penshoppe_T-Shirt_ERSTS_RED.jpg', 0, '2026-10-26 08:47:39'),
 (83, 95, 'Penshoppe_Shirt_LSSBDTB_BLU.jpg', 0, '2026-10-26 08:47:39');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `product_reviews`
---
+
+
+
+
 
 CREATE TABLE `product_reviews` (
   `review_id` int(11) NOT NULL,
@@ -514,11 +514,11 @@ CREATE TABLE `product_reviews` (
   `published_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Table structure for table `product_variants`
---
+
+
+
+
 
 CREATE TABLE `product_variants` (
   `variant_id` int(11) NOT NULL,
@@ -527,9 +527,9 @@ CREATE TABLE `product_variants` (
   `stock` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `product_variants`
---
+
+
+
 
 INSERT INTO `product_variants` (`variant_id`, `product_color_id`, `size`, `stock`) VALUES
 (31, 11, 'XS', 5),
@@ -976,11 +976,11 @@ INSERT INTO `product_variants` (`variant_id`, `product_color_id`, `size`, `stock
 (545, 98, 'XL', 5),
 (546, 98, '2XL', 5);
 
--- --------------------------------------------------------
 
---
--- Table structure for table `restocks`
---
+
+
+
+
 
 CREATE TABLE `restocks` (
   `restock_id` int(11) NOT NULL,
@@ -989,11 +989,11 @@ CREATE TABLE `restocks` (
   `restock_date` date NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Table structure for table `restock_items`
---
+
+
+
+
 
 CREATE TABLE `restock_items` (
   `restock_item_id` int(11) NOT NULL,
@@ -1003,22 +1003,22 @@ CREATE TABLE `restock_items` (
   `unit_cost` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- --------------------------------------------------------
 
---
--- Stand-in structure for view `restock_totals`
--- (See below for the actual view)
---
+
+
+
+
+
 CREATE TABLE `restock_totals` (
 `restock_id` int(11)
 ,`total` decimal(42,2)
 );
 
--- --------------------------------------------------------
 
---
--- Table structure for table `suppliers`
---
+
+
+
+
 
 CREATE TABLE `suppliers` (
   `supplier_id` int(11) NOT NULL,
@@ -1026,20 +1026,20 @@ CREATE TABLE `suppliers` (
   `image` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `suppliers`
---
+
+
+
 
 INSERT INTO `suppliers` (`supplier_id`, `name`, `image`) VALUES
 (3, 'PENSHOPPE', NULL),
 (4, 'Nike', NULL),
 (5, 'H&M', 'h-m-logo.png');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `users`
---
+
+
+
+
 
 CREATE TABLE `users` (
   `user_id` int(11) NOT NULL,
@@ -1052,126 +1052,126 @@ CREATE TABLE `users` (
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `users`
---
+
+
+
 
 INSERT INTO `users` (`user_id`, `username`, `email`, `password`, `role`, `status`, `vip_expires_at`, `created_at`) VALUES
 (1, 'admin', 'admin@soigne.test', '$2b$10$V9o3eRnHsI4prmOLfNGmBe/ld7ISyKmZCn7eTO5kxh1LMr5yjc16e', 'admin', 'active', NULL, '2026-10-07 13:51:30'),
 (2, 'juandc', 'juan@example.com', '$2b$10$Q2EiBPqJDIdS4WoAESA29umbyGe1ecsDKXmlGQSC9QA03223OIZ6C', 'customer', 'active', NULL, '2026-10-07 13:51:30'),
 (4, 'rexter', 'briane09@gmail.com', '$2y$10$2TxmgRtpgoaEVoamPbBJDu.R76thdMkSBZBGnIGEoxP6xDG/kYaiG', 'customer', 'active', NULL, '2026-10-08 10:57:59');
 
--- --------------------------------------------------------
 
---
--- Structure for view `all_costs`
---
+
+
+
+
 DROP TABLE IF EXISTS `all_costs`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `all_costs`  AS SELECT date_format(`r`.`restock_date`,'%Y-%m-01') AS `cost_month`, 'restock' AS `category`, `t`.`total` AS `amount` FROM (`restocks` `r` join `restock_totals` `t` on(`t`.`restock_id` = `r`.`restock_id`))union all select `expenses`.`billing_month` AS `billing_month`,`expenses`.`category` AS `category`,`expenses`.`amount` AS `amount` from `expenses`  ;
 
--- --------------------------------------------------------
 
---
--- Structure for view `order_totals`
---
+
+
+
+
 DROP TABLE IF EXISTS `order_totals`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `order_totals`  AS SELECT `order_items`.`order_id` AS `order_id`, sum(`order_items`.`quantity` * `order_items`.`price`) AS `total` FROM `order_items` GROUP BY `order_items`.`order_id` ;
 
--- --------------------------------------------------------
 
---
--- Structure for view `restock_totals`
---
+
+
+
+
 DROP TABLE IF EXISTS `restock_totals`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `restock_totals`  AS SELECT `restock_items`.`restock_id` AS `restock_id`, sum(`restock_items`.`quantity` * `restock_items`.`unit_cost`) AS `total` FROM `restock_items` GROUP BY `restock_items`.`restock_id` ;
 
---
--- Indexes for dumped tables
---
 
---
--- Indexes for table `cart`
---
+
+
+
+
+
+
 ALTER TABLE `cart`
   ADD PRIMARY KEY (`cart_id`),
   ADD UNIQUE KEY `uniq_cart_item` (`user_id`,`variant_id`),
   ADD KEY `variant_id` (`variant_id`);
 
---
--- Indexes for table `categories`
---
+
+
+
 ALTER TABLE `categories`
   ADD PRIMARY KEY (`category_id`),
   ADD UNIQUE KEY `name` (`name`);
 
---
--- Indexes for table `customers`
---
+
+
+
 ALTER TABLE `customers`
   ADD PRIMARY KEY (`customer_id`),
   ADD UNIQUE KEY `user_id` (`user_id`);
 
---
--- Indexes for table `expenses`
---
+
+
+
 ALTER TABLE `expenses`
   ADD PRIMARY KEY (`expense_id`),
   ADD UNIQUE KEY `uniq_category_month` (`category`,`billing_month`);
 
---
--- Indexes for table `orders`
---
+
+
+
 ALTER TABLE `orders`
   ADD PRIMARY KEY (`order_id`),
   ADD KEY `user_id` (`user_id`);
 
---
--- Indexes for table `order_items`
---
+
+
+
 ALTER TABLE `order_items`
   ADD PRIMARY KEY (`order_item_id`),
   ADD UNIQUE KEY `uniq_order_item` (`order_id`,`variant_id`),
   ADD KEY `variant_id` (`variant_id`);
 
---
--- Indexes for table `premium_payments`
---
+
+
+
 ALTER TABLE `premium_payments`
   ADD PRIMARY KEY (`payment_id`),
   ADD KEY `idx_premium_payments_user_status` (`user_id`,`status`),
   ADD KEY `idx_premium_payments_status_submitted` (`status`,`submitted_at`),
   ADD KEY `reviewed_by` (`reviewed_by`);
 
---
--- Indexes for table `products`
---
+
+
+
 ALTER TABLE `products`
   ADD PRIMARY KEY (`product_id`),
   ADD KEY `supplier_id` (`supplier_id`),
   ADD KEY `idx_department` (`department`),
   ADD KEY `idx_products_category_id` (`category_id`);
 
---
--- Indexes for table `product_colors`
---
+
+
+
 ALTER TABLE `product_colors`
   ADD PRIMARY KEY (`product_color_id`),
   ADD UNIQUE KEY `uniq_product_color` (`product_id`,`color`);
 
---
--- Indexes for table `product_color_images`
---
+
+
+
 ALTER TABLE `product_color_images`
   ADD PRIMARY KEY (`image_id`),
   ADD UNIQUE KEY `uniq_product_color_image` (`product_color_id`,`image_path`),
   ADD KEY `idx_product_color_images_order` (`product_color_id`,`sort_order`,`image_id`);
 
---
--- Indexes for table `product_reviews`
---
+
+
+
 ALTER TABLE `product_reviews`
   ADD PRIMARY KEY (`review_id`),
   ADD UNIQUE KEY `uniq_product_review_user` (`product_id`,`user_id`),
@@ -1180,228 +1180,228 @@ ALTER TABLE `product_reviews`
   ADD KEY `idx_product_reviews_moderation` (`status`,`created_at`),
   ADD KEY `fk_product_reviews_user` (`user_id`);
 
---
--- Indexes for table `product_variants`
---
+
+
+
 ALTER TABLE `product_variants`
   ADD PRIMARY KEY (`variant_id`),
   ADD UNIQUE KEY `uniq_variant` (`product_color_id`,`size`);
 
---
--- Indexes for table `restocks`
---
+
+
+
 ALTER TABLE `restocks`
   ADD PRIMARY KEY (`restock_id`),
   ADD UNIQUE KEY `batch_number` (`batch_number`),
   ADD KEY `supplier_id` (`supplier_id`);
 
---
--- Indexes for table `restock_items`
---
+
+
+
 ALTER TABLE `restock_items`
   ADD PRIMARY KEY (`restock_item_id`),
   ADD UNIQUE KEY `uniq_restock_item` (`restock_id`,`variant_id`),
   ADD KEY `variant_id` (`variant_id`);
 
---
--- Indexes for table `suppliers`
---
+
+
+
 ALTER TABLE `suppliers`
   ADD PRIMARY KEY (`supplier_id`),
   ADD UNIQUE KEY `name` (`name`);
 
---
--- Indexes for table `users`
---
+
+
+
 ALTER TABLE `users`
   ADD PRIMARY KEY (`user_id`),
   ADD UNIQUE KEY `username` (`username`),
   ADD UNIQUE KEY `email` (`email`);
 
---
--- AUTO_INCREMENT for dumped tables
---
 
---
--- AUTO_INCREMENT for table `cart`
---
+
+
+
+
+
+
 ALTER TABLE `cart`
   MODIFY `cart_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
---
--- AUTO_INCREMENT for table `categories`
---
+
+
+
 ALTER TABLE `categories`
   MODIFY `category_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
---
--- AUTO_INCREMENT for table `customers`
---
+
+
+
 ALTER TABLE `customers`
   MODIFY `customer_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
---
--- AUTO_INCREMENT for table `expenses`
---
+
+
+
 ALTER TABLE `expenses`
   MODIFY `expense_id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `orders`
---
+
+
+
 ALTER TABLE `orders`
   MODIFY `order_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
---
--- AUTO_INCREMENT for table `order_items`
---
+
+
+
 ALTER TABLE `order_items`
   MODIFY `order_item_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
---
--- AUTO_INCREMENT for table `premium_payments`
---
+
+
+
 ALTER TABLE `premium_payments`
   MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `products`
---
+
+
+
 ALTER TABLE `products`
   MODIFY `product_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=78;
 
---
--- AUTO_INCREMENT for table `product_colors`
---
+
+
+
 ALTER TABLE `product_colors`
   MODIFY `product_color_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=102;
 
---
--- AUTO_INCREMENT for table `product_color_images`
---
+
+
+
 ALTER TABLE `product_color_images`
   MODIFY `image_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=128;
 
---
--- AUTO_INCREMENT for table `product_reviews`
---
+
+
+
 ALTER TABLE `product_reviews`
   MODIFY `review_id` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `product_variants`
---
+
+
+
 ALTER TABLE `product_variants`
   MODIFY `variant_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=549;
 
---
--- AUTO_INCREMENT for table `restocks`
---
+
+
+
 ALTER TABLE `restocks`
   MODIFY `restock_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
---
--- AUTO_INCREMENT for table `restock_items`
---
+
+
+
 ALTER TABLE `restock_items`
   MODIFY `restock_item_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
---
--- AUTO_INCREMENT for table `suppliers`
---
+
+
+
 ALTER TABLE `suppliers`
   MODIFY `supplier_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
---
--- AUTO_INCREMENT for table `users`
---
+
+
+
 ALTER TABLE `users`
   MODIFY `user_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
---
--- Constraints for dumped tables
---
 
---
--- Constraints for table `cart`
---
+
+
+
+
+
+
 ALTER TABLE `cart`
   ADD CONSTRAINT `cart_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`),
   ADD CONSTRAINT `cart_ibfk_2` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`variant_id`);
 
---
--- Constraints for table `customers`
---
+
+
+
 ALTER TABLE `customers`
   ADD CONSTRAINT `customers_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
 
---
--- Constraints for table `orders`
---
+
+
+
 ALTER TABLE `orders`
   ADD CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`);
 
---
--- Constraints for table `order_items`
---
+
+
+
 ALTER TABLE `order_items`
   ADD CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`),
   ADD CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`variant_id`);
 
---
--- Constraints for table `premium_payments`
---
+
+
+
 ALTER TABLE `premium_payments`
   ADD CONSTRAINT `premium_payments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `premium_payments_ibfk_2` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL;
 
---
--- Constraints for table `products`
---
+
+
+
 ALTER TABLE `products`
   ADD CONSTRAINT `fk_products_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `products_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`supplier_id`);
 
---
--- Constraints for table `product_colors`
---
+
+
+
 ALTER TABLE `product_colors`
   ADD CONSTRAINT `product_colors_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`);
 
---
--- Constraints for table `product_color_images`
---
+
+
+
 ALTER TABLE `product_color_images`
   ADD CONSTRAINT `fk_product_color_images_color` FOREIGN KEY (`product_color_id`) REFERENCES `product_colors` (`product_color_id`) ON DELETE CASCADE;
 
---
--- Constraints for table `product_reviews`
---
+
+
+
 ALTER TABLE `product_reviews`
   ADD CONSTRAINT `fk_product_reviews_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `order_items` (`order_item_id`) ON DELETE SET NULL,
   ADD CONSTRAINT `fk_product_reviews_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`product_id`) ON DELETE CASCADE,
   ADD CONSTRAINT `fk_product_reviews_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE;
 
---
--- Constraints for table `product_variants`
---
+
+
+
 ALTER TABLE `product_variants`
   ADD CONSTRAINT `product_variants_ibfk_1` FOREIGN KEY (`product_color_id`) REFERENCES `product_colors` (`product_color_id`);
 
---
--- Constraints for table `restocks`
---
+
+
+
 ALTER TABLE `restocks`
   ADD CONSTRAINT `restocks_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`supplier_id`);
 
---
--- Constraints for table `restock_items`
---
+
+
+
 ALTER TABLE `restock_items`
   ADD CONSTRAINT `restock_items_ibfk_1` FOREIGN KEY (`restock_id`) REFERENCES `restocks` (`restock_id`),
   ADD CONSTRAINT `restock_items_ibfk_2` FOREIGN KEY (`variant_id`) REFERENCES `product_variants` (`variant_id`);
 COMMIT;
 
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT;
+SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS;
+SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION;

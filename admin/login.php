@@ -2,7 +2,7 @@
 session_start();
 include_once("../includes/config.php");
 
-// Where to go after signing in (it must be an admin page)
+
 $redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
 if (strpos($redirect, BASE_URL . 'admin/') !== 0) {
     $redirect = BASE_URL . 'admin/manage-products/';

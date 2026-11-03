@@ -1,9 +1,9 @@
 <?php
-// Builds the PDF receipt of a delivered and paid order.
-// Set $receipt_order before including this file. It needs these keys:
-//   order_id, customer_name, email, shipping_address, created_at and items
-//   (each item has product_name, color, size, quantity and price)
-// Result: $receipt_pdf holds the PDF file content.
+
+
+
+
+
 use Dompdf\Dompdf;
 
 require_once(APP_ROOT . '/vendor/dompdf/autoload.inc.php');

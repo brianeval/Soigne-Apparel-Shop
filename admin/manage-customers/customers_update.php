@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $role = $_POST['role'] ?? '';
     $renew_vip = ($_POST['renew_vip'] ?? '') == '1';
 
-    // Basic checks
+
     if ($customer_name == '') {
         $errors[] = 'Enter a customer name.';
     }
@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     if (!$errors) {
-        // VIP lasts one month. It is (re)started when the customer becomes VIP,
-        // when the membership already ended, or when "Renew" is ticked.
+
+
         $vip_is_active = $customer['role'] == 'vip' && $customer['vip_expires_at'] && strtotime($customer['vip_expires_at']) > time();
         if ($role == 'customer') {
             $vip_sql = "vip_expires_at = NULL";

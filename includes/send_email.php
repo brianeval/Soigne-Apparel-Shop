@@ -1,9 +1,9 @@
 <?php
-// Sends one email with PHPMailer (Mailtrap SMTP).
-// Set these before including this file:
-//   $mail_to, $mail_name, $mail_subject, $mail_html, $mail_text
-//   $mail_attachments (optional) = [['content' => ..., 'name' => ..., 'mime' => ...]]
-// Result: $mail_error is empty when the email was sent, otherwise it holds the problem.
+
+
+
+
+
 use PHPMailer\PHPMailer\PHPMailer;
 
 require_once APP_ROOT . '/vendor/phpmailer/phpmailer/src/Exception.php';
@@ -14,13 +14,13 @@ $mailer = new PHPMailer();
 $mail_error = '';
 $mail_attachments = $mail_attachments ?? [];
 
-//esta
-$mail_username = '93e59f7a6faeb2';
-$mail_password = '55e233769a958c';
 
-//rexter
-// $mail_username = 'dd98c16486056d';
-// $mail_password = '876a4f8e2b729b';
+
+
+
+
+ $mail_username = 'dd98c16486056d';
+ $mail_password = '876a4f8e2b729b';
 
 $mail_host = 'sandbox.smtp.mailtrap.io';
 $mail_port = '2525';

@@ -1,5 +1,5 @@
 <?php
-// Delete an order (only unpaid pending, cancelled or failed-delivery orders)
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'delete') {
     $order_id = (int)($_POST['order_id'] ?? 0);
 
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_POST['action'] ?? '') == 'delete'
             mysqli_rollback($conn);
             $errors[] = 'Only unpaid pending, cancelled, or failed-delivery orders can be deleted.';
         } else {
-            // A pending order still holds stock, so give it back
+
             if ($order['fulfillment_status'] == 'pending') {
                 $items_result = mysqli_execute_query($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ?", [$order_id]);
                 foreach (mysqli_fetch_all($items_result, MYSQLI_ASSOC) as $item) {

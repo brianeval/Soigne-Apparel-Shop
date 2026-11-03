@@ -3,7 +3,7 @@ require_once("../includes/bootstrap.php");
 
 $order_id = (int)($_GET['id'] ?? 0);
 
-// Load the order and its customer
+
 $order_result = mysqli_query($conn,
     "SELECT o.order_id, o.user_id, o.fulfillment_status, o.payment_status, o.shipping_address,
             o.created_at, u.username, u.email,

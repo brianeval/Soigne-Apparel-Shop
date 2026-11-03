@@ -9,7 +9,7 @@ if (!defined('BASE_URL')) {
     define('BASE_URL', '/soigne_apparel_shop/');
 }
 
-// Full folder path of the project on the computer (used for saving files)
+
 if (!defined('APP_ROOT')) {
     define('APP_ROOT', rtrim($_SERVER['DOCUMENT_ROOT'], '/\\') . '/' . trim(BASE_URL, '/'));
 }

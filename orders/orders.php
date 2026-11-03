@@ -7,7 +7,7 @@ include("../includes/require_customer.php");
 
 $user_id = (int)$_SESSION['user_id'];
 
-// Customer actions: change an order or cancel it
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
     $order_id = (int)($_POST['order_id'] ?? 0);
@@ -18,11 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
-            // Only the customer's own pending orders can be changed
+
             $order_result = mysqli_execute_query($conn, "SELECT order_id, fulfillment_status FROM orders WHERE order_id = ? AND user_id = ?", [$order_id, $user_id]);
             $order = mysqli_fetch_assoc($order_result);
 
-            // Items of this order
+
             $current_result = mysqli_execute_query($conn,
                 "SELECT oi.order_item_id, oi.variant_id, oi.quantity, pc.product_id
                  FROM order_items oi
@@ -37,16 +37,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 mysqli_rollback($conn);
                 $_SESSION['message'] = 'Only pending orders can be changed or cancelled.';
             } elseif ($action == 'cancel_order') {
-                // Give the stock back
+
                 foreach ($current_items as $item) {
                     mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?", [(int)$item['quantity'], (int)$item['variant_id']]);
                 }
-                // Cancel order
+
                 mysqli_execute_query($conn, "UPDATE orders SET fulfillment_status = 'cancelled' WHERE order_id = ? AND user_id = ?", [$order_id, $user_id]);
                 mysqli_commit($conn);
                 $_SESSION['success'] = 'Your order has been cancelled.';
             } else {
-                // Edit order: read the new size and quantity of every item
+
                 $valid = true;
                 $new_variant_ids = [];
                 $new_quantities = [];
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $new_variant_ids[$item_id] = (int)($_POST['items'][$item_id]['variant_id'] ?? 0);
                     $new_quantities[$item_id] = (int)($_POST['items'][$item_id]['quantity'] ?? 0);
 
-                    // The new size must belong to the same product
+
                     $variant_result = mysqli_execute_query($conn,
                         "SELECT v.variant_id
                          FROM product_variants v
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     mysqli_rollback($conn);
                     $_SESSION['message'] = 'Choose a valid size and quantity for every order item.';
                 } else {
-                    // Give back the old stock, then take the new stock
+
                     foreach ($current_items as $item) {
                         mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?", [(int)$item['quantity'], (int)$item['variant_id']]);
                     }
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     exit;
 }
 
-// Customer orders
+
 $orders_result = mysqli_execute_query($conn, "SELECT o.order_id, o.fulfillment_status, o.payment_status, o.shipping_address, o.created_at,
             COALESCE(SUM(details.line_subtotal), 0) AS order_total,
             COALESCE(SUM(details.quantity), 0) AS item_count
@@ -121,7 +121,7 @@ $orders = mysqli_fetch_all($orders_result, MYSQLI_ASSOC);
 foreach ($orders as $order_key => $order) {
     $order_id = (int)$order['order_id'];
 
-    // Order item details
+
     $item_result = mysqli_execute_query($conn, "SELECT details.order_item_id, details.variant_id, details.quantity,
                 details.unit_price AS price, details.product_id, details.product_name,
                 (SELECT pci.image_path
@@ -139,7 +139,7 @@ foreach ($orders as $order_key => $order) {
          ORDER BY details.order_item_id ASC", [$user_id, $order_id, $user_id]);
     $order_items = mysqli_fetch_all($item_result, MYSQLI_ASSOC);
 
-    // Every size the customer can switch to (used when the order is still pending)
+
     foreach ($order_items as $item_key => $item) {
         $variants_result = mysqli_query($conn,
             "SELECT v.variant_id, v.size, v.stock, pc.color
@@ -150,7 +150,7 @@ foreach ($orders as $order_key => $order) {
         );
         $variants = mysqli_fetch_all($variants_result, MYSQLI_ASSOC);
         foreach ($variants as $variant_key => $variant) {
-            // The stock already reserved by this order counts as available
+
             $variants[$variant_key]['available_stock'] = (int)$variant['stock'];
             if ($variant['variant_id'] == $item['variant_id']) {
                 $variants[$variant_key]['available_stock'] += (int)$item['quantity'];
@@ -233,7 +233,7 @@ include_once("../includes/header.php");
 
         <?php foreach ($order_tabs as $tab) { ?>
         <?php
-          // Orders that belong in this tab
+
           $tab_orders = [];
           foreach ($orders as $order) {
               $fulfillment_status = $order['fulfillment_status'];

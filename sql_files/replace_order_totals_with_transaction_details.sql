@@ -1,6 +1,6 @@
--- Run after selecting the soigne_apparel database.
--- Replaces the order_totals view with a single transaction-details view.
--- This changes views only; it does not modify table data.
+
+
+
 
 DROP VIEW IF EXISTS order_transaction_details;
 DROP VIEW IF EXISTS order_totals;

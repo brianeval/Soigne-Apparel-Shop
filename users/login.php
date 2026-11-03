@@ -2,7 +2,7 @@
 session_start();
 include_once("../includes/config.php");
 
-// Where to go after signing in (it must be a page of this website)
+
 $redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
 if (strpos($redirect, BASE_URL) !== 0) {
     $redirect = BASE_URL . 'index.php';
@@ -14,7 +14,7 @@ $cart_redirects = [
 ];
 $is_cart_redirect = in_array($redirect, $cart_redirects);
 
-// Already signed in
+
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') == 'admin' && !$is_cart_redirect) {
     header('Location: ' . BASE_URL . 'admin/manage-products/');
     exit;
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($login_value == '' || $password == '') {
         $error = 'Please enter your username or email and your password.';
     } else {
-        // Customer account lookup (by username or email)
+
         $user_result = mysqli_execute_query($conn, "SELECT user_id, username, password, role
              FROM users
              WHERE (username = ? OR email = ?) AND role IN ('customer', 'vip') AND status = 'active'
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit;
         }
 
-        // Login error
+
         $error = 'Incorrect username/email or password, or this is not an active customer account.';
     }
 }

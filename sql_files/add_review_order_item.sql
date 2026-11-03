@@ -1,5 +1,5 @@
--- Run once against an existing soigne_apparel database.
--- Associates each review with the variant purchased for that review.
+
+
 ALTER TABLE product_reviews
   ADD COLUMN order_item_id INT NULL AFTER user_id,
   ADD INDEX idx_product_reviews_order_item (order_item_id),

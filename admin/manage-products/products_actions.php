@@ -3,7 +3,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
 
     if (isset($_POST['remove_color'])) {
-        // The "x" button removes one color row from the Add Product form
+
         $posted_colors = $_POST['colors'] ?? [];
         array_splice($posted_colors, (int)$_POST['remove_color'], 1);
         $_POST['colors'] = $posted_colors;
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($brand_name == '') {
             $errors[] = 'Enter a brand name.';
         } else {
-            // Save the logo (optional)
+
             $upload_error = '';
             $saved_image = null;
             if (isset($_FILES['brand_logo'])) {
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     header('Location: ' . BASE_URL . 'admin/manage-products/');
                     exit;
                 } catch (mysqli_sql_exception $exception) {
-                    // The brand was not saved, so remove its logo again
+
                     if ($saved_image) {
                         unlink(APP_ROOT . '/images/brands/' . $saved_image);
                     }
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
     } elseif ($action == 'refresh_size_options') {
-        // Nothing to save: the form is shown again with the sizes of the chosen department and category
+
     } elseif ($action == 'create') {
         $supplier_id = (int)($_POST['supplier_id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $posted_colors = $_POST['colors'] ?? [];
         $colors_to_create = [];
 
-        // Basic checks
+
         if ($supplier_id < 1) {
             $errors[] = 'Choose a brand.';
         }
@@ -84,12 +84,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $errors[] = 'Enter a valid product price.';
         }
 
-        // Colors: each one needs a name and at least one size. Pictures are optional.
+
         foreach ($posted_colors as $color_index => $posted_color) {
             $color_name = trim($posted_color['name'] ?? '');
             $selected_sizes = $posted_color['sizes'] ?? [];
 
-            // The pictures chosen for this color
+
             $color_uploads = [];
             foreach ($_FILES['color_images']['name'][$color_index] ?? [] as $file_index => $file_name) {
                 if ($_FILES['color_images']['error'][$color_index][$file_index] != UPLOAD_ERR_NO_FILE) {
@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
 
-            // Skip empty color rows
+
             if ($color_name == '' && !$selected_sizes && !$color_uploads) {
                 continue;
             }
@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $errors[] = 'Add at least one color and select at least one size.';
         }
 
-        // Save the pictures
+
         $saved_images = [];
         if (!$errors) {
             foreach ($colors_to_create as $index => $color) {
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
 
-        // Something went wrong: remove the pictures that were already saved
+
         if ($errors) {
             foreach ($saved_images as $saved_path) {
                 unlink(APP_ROOT . '/images/' . $saved_path);

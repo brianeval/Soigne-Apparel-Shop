@@ -2,13 +2,13 @@
 session_start();
 include_once("../includes/config.php");
 
-// Where to go after registering (it must be a page of this website)
+
 $redirect = $_POST['redirect'] ?? $_GET['redirect'] ?? '';
 if (strpos($redirect, BASE_URL) !== 0) {
     $redirect = BASE_URL . 'index.php';
 }
 
-// Already signed in
+
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') == 'admin') {
     header('Location: ' . BASE_URL . 'admin/manage-products/');
     exit;
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
-    // Basic checks
+
     if ($name == '') {
         $errors[] = 'Please enter your full name.';
     }
@@ -51,21 +51,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors[] = 'Passwords do not match.';
     }
 
-    // Create account
+
     if (!$errors) {
         $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
         try {
             mysqli_begin_transaction($conn);
 
-            // Save login details
+
             $user_insert_result = mysqli_execute_query($conn, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)", [$username, $email, $password_hash]);
             $user_id = mysqli_insert_id($conn);
 
-            // Save customer details
+
             $customer_insert_result = mysqli_execute_query($conn, "INSERT INTO customers (user_id, customer_name, phone, address) VALUES (?, ?, ?, ?)", [$user_id, $name, $phone, $address]);
 
-            // Save the profile picture (optional)
+
             $upload_error = '';
             if (isset($_FILES['profile_photo'])) {
                 $upload = $_FILES['profile_photo'];
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 mysqli_commit($conn);
 
-                // Sign in new customer
+
                 session_regenerate_id(true);
                 $_SESSION['user_id']  = (int)$user_id;
                 $_SESSION['username'] = $username;

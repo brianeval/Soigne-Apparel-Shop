@@ -6,13 +6,13 @@ $login_redirect = BASE_URL . 'cart/cart.php';
 include("../includes/require_customer.php");
 $user_id = (int)$_SESSION['user_id'];
 
-// Cart actions
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
     $selected_ids = $_POST['selected_cart_ids'] ?? [];
 
     if ($action == 'checkout_selected') {
-        // Keep only the selected items that belong to this customer
+
         $valid_ids = [];
         foreach ($selected_ids as $selected_id) {
             $selected_id = (int)$selected_id;
@@ -29,13 +29,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
         $_SESSION['message'] = 'Select at least one item in your cart to check out.';
     } elseif ($action == 'remove_selected') {
-        // Remove all ticked items
+
         foreach ($selected_ids as $selected_id) {
             $selected_id = (int)$selected_id;
             mysqli_query($conn, "DELETE FROM cart WHERE cart_id = $selected_id AND user_id = $user_id");
         }
     } elseif ($action == 'remove') {
-        // Remove one item
+
         $cart_id = (int)($_POST['cart_id'] ?? 0);
         mysqli_query($conn, "DELETE FROM cart WHERE cart_id = $cart_id AND user_id = $user_id");
     }
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     exit;
 }
 
-// Cart contents
+
 $cart_items_sql = "SELECT c.cart_id, c.quantity,
              v.size, v.stock,
              pc.color,
@@ -139,7 +139,7 @@ include_once ('../includes/header.php');
                 <p class="cart-warn">Only <?php echo (int)$item['stock']; ?> left. Please lower the quantity.</p>
               <?php } ?>
 
-              <!-- Update button -->
+
               <div class="cart-actions">
                 <a class="link-btn" href="<?php echo BASE_URL; ?>product.php?id=<?php echo (int)$item['product_id']; ?>&cart_id=<?php echo (int)$item['cart_id']; ?>">Update</a>
               </div>
@@ -169,7 +169,7 @@ include_once ('../includes/header.php');
         <?php if ($has_issue) { ?>
           <p class="cart-warn">Some items in your cart have stock issues. Select only available items to check out.</p>
         <?php } ?>
-        <!-- Checkout button -->
+
         <button class="btn" type="submit" name="action" value="checkout_selected" form="cart-bulk-actions">Checkout selected</button>
         <a class="sum-continue" href="<?php echo BASE_URL; ?>department.php?dept=men">Continue shopping</a>
       </aside>

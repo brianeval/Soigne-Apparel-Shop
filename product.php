@@ -2,7 +2,7 @@
 session_start();
 include_once('includes/config.php');
 
-// Product details
+
 $product_id = (int)($_GET['id'] ?? 0);
 
 $product_sql = "SELECT p.*, c.name AS size_guide_category
@@ -17,7 +17,7 @@ if (!$product) {
     exit;
 }
 
-// Reviews: first read every published review to get the count and the filter choices
+
 $shared_sql = "FROM product_reviews r
      JOIN users u ON u.user_id = r.user_id
      LEFT JOIN order_items oi ON oi.order_item_id = r.order_item_id
@@ -43,7 +43,7 @@ while ($row = mysqli_fetch_assoc($all_reviews_result)) {
 sort($review_colors, SORT_NATURAL | SORT_FLAG_CASE);
 sort($review_sizes, SORT_NATURAL | SORT_FLAG_CASE);
 
-// Review filters chosen by the visitor
+
 $review_order_sql = [
     'newest' => 'r.created_at DESC, r.review_id DESC',
     'oldest' => 'r.created_at ASC, r.review_id ASC',
@@ -67,7 +67,7 @@ if (!in_array($review_size, $review_sizes)) {
     $review_size = '';
 }
 
-// Published reviews that match the filters
+
 $reviews_sql = "SELECT r.review_id, r.user_id, u.username, r.rating, r.review_text, r.created_at,
                        pc.color AS purchased_color, v.size AS purchased_size
                 $shared_sql
@@ -84,7 +84,7 @@ if ($review_size != '') {
 $reviews_sql .= " ORDER BY " . $review_order_sql[$review_order];
 $published_reviews = mysqli_fetch_all(mysqli_query($conn, $reviews_sql), MYSQLI_ASSOC);
 
-// An administrator can also open one pending review from the review list
+
 $admin_pending_review = null;
 if (($_SESSION['role'] ?? '') == 'admin' && isset($_GET['review_id'])) {
     $admin_review_id = (int)$_GET['review_id'];
@@ -97,7 +97,7 @@ if (($_SESSION['role'] ?? '') == 'admin' && isset($_GET['review_id'])) {
     $admin_pending_review = mysqli_fetch_assoc($pending_review_result);
 }
 
-// Size guide link: pants, jeans, chinos and shorts use the bottom sizes
+
 $size_guide_department = strtolower($product['department'] ?? 'men');
 if (!in_array($size_guide_department, ['men', 'women', 'kids'])) {
     $size_guide_department = 'men';
@@ -105,7 +105,7 @@ if (!in_array($size_guide_department, ['men', 'women', 'kids'])) {
 $category_slug = strtolower($product['size_guide_category'] ?? '');
 $size_guide_type = in_array($category_slug, ['pants', 'jeans', 'chinos', 'shorts']) ? 'bottom' : 'top';
 
-// Cart item being edited (when the customer clicked "Update" in the cart)
+
 $edit_cart_id = (int)($_GET['cart_id'] ?? 0);
 $editing_cart_item = null;
 if ($edit_cart_id > 0 && isset($_SESSION['user_id'])) {
@@ -125,14 +125,14 @@ if ($edit_cart_id > 0 && isset($_SESSION['user_id'])) {
     }
 }
 
-// Colors and their pictures
+
 $colors_result = mysqli_execute_query($conn, "SELECT * FROM product_colors WHERE product_id = ?", [$product_id]);
 $colors = mysqli_fetch_all($colors_result, MYSQLI_ASSOC);
 
 $image_color_ids = array_column($colors, 'product_color_id');
 include('includes/color_images.php');
 
-// Selected color: the one in the address, else the color of the cart item, else the first one
+
 $selected = $colors[0] ?? null;
 $wanted_color_id = (int)($_GET['color'] ?? 0);
 if ($wanted_color_id == 0 && $editing_cart_item) {
@@ -145,14 +145,14 @@ foreach ($colors as $c) {
 }
 $selected_images = $selected ? ($images_by_color[$selected['product_color_id']] ?? []) : [];
 
-// Sizes of the selected color
+
 $variants = [];
 if ($selected) {
     $variants_result = mysqli_execute_query($conn, "SELECT * FROM product_variants WHERE product_color_id = ?", [$selected['product_color_id']]);
     $variants = mysqli_fetch_all($variants_result, MYSQLI_ASSOC);
 }
 
-// When editing a cart item, pre-select its size and quantity
+
 $selected_variant_id = 0;
 $selected_quantity = 1;
 if ($editing_cart_item) {
@@ -160,7 +160,7 @@ if ($editing_cart_item) {
     $selected_quantity = (int)$editing_cart_item['quantity'];
 }
 
-// Page header
+
 $page_title = $product['name'] . " | Soigné";
 $extra_css = "product.css";
 include_once('includes/header.php');
@@ -201,7 +201,7 @@ include_once('includes/header.php');
     <p class="desc"><?php echo ($product['description']); ?></p>
     <?php include("includes/alert.php"); ?>
 
-    <!-- Color choices -->
+
     <h3>Color: <?php echo htmlspecialchars($selected['color'] ?? ''); ?></h3>
     <div class="color-options">
       <?php foreach ($colors as $c) { ?>
@@ -218,7 +218,7 @@ include_once('includes/header.php');
       <?php } ?>
     </div>
 
-    <!-- Sizes and cart action -->
+
     <?php if (($_SESSION['role'] ?? '') === 'admin') { ?>
       <p class="product-flash">Administrators can browse products but cannot add them to the cart.</p>
     <?php } else { ?>

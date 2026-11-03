@@ -1,7 +1,7 @@
--- Run once against an existing soigne_apparel database.
--- Keep the latest active feedback if the per-purchase version already created
--- multiple reviews for one product/customer; retain a deleted record only when
--- no active review exists for that product/customer.
+
+
+
+
 DELETE old_review
 FROM product_reviews AS old_review
 JOIN product_reviews AS newer_review

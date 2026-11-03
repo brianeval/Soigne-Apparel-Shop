@@ -12,7 +12,7 @@ $categories = mysqli_fetch_all(mysqli_query($conn, "SELECT category_id, name FRO
 $category_names = array_column($categories, 'name', 'category_id');
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
 
-// Department and category chosen in the "Add Product" form decide which sizes can be picked
+
 $selected_department = $_POST['department'] ?? 'men';
 if (!in_array($selected_department, ['men', 'women', 'kids'])) {
     $selected_department = 'men';
@@ -26,16 +26,16 @@ if ($selected_category_name) {
 if ($size_group) {
     $visible_size_options = $product_size_guide['sizes'][$selected_department][$size_group];
 } else {
-    // No category chosen: offer the top and bottom sizes together
+
     $visible_size_options = array_unique(array_merge(
         $product_size_guide['sizes'][$selected_department]['top'],
-        $product_size_guide['sizes'][$selected_department]['bottom']
+        $product_size_guide['sizes'][$selected_department]['bottom'] 
     ));
 }
 
 include('products_actions.php');
 
-// Product list with the filters
+
 $product_search = trim($_GET['search'] ?? '');
 $product_department = $_GET['department'] ?? '';
 if (!in_array($product_department, ['men', 'women', 'kids'])) {
@@ -109,7 +109,9 @@ include("../includes/header.php");
       <input type="hidden" name="catalog_view" value="brand">
       <input type="hidden" name="action" value="add_brand">
       <label>Brand name<input name="brand_name" value="<?php echo htmlspecialchars(($_POST['action'] ?? '') === 'add_brand' ? ($_POST['brand_name'] ?? '') : ''); ?>"></label>
-      <label>Brand logo (optional)<input type="file" name="brand_logo" accept="image/jpeg,image/png,image/webp"><small class="manage-secondary">JPEG, PNG, or WebP · 5 MB max</small></label>
+      <label>Brand logo (optional)
+        <input type="file" name="brand_logo" accept="image/jpeg,image/png,image/webp"><small class="manage-secondary">JPEG, PNG, or WebP · 5 MB max</small>
+      </label>
       <div class="manage-form-buttons"><button class="admin-button" type="submit">Add Brand</button></div>
     </form>
   </section>
@@ -122,7 +124,7 @@ include("../includes/header.php");
   </section>
 <?php } else { ?>
   <?php
-  // Color rows to show (at least one). Rows that already have data stay open.
+
   $form_colors = $_POST['colors'] ?? [0 => ['name' => '', 'sizes' => []]];
   $form_color_count = 1;
   foreach ($form_colors as $color_index => $form_color) {

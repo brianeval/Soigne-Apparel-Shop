@@ -1,16 +1,16 @@
 <?php
-// Saves one uploaded image into the images folder.
-// Set these before including this file:
-//   $upload        = one file from $_FILES (name, tmp_name, error, size)
-//   $upload_folder = folder inside /images (products, brands or profiles)
-//   $upload_prefix = beginning of the new file name (for example 'product-')
-// Result: $saved_image is the new file name (or null if nothing was saved)
-//         $upload_error is a message if something went wrong (empty if all is fine)
+
+
+
+
+
+
+
 $saved_image = null;
 $upload_error = '';
 
 if ($upload['error'] == UPLOAD_ERR_NO_FILE) {
-    // No file was chosen, nothing to do
+
 } elseif ($upload['error'] != UPLOAD_ERR_OK) {
     $upload_error = 'The image could not be uploaded. Please try again.';
 } elseif ($upload['size'] > 5 * 1024 * 1024) {

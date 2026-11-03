@@ -1,10 +1,10 @@
 <?php
-// Emails the customer when an order changes (shipped, delivered, paid, ...).
-// Set these before including this file:
-//   $email_type  = mark_shipped, mark_delivered, mark_failed_delivery, mark_paid, cancel or update_address
-//   $email_order = order_id, customer_name, email, shipping_address, fulfillment_status,
-//                  payment_status, created_at (and items when $email_type is mark_paid)
-// Result: $mail_error is empty when the email was sent.
+
+
+
+
+
+
 $email_updates = [
     'mark_shipped' => [
         'subject' => 'Your Soigné order has shipped',
@@ -39,7 +39,7 @@ $email_updates = [
 ];
 $email_update = $email_updates[$email_type];
 
-// The paid email comes with the PDF receipt attached
+
 $mail_attachments = [];
 if ($email_type == 'mark_paid') {
     $receipt_order = $email_order;

@@ -6,7 +6,7 @@ $payment_id = (int)($_GET['id'] ?? 0);
 $receipt_result = mysqli_query($conn, "SELECT receipt_filename, receipt_mime FROM premium_payments WHERE payment_id = $payment_id");
 $receipt = mysqli_fetch_assoc($receipt_result);
 
-// Receipts are kept outside the public website folder
+
 $receipt_path = '';
 if ($receipt) {
     $receipt_path = dirname(APP_ROOT) . '/soigne_private_uploads/premium-payments/' . basename($receipt['receipt_filename']);

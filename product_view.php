@@ -9,7 +9,7 @@
       ORDER BY p.product_id DESC";
     $products = mysqli_fetch_all(mysqli_query($conn, $products_sql), MYSQLI_ASSOC);
 
-    // Pictures for the product cards
+
     $image_color_ids = array_column($products, 'first_color_id');
     include("includes/color_images.php");
 

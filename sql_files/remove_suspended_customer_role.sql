@@ -1,6 +1,6 @@
--- Run once against an existing soigne_apparel database.
--- Previously suspended customers become regular customers. The active/inactive
--- account status continues to control whether an account can sign in.
+
+
+
 ALTER TABLE users
   MODIFY role ENUM('customer','admin','vip','banned') NOT NULL DEFAULT 'customer';
 

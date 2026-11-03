@@ -1,11 +1,11 @@
--- Verified product listings and colorways from the sources documented in product_links.txt.
--- Additional Nike colorways are included where their official pages were accessible.
--- H&M and PENSHOPPE pages blocked follow-up checks, so their previously recorded colors remain.
--- Import into the existing soigne_apparel database after applying the main schema.
--- For an existing database, run migrate_product_categories.sql before this import.
--- Images are linked to filenames in images/ when a matching image is available.
--- Unmatched or color-mismatched images remain NULL. Availability/stock is initialized to 0.
--- Product-page URLs and research limitations are documented in product_links.txt.
+
+
+
+
+
+
+
+
 
 ALTER TABLE product_colors
   MODIFY color VARCHAR(80) NOT NULL;
@@ -228,7 +228,7 @@ INSERT INTO tmp_brand_products (brand, name, category, price, color) VALUES
 ('H&M', 'BAGGY DENIM SHORTS', 'Shorts', 1990.00, 'Denim gray'),
 ('H&M', 'WINDPROOF AND WATER-REPELLENT JACKET', 'Outerwear', 2490.00, 'Khaki green');
 
--- Additional verified women's and kids' products and uploaded colorways.
+
 INSERT INTO tmp_brand_products (brand, name, category, price, color, department) VALUES
 ('Nike', 'Nike Sportswear Women''s T-Shirt', 'T-shirts', 1045.00, 'Black', 'women'),
 ('Nike', 'Nike Sportswear Women''s T-Shirt', 'T-shirts', 1045.00, 'White', 'women'),

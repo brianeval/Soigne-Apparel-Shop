@@ -1,4 +1,4 @@
--- Run once against an existing soigne_apparel database.
+
 CREATE TABLE IF NOT EXISTS product_color_images (
   image_id INT AUTO_INCREMENT PRIMARY KEY,
   product_color_id INT NOT NULL,

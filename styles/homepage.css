@@ -15,7 +15,7 @@ a { color: inherit; text-decoration: none; }
 a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 
-/* Header */
+
 .site-header {
   display: flex; align-items: center; gap: 32px;
   padding: 14px 32px; border-bottom: 1px solid var(--line);
@@ -84,7 +84,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .premium-checkout-message.is-error { border-color: #f0c7c3; background: #fff4f2; color: #963d35; }
 .premium-checkout-back { display: inline-block; margin-top: 24px; font-size: 14px; text-decoration: underline; }
 
-/* Buttons */
+
 .btn {
   display: inline-block; padding: 13px 28px; background: var(--ink); color: #fff;
   border: 1px solid var(--ink); font: inherit; font-weight: 600; cursor: pointer;
@@ -93,7 +93,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .btn-outline { background: transparent; color: var(--ink); }
 .btn-outline:hover { color: #fff; }
 
-/* Hero */
+
 .hero { position: relative; height: var(--hero-height, calc(100vh - 120px)); overflow: hidden; background: var(--stone); }
 .hero-slide {
   position: absolute;
@@ -143,13 +143,13 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, 0.55); }
 .hero-dot.is-active { background: #fff; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25); }
 
-/* Sections */
+
 .section { padding: 64px 32px 0; max-width: 1280px; margin: 0 auto; }
 .section h2 { font-size: 26px; letter-spacing: -0.3px; margin-bottom: 24px; }
 .section-head { display: flex; justify-content: space-between; align-items: baseline; }
 .section-head a { font-size: 14px; text-decoration: underline; }
 
-/* Category tiles */
+
 .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .cat { aspect-ratio: 4 / 3; display: flex; align-items: flex-end; padding: 12px; font-weight: 600; font-size: 15px; position: relative; overflow: hidden; }
 .cat img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -167,7 +167,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .c9 { background: #bdc9b7; }
 .c10 { background: #8f9b8a; color: #fff; }
 
-/* Product row */
+
 .product-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
 .thumb {
   aspect-ratio: 3 / 4;
@@ -238,25 +238,25 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .price.sale { color: var(--accent); }
 .price s { color: var(--muted); font-weight: 400; margin-left: 6px; }
 
-/* Feature band */
+
 .feature { display: grid; grid-template-columns: 1fr 1fr; margin-top: 80px; background: var(--stone); }
 .feature-img { background: linear-gradient(160deg, #d6cfc3, #bdb2a1); min-height: 380px; }
 .feature-text { padding: 56px; align-self: center; }
 .feature-text h2 { font-size: 32px; letter-spacing: -0.5px; margin-bottom: 14px; }
 .feature-text p { color: var(--muted); max-width: 42ch; margin-bottom: 24px; }
 
-/* Perks */
+
 .perks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; padding: 64px 32px; max-width: 1280px; margin: 0 auto; }
 .perks h3 { font-size: 17px; margin-bottom: 4px; }
 .perks p { color: var(--muted); font-size: 14px; }
 
-/* Newsletter */
+
 .newsletter { text-align: center; padding: 56px 32px; border-top: 1px solid var(--line); }
 .newsletter h2 { font-size: 24px; margin-bottom: 20px; }
 .newsletter form { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .newsletter input { width: min(360px, 100%); padding: 13px 14px; border: 1px solid var(--ink); font: inherit; }
 
-/* Footer */
+
 .site-footer { background: var(--ink); color: #d8d8d8; padding: 48px 32px 24px; }
 .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; max-width: 1280px; margin: 0 auto 32px; }
 .cols h4 { color: #fff; margin-bottom: 10px; }
@@ -264,7 +264,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .cols a:hover { color: #fff; text-decoration: underline; }
 .copy { text-align: center; font-size: 12px; color: #9a9a9a; }
 
-/* Responsive */
+
 @media (max-width: 960px) {
   .site-header { flex-wrap: wrap; gap: 14px; padding: 12px 20px; }
   .search { order: 5; max-width: none; width: 100%; margin-left: 0; }
@@ -359,7 +359,7 @@ body > * {
 
 .account-logout { border-top: 1px solid #e5e5e5; margin-top: 4px; }
 
-/* Soigne storefront visual system */
+
 :root {
   --ink: #24231f;
   --muted: #77736b;

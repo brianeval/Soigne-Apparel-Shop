@@ -1,10 +1,10 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
-    $send_email = false;   // becomes true when the customer should be told about the change
+    $send_email = false;
 
     if ($action == 'update_address') {
-        // Change the shipping address (pending orders only)
+
         $shipping_address = trim($_POST['shipping_address'] ?? '');
         if ($shipping_address == '') {
             $errors[] = 'Enter a shipping address.';
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $success_text = 'Shipping address updated.';
         }
     } elseif (in_array($action, ['mark_shipped', 'mark_delivered', 'mark_failed_delivery', 'mark_paid', 'cancel'])) {
-        // action => [status the order must have now, status it gets]
+
         $steps = [
             'mark_shipped' => ['pending', 'shipped'],
             'mark_delivered' => ['shipped', 'delivered'],
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
-            // Read the current status again
+
             $status_result = mysqli_execute_query($conn, "SELECT fulfillment_status, payment_status FROM orders WHERE order_id = ?", [$order_id]);
             $current = mysqli_fetch_assoc($status_result);
 
@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } elseif ($action != 'mark_paid' && $current['payment_status'] == 'unpaid' && $current['fulfillment_status'] == $steps[$action][0]) {
                 $new_status = $steps[$action][1];
 
-                // Failed delivery and cancelled orders give their stock back
+
                 if ($new_status == 'failed_delivery' || $new_status == 'cancelled') {
                     $items_result = mysqli_execute_query($conn, "SELECT variant_id, quantity FROM order_items WHERE order_id = ?", [$order_id]);
                     foreach (mysqli_fetch_all($items_result, MYSQLI_ASSOC) as $item) {
@@ -76,12 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $errors[] = 'Choose a valid order action.';
     }
 
-    // Tell the customer about the change by email
+
     if ($send_email) {
         $email_type = $action;
         $email_order = $order;
         if ($action == 'mark_paid') {
-            // The paid email carries a PDF receipt, so it needs the order items
+
             $receipt_items_result = mysqli_execute_query($conn,
                 "SELECT product_name, color, size, quantity, unit_price AS price
                  FROM order_transaction_details WHERE order_id = ? ORDER BY order_item_id",

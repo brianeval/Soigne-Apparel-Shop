@@ -8,7 +8,7 @@ include("../includes/require_customer.php");
 $user_id = (int)$_SESSION['user_id'];
 $errors = [];
 
-// Profile details
+
 $profile_result = mysqli_execute_query($conn, "SELECT u.username, u.email, c.customer_name, c.phone, c.address
                                FROM users u
                                LEFT JOIN customers c ON c.user_id = u.user_id
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $form_action = $_POST['form_action'] ?? '';
 
     if ($form_action == 'update_photo') {
-        // Change the profile picture
+
         $upload = $_FILES['profile_photo'];
         $upload_folder = 'profiles';
         $upload_prefix = 'profile-' . $user_id . '-';
@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } elseif ($saved_image == null) {
             $errors[] = 'Please choose a profile picture to upload.';
         } else {
-            // Delete the old pictures of this user
+
             foreach (glob(APP_ROOT . '/images/profiles/profile-' . $user_id . '-*') as $old_file) {
                 if (basename($old_file) != $saved_image) {
                     unlink($old_file);
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit;
         }
     } elseif ($form_action == 'update_details') {
-        // Change the personal information
+
         $name = trim($_POST['customer_name'] ?? '');
         $phone = trim($_POST['phone'] ?? '');
         $address = trim($_POST['address'] ?? '');
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $password = $_POST['new_password'] ?? '';
         $confirm_password = $_POST['confirm_password'] ?? '';
 
-        // Basic checks
+
         if ($name == '') {
             $errors[] = 'Please enter your name.';
         }
@@ -79,17 +79,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             try {
                 mysqli_begin_transaction($conn);
 
-                // Update account details
+
                 $account_update_result = mysqli_execute_query($conn, "UPDATE users SET username = ?, email = ? WHERE user_id = ?", [$username, $email, $user_id]);
 
-                // Save customer details
+
                 $customer_details_result = mysqli_execute_query($conn, "INSERT INTO customers (user_id, customer_name, phone, address)
                                                VALUES (?, ?, ?, ?)
                                                ON DUPLICATE KEY UPDATE customer_name = VALUES(customer_name),
                                                                        phone = VALUES(phone),
                                                                        address = VALUES(address)", [$user_id, $name, $phone, $address]);
 
-                // Update password (only when a new one was typed)
+
                 if ($password != '') {
                     $password_hash = password_hash($password, PASSWORD_DEFAULT);
                     $password_update_result = mysqli_execute_query($conn, "UPDATE users SET password = ? WHERE user_id = ?", [$password_hash, $user_id]);

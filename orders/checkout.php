@@ -12,7 +12,7 @@ $checkout_email_sent = $_SESSION['checkout_email_sent'] ?? null;
 unset($_SESSION['checkout_success']);
 unset($_SESSION['checkout_email_sent']);
 
-// Cart items chosen in the cart page
+
 $checkout_cart_ids = $_SESSION['checkout_cart_ids'] ?? [];
 
 if (!$checkout_cart_ids && !$success_order_id) {
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $phone = trim($_POST['phone'] ?? '');
     $address = trim($_POST['address'] ?? '');
 
-    // Basic checks
+
     if ($customer_name == '') {
         $errors[] = 'Please enter your name.';
     }
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         try {
             mysqli_begin_transaction($conn);
 
-            // Selected cart items
+
             $selected_items_result = mysqli_execute_query($conn, "SELECT c.cart_id, c.variant_id, c.quantity,
                                                    v.stock, v.size, pc.color,
                                                    p.product_id, p.name, p.price
@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                             ORDER BY c.cart_id", array_merge([$user_id], $checkout_cart_ids));
             $items = mysqli_fetch_all($selected_items_result, MYSQLI_ASSOC);
 
-            // Is everything still in stock?
+
             $out_of_stock = false;
             foreach ($items as $item) {
                 if ($item['stock'] < $item['quantity']) {
@@ -76,11 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $email_result = mysqli_execute_query($conn, "SELECT email FROM users WHERE user_id = ?", [$user_id]);
                 $recipient = mysqli_fetch_assoc($email_result);
 
-                // Create order
+
                 $order_result = mysqli_execute_query($conn, "INSERT INTO orders (user_id, shipping_address) VALUES (?, ?)", [$user_id, $address]);
                 $order_id = mysqli_insert_id($conn);
 
-                // Save order items and take the stock
+
                 $email_items = [];
                 $order_total = 0;
                 foreach ($items as $item) {
@@ -98,19 +98,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                     mysqli_execute_query($conn, "INSERT INTO order_items (order_id, variant_id, quantity, price) VALUES (?, ?, ?, ?)", [$order_id, $variant_id, $quantity, $price]);
 
-                    // Take the stock (it fails when somebody else bought the last pieces)
+
                     mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock - ? WHERE variant_id = ? AND stock >= ?", [$quantity, $variant_id, $quantity]);
                     if (mysqli_affected_rows($conn) != 1) {
                         throw new mysqli_sql_exception('Product stock changed during checkout.');
                     }
                 }
 
-                // Clear checked-out items from the cart
+
                 mysqli_execute_query($conn, "DELETE FROM cart WHERE user_id = ? AND cart_id IN ($checkout_id_placeholders)", array_merge([$user_id], $checkout_cart_ids));
 
                 mysqli_commit($conn);
 
-                // Send the confirmation email (the order is already saved even if this fails)
+
                 $email_order = [
                     'email' => $recipient['email'],
                     'customer_name' => $customer_name,
@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Saved customer details fill the form the first time it is shown
+
 if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     $customer_result = mysqli_query($conn, "SELECT customer_name, phone, address FROM customers WHERE user_id = $user_id");
     $customer = mysqli_fetch_assoc($customer_result);
@@ -154,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] != 'POST') {
     }
 }
 
-// Checkout summary
+
 $summary_result = mysqli_execute_query($conn, "SELECT c.cart_id, c.quantity, v.variant_id, v.size, v.stock,
                                       pc.color,
                                       (SELECT pci.image_path

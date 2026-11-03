@@ -2,7 +2,7 @@
   session_start();
   include_once("includes/config.php");
 
-  // Featured products
+
   $products_sql = "SELECT p.*, pc.product_color_id AS first_color_id
       FROM products p
       LEFT JOIN product_colors pc
@@ -11,7 +11,7 @@
       LIMIT 5";
   $products = mysqli_fetch_all(mysqli_query($conn, $products_sql), MYSQLI_ASSOC);
 
-  // Pictures for the product cards
+
   $image_color_ids = array_column($products, 'first_color_id');
   include("includes/color_images.php");
 

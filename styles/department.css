@@ -78,7 +78,7 @@
   .dept-grid { grid-template-columns: repeat(2, 1fr); gap: 20px 12px; }
 }
 
-/* ---------- Brands ---------- */
+
 .brand-back {
   margin-bottom: 16px;
   font-size: 14px;
@@ -145,7 +145,7 @@
 
 .brand-card:hover .dept-name { text-decoration: underline; }
 
-/* Coordinated editorial catalog styling */
+
 .dept-page {
   max-width: 1540px;
   padding: clamp(36px, 6vw, 76px) clamp(20px, 5vw, 76px) 88px;

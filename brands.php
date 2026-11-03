@@ -1,5 +1,5 @@
 <?php
-// Brand listings
+
 include_once ('includes/config.php');
 
 $brand_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -22,7 +22,7 @@ if ($brand_name !== '') {
 }
 
 if ($brand_id > 0) {
-    // Brand details
+
     $brand_result = mysqli_execute_query($conn, "SELECT supplier_id, name, image FROM suppliers WHERE supplier_id = ?", [$brand_id]);
     $brand = mysqli_fetch_assoc($brand_result);
 
@@ -31,7 +31,7 @@ if ($brand_id > 0) {
         exit('Brand not found.');
     }
 
-    // Brand products
+
     $products_sql = "SELECT p.product_id, p.name, p.price, c.name AS category,
                  pc.product_color_id AS first_color_id,
                  (SELECT COUNT(*) FROM product_colors WHERE product_id = p.product_id) AS color_count
@@ -46,7 +46,7 @@ if ($brand_id > 0) {
 
     $page_title = $brand['name'] . " | Soigné";
 } else {
-    // All brands
+
     $result = mysqli_query($conn,
         "SELECT s.supplier_id, s.name, s.image, COUNT(p.product_id) AS product_count
          FROM suppliers s

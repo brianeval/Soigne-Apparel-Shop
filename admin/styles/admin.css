@@ -15,7 +15,7 @@ a { color: inherit; text-decoration: none; }
 button, input { font: inherit; }
 a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid var(--admin-ink); outline-offset: 2px; }
 
-/* Admin sign-in */
+
 .admin-login-body { min-height: 100vh; background: #fff; }
 .admin-login-layout { min-height: 100vh; display: grid; grid-template-columns: minmax(360px, .9fr) 1.1fr; }
 .admin-login-brand { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: 42px clamp(32px, 6vw, 84px); color: #fff; overflow: hidden; background: linear-gradient(145deg, rgba(28, 28, 28, .94), rgba(28, 28, 28, .68)), url("../../images/hero-fashion.jpg") center / cover; }
@@ -45,7 +45,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .admin-back-link { display: inline-block; margin-top: 28px; color: #70766e; font-size: 13px; }
 .admin-back-link:hover { color: var(--admin-accent); }
 
-/* Dashboard shell */
+
 .admin-dashboard-body { min-height: 100vh; background: var(--admin-canvas); }
 .admin-app { min-height: 100vh; }
 .admin-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 5; width: 256px; display: flex; flex-direction: column; padding: 28px 18px 18px; border-right: 1px solid var(--admin-line); background: var(--admin-paper); transition: width .2s ease, padding .2s ease; }
@@ -104,7 +104,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
 .admin-button-light { border-color: #d8d6d2; background: #fff; color: var(--admin-ink); box-shadow: 0 2px 4px rgba(28,28,28,.1), inset 0 1px 0 rgba(255,255,255,.9); }
 .admin-button-light:hover { border-color: var(--admin-accent); background: var(--admin-accent); color: #fff; box-shadow: 0 3px 7px rgba(28,28,28,.14), inset 0 1px 0 rgba(255,255,255,.18); }
 
-/* Store overview cards and tables */
+
 .admin-stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .admin-stat-card, .admin-panel { border: 1px solid var(--admin-line); border-radius: 10px; background: var(--admin-paper); box-shadow: 0 2px 8px rgba(28,28,28,.025); }
 .admin-stat-card { min-height: 128px; padding: 17px 18px; }
@@ -227,7 +227,7 @@ a:focus-visible, input:focus-visible, button:focus-visible { outline: 2px solid 
   .admin-stat-card .stat-top { align-items: flex-start; }
 }
 
-/* Color Admin-inspired admin workspace */
+
 body.admin-dashboard-body {
   background: var(--admin-canvas);
   color: #2d353c;

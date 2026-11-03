@@ -3,7 +3,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action == 'add_images') {
-        // Upload pictures for one color
+
         $color_id = (int)($_POST['product_color_id'] ?? 0);
 
         $uploads = [];
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } elseif (!$uploads || count($uploads) > 10) {
             $errors[] = 'Choose between 1 and 10 images to upload.';
         } else {
-            // Save the files
+
             $saved_images = [];
             foreach ($uploads as $upload) {
                 $upload_folder = 'products';
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if (!$errors) {
                 try {
-                    // New pictures go after the existing ones
+
                     $order_result = mysqli_query($conn, "SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_order FROM product_color_images WHERE product_color_id = $color_id");
                     $next_order = (int)mysqli_fetch_assoc($order_result)['next_order'];
                     foreach ($saved_images as $image_path) {
@@ -54,13 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
 
-            // Something went wrong: remove the files that were saved
+
             foreach ($saved_images as $image_path) {
                 unlink(APP_ROOT . '/images/' . $image_path);
             }
         }
     } elseif ($action == 'remove_images') {
-        // Remove the ticked pictures
+
         $image_ids = $_POST['image_ids'] ?? [];
         if (!$image_ids) {
             $errors[] = 'Select at least one image to remove.';
@@ -77,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if ($image_row) {
                     mysqli_query($conn, "DELETE FROM product_color_images WHERE image_id = $image_id");
 
-                    // Delete the file too, unless another color still uses it
+
                     $image_path = $image_row['image_path'];
                     $path_safe = mysqli_real_escape_string($conn, $image_path);
                     $use_result = mysqli_query($conn, "SELECT COUNT(*) AS image_count FROM product_color_images WHERE image_path = '$path_safe'");
@@ -96,13 +96,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $name = trim($_POST['name'] ?? '');
         $category_id = (int)($_POST['category_id'] ?? 0);
         if ($category_id == 0) {
-            $category_id = null;   // uncategorized
+            $category_id = null;
         }
         $department = $_POST['department'] ?? '';
         $price = $_POST['price'] ?? '';
         $description = trim($_POST['description'] ?? '');
 
-        // Basic checks
+
         if ($supplier_id < 1) {
             $errors[] = 'Choose a brand.';
         }
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $errors[] = 'Enter a valid color and size.';
         } else {
             try {
-                // The color must belong to this product
+
                 $variant_result = mysqli_execute_query($conn, "INSERT INTO product_variants (product_color_id, size, stock) SELECT product_color_id, ?, 0 FROM product_colors WHERE product_color_id = ? AND product_id = ?", [$size, $color_id, $product_id]);
                 if (mysqli_affected_rows($conn) != 1) {
                     $errors[] = 'That color does not belong to this product.';
@@ -212,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($variant_id < 1 || $size == '') {
             $errors[] = 'Enter a valid size.';
         } else {
-            // A size that is already used by a cart, order or restock cannot be renamed
+
             $usage_result = mysqli_query($conn,
                 "SELECT v.size,
                     (SELECT COUNT(*) FROM cart c WHERE c.variant_id = v.variant_id) +

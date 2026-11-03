@@ -14,7 +14,7 @@ $order_result = mysqli_query($conn,
 );
 $order = mysqli_fetch_assoc($order_result);
 
-// Receipts only exist for delivered and paid orders
+
 if (!$order || $order['fulfillment_status'] != 'delivered' || $order['payment_status'] != 'paid') {
     http_response_code(404);
     exit('Order receipt not found.');
@@ -28,7 +28,7 @@ $items_result = mysqli_query($conn,
 );
 $order['items'] = mysqli_fetch_all($items_result, MYSQLI_ASSOC);
 
-// Build the PDF
+
 $receipt_order = $order;
 try {
     include("../includes/receipt_pdf.php");

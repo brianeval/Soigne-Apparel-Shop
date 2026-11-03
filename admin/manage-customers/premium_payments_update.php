@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $admin_id = (int)$_SESSION['user_id'];
                 $problem = '';
 
-                // Approving gives the customer one more month of VIP
+
                 if ($action == 'approve') {
                     mysqli_execute_query($conn,
                         "UPDATE users

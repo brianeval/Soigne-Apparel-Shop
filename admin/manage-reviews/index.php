@@ -3,9 +3,9 @@ require_once("../includes/bootstrap.php");
 
 include('reviews_delete.php');
 
-// Filters
+
 $product_search = trim($_GET['product_search'] ?? '');
-$rating = (int)($_GET['rating'] ?? 0);   // 0 means all ratings
+$rating = (int)($_GET['rating'] ?? 0);
 
 $review_sql = "SELECT r.review_id, r.rating, r.review_text, r.status, r.created_at, r.published_at,
                       p.product_id, p.name AS product_name, u.username

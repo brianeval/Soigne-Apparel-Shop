@@ -5,8 +5,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 include_once(__DIR__ . "/../../includes/config.php");
 
-// Only signed-in administrators can open admin pages
-$return_path = $_SERVER['REQUEST_URI'] ?? '';
+
 $admin_account = null;
 
 if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') == 'admin') {
@@ -17,7 +16,7 @@ if (isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') == 'admin') {
 
 if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') != 'admin') {
     $_SESSION['message'] = 'Please sign in with an active administrator account to access that page.';
-    header('Location: ' . BASE_URL . 'admin/login.php?redirect=' . urlencode($return_path));
+    header('Location: ' . BASE_URL . 'admin/login.php');
     exit;
 }
 

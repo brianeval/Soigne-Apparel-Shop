@@ -1,7 +1,7 @@
 <?php
-// Checks who is signed in and keeps the session up to date.
-// After this file runs, $customer_role is one of:
-// 'guest', 'admin', 'inactive', 'customer' or 'vip'
+
+
+
 $customer_role = 'guest';
 
 if (isset($_SESSION['user_id'])) {
@@ -16,11 +16,11 @@ if (isset($_SESSION['user_id'])) {
         $auth_account = mysqli_fetch_assoc($auth_result);
 
         if (!$auth_account || $auth_account['status'] != 'active' || !in_array($auth_account['role'], ['customer', 'vip'])) {
-            // Account is missing, inactive or not a customer: sign the person out
+
             unset($_SESSION['user_id'], $_SESSION['username'], $_SESSION['role'], $_SESSION['vip_expires_at']);
             $customer_role = 'inactive';
         } else {
-            // An expired VIP membership turns back into a normal customer
+
             if ($auth_account['role'] == 'vip' && $auth_account['vip_expired'] == 1) {
                 mysqli_query($conn, "UPDATE users SET role = 'customer', vip_expires_at = NULL WHERE user_id = $auth_user_id");
                 $auth_account['role'] = 'customer';

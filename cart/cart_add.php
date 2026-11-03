@@ -2,7 +2,7 @@
 session_start();
 include_once('../includes/config.php');
 
-// Administrators cannot add products to the cart
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_SESSION['role'] ?? '') == 'admin') {
     $variant_id = (int)($_POST['variant_id'] ?? 0);
     $product_result = mysqli_query($conn,
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && ($_SESSION['role'] ?? '') == 'admin'
     exit;
 }
 
-// Customer access
+
 $login_redirect = BASE_URL . 'cart/cart.php';
 include("../includes/require_customer.php");
 
@@ -35,7 +35,7 @@ $user_id = (int)$_SESSION['user_id'];
 $variant_id = (int)($_POST['variant_id'] ?? 0);
 $quantity = max(1, (int)($_POST['quantity'] ?? 1));
 
-// Check variant stock
+
 $variant_result = mysqli_execute_query($conn, "SELECT stock FROM product_variants WHERE variant_id = ?", [$variant_id]);
 $variant = mysqli_fetch_assoc($variant_result);
 
@@ -44,7 +44,7 @@ if (!$variant) {
 } elseif ($variant['stock'] < 1) {
     $_SESSION['message'] = 'Sorry, that size is sold out.';
 } else {
-    // Add item to cart (the quantity cannot go above the stock)
+
     $stock = (int)$variant['stock'];
     $quantity = min($quantity, $stock);
     $cart_insert_sql = "INSERT INTO cart (user_id, variant_id, quantity)

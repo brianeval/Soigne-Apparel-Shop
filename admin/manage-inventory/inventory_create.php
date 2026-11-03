@@ -1,5 +1,5 @@
 <?php
-// Save a restock
+
 if ($post_action == 'create') {
     $supplier_id = (int)$posted_supplier_id;
     if ($supplier_id < 1) {
@@ -23,7 +23,7 @@ if ($post_action == 'create') {
             continue;
         }
 
-        // The variant must belong to the chosen supplier
+
         $variant_result = mysqli_execute_query($conn,
             "SELECT v.variant_id
              FROM product_variants v
@@ -51,14 +51,14 @@ if ($post_action == 'create') {
             $restock_result = mysqli_execute_query($conn, "INSERT INTO restocks (batch_number, supplier_id, restock_date) VALUES (NULL, ?, ?)", [$supplier_id, $restock_date]);
             $restock_id = mysqli_insert_id($conn);
 
-            // Batch number looks like RS-2026-00012
+
             $batch_number = sprintf('RS-%s-%05d', date('Y'), $restock_id);
             mysqli_execute_query($conn, "UPDATE restocks SET batch_number = ? WHERE restock_id = ?", [$batch_number, $restock_id]);
 
             foreach ($restock_lines as $line) {
                 mysqli_execute_query($conn, "INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost) VALUES (?, ?, ?, ?)", [$restock_id, $line['variant_id'], $line['quantity'], $line['unit_cost']]);
 
-                // Add the received quantity to the stock
+
                 mysqli_execute_query($conn, "UPDATE product_variants SET stock = stock + ? WHERE variant_id = ?", [$line['quantity'], $line['variant_id']]);
             }
 

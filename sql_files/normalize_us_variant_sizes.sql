@@ -1,4 +1,4 @@
--- When both a source size and its normalized size exist, combine their stock.
+
 START TRANSACTION;
 
 DROP TEMPORARY TABLE IF EXISTS tmp_variant_size_merges;

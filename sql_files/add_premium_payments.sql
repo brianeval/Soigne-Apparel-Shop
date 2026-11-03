@@ -1,4 +1,4 @@
--- Run once against an existing soigne_apparel database.
+
 CREATE TABLE premium_payments (
   payment_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,

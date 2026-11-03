@@ -1,7 +1,7 @@
 <?php
-// Looks up the pictures of product colors.
-// Set $image_color_ids (a list of product_color_id numbers) before including this file.
-// Result: $images_by_color[color_id] is a list of image paths in display order.
+
+
+
 $images_by_color = [];
 $image_color_ids = array_filter(array_map('intval', $image_color_ids));
 

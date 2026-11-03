@@ -18,7 +18,7 @@ CREATE TEMPORARY TABLE tmp_current_stock_batches (
 
 START TRANSACTION;
 
--- Record each available variant's current stock and 80% of its product price.
+
 INSERT INTO tmp_current_stock_restock (variant_id, supplier_id, current_stock, unit_cost)
 SELECT v.variant_id,
        p.supplier_id,
@@ -29,7 +29,7 @@ JOIN product_colors AS pc ON pc.product_color_id = v.product_color_id
 JOIN products AS p ON p.product_id = pc.product_id
 WHERE v.stock > 0;
 
--- Create one history batch for each supplier.
+
 INSERT INTO tmp_current_stock_batches (supplier_id, temporary_batch_number)
 SELECT supplier_id,
        CONCAT('T', RIGHT(CAST(UUID_SHORT() AS CHAR), 19))
@@ -42,13 +42,13 @@ INSERT INTO restocks (batch_number, supplier_id, restock_date)
 SELECT temporary_batch_number, supplier_id, CURDATE()
 FROM tmp_current_stock_batches;
 
--- Match each new history batch to its restock record.
+
 UPDATE tmp_current_stock_batches AS batches
 JOIN restocks AS restock
     ON restock.batch_number = batches.temporary_batch_number
 SET batches.restock_id = restock.restock_id;
 
--- Save the historical quantities and costs without changing product stock.
+
 INSERT INTO restock_items (restock_id, variant_id, quantity, unit_cost)
 SELECT batches.restock_id,
        stock.variant_id,
@@ -58,7 +58,7 @@ FROM tmp_current_stock_restock AS stock
 JOIN tmp_current_stock_batches AS batches
     ON batches.supplier_id = stock.supplier_id;
 
--- Use the same batch number format as the inventory page.
+
 UPDATE restocks AS restock
 JOIN tmp_current_stock_batches AS batches
     ON batches.restock_id = restock.restock_id
@@ -69,7 +69,7 @@ SET restock.batch_number = CONCAT(
     LPAD(restock.restock_id, 5, '0')
 );
 
--- Show the history rows created by this script.
+
 SELECT COUNT(*) AS variants_recorded,
        COALESCE(SUM(current_stock), 0) AS units_recorded,
        COALESCE(ROUND(SUM(current_stock * unit_cost), 2), 0.00) AS recorded_cost

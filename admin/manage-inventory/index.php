@@ -8,7 +8,7 @@ if (!in_array($inventory_view, ['stock', 'history', 'restock'])) {
     $inventory_view = 'stock';
 }
 
-// Values of the restock form (the form is sent again every time a button is pressed)
+
 $posted_supplier_id = $_POST['supplier_id'] ?? '';
 $posted_variant_ids = array_values($_POST['variant_ids'] ?? []);
 $posted_quantities = array_values($_POST['quantities'] ?? []);
@@ -18,7 +18,7 @@ if ($post_action == 'load_variants') {
     $variant_supplier_id = $posted_supplier_id;
 }
 
-// The "x" button removes one line of the restock form
+
 if (isset($_POST['remove_line'])) {
     $remove_line_index = (int)$_POST['remove_line'];
     array_splice($posted_variant_ids, $remove_line_index, 1);
@@ -31,7 +31,7 @@ include('inventory_create.php');
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
 $categories = mysqli_fetch_all(mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name"), MYSQLI_ASSOC);
 
-// Variants of the supplier chosen in the restock form
+
 $variant_options = [];
 if ($variant_supplier_id != '') {
     $variant_options = mysqli_fetch_all(mysqli_query($conn,
@@ -45,7 +45,7 @@ if ($variant_supplier_id != '') {
     ), MYSQLI_ASSOC);
 }
 
-// Filters of the current stock list
+
 $search = trim($_GET['search'] ?? '');
 $filter_department = $_GET['department'] ?? '';
 if (!in_array($filter_department, ['men', 'women', 'kids'])) {
@@ -56,7 +56,7 @@ $filter_category = (int)($_GET['category_id'] ?? 0);
 $filter_color = trim($_GET['color'] ?? '');
 $filter_size = trim($_GET['size'] ?? '');
 
-// Colors and sizes offered in the filters (only those of the chosen department)
+
 $option_where = '';
 if ($filter_department != '') {
     $option_where = "WHERE p.department = '$filter_department'";
@@ -100,7 +100,7 @@ $inventory_rows = mysqli_fetch_all(mysqli_query($conn,
 ), MYSQLI_ASSOC);
 $inventory_total = count($inventory_rows);
 
-// Restock history (with the optional search)
+
 $history_search = trim($_GET['history_search'] ?? '');
 $history_where = '';
 if ($history_search != '') {

@@ -1,6 +1,6 @@
--- Run once against an existing soigne_apparel database.
--- Legacy "paid" orders are treated as delivered and paid; other statuses are
--- migrated as fulfillment states with payment still unpaid.
+
+
+
 ALTER TABLE orders
   ADD COLUMN fulfillment_status ENUM('pending','shipped','delivered','failed_delivery','cancelled') NOT NULL DEFAULT 'pending' AFTER user_id,
   ADD COLUMN payment_status ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid' AFTER fulfillment_status;

@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $address = trim($_POST['address'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        // Basic checks
+
         if ($customer_name == '') {
             $errors[] = 'Enter a customer name.';
         }

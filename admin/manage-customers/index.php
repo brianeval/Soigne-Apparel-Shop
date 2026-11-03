@@ -9,11 +9,11 @@ if (!in_array($customer_view, ['directory', 'create'])) {
 
 include('customers_actions.php');
 
-// Expired VIP memberships go back to normal customers
+
 mysqli_query($conn, "UPDATE users SET role = 'customer', vip_expires_at = NULL
                      WHERE role = 'vip' AND vip_expires_at IS NOT NULL AND vip_expires_at <= CURRENT_TIMESTAMP");
 
-// Customer list (with the optional search)
+
 $customer_search = trim($_GET['search'] ?? '');
 $search_text = mysqli_real_escape_string($conn, $customer_search);
 $customer_sql = "SELECT u.user_id, u.username, u.email, u.role, u.status, u.vip_expires_at, c.customer_name, c.phone,

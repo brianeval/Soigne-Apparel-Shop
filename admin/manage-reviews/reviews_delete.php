@@ -1,5 +1,5 @@
 <?php
-// Delete a review
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $review_id = (int)($_POST['review_id'] ?? 0);
 
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    // Go back to the list with the same filters
+
     $review_filters = [
         'product_search' => $_GET['product_search'] ?? '',
         'rating' => $_GET['rating'] ?? '',

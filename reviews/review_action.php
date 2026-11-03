@@ -15,7 +15,7 @@ $review_id = (int)($_POST['review_id'] ?? 0);
 $rating = (int)($_POST['rating'] ?? 0);
 $review_text = trim($_POST['review_text'] ?? '');
 
-// Basic checks
+
 $error = '';
 if ($order_id < 1 || $order_item_id < 1 || $product_id < 1 || !in_array($action, ['create', 'update', 'delete'])) {
     $error = 'That review action is invalid.';
@@ -25,7 +25,7 @@ if ($order_id < 1 || $order_item_id < 1 || $product_id < 1 || !in_array($action,
     $error = 'Choose a rating and write a review between 3 and 1,000 characters.';
 }
 
-// Only products from this customer's paid orders can be reviewed
+
 if ($error == '') {
     $purchased_result = mysqli_query($conn,
         "SELECT o.order_id
@@ -41,7 +41,7 @@ if ($error == '') {
     }
 }
 
-// Editing or deleting needs one of the customer's own active reviews
+
 if ($error == '' && $action != 'create') {
     $existing_result = mysqli_query($conn,
         "SELECT review_id FROM product_reviews
@@ -59,7 +59,7 @@ if ($error != '') {
     exit;
 }
 
-// Hide bad words without masking the rest of the word they appear in
+
 $bad_words = ['putang ina', 'tangina', 'putragis', 'tarantado', 'punyemas', 'punyeta', 'hinayupak',
               'motherfucker', 'bullshit', 'asshole', 'bastard', 'fuck', 'shit', 'bitch', 'cunt', 'dick',
               'cock', 'piss', 'whore', 'slut', 'wanker', 'twat', 'prick', 'douche', 'crap', 'damn',
@@ -79,7 +79,7 @@ try {
              SET rating = ?, review_text = ?, order_item_id = ?, status = 'published',
                  published_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
              WHERE product_id = ? AND user_id = ? AND status = 'deleted'", [$rating, $review_text, $order_item_id, $product_id, $user_id]);
-        //if no deleted review is found, create new
+
         if (mysqli_affected_rows($conn) == 0) {
             $create_result = mysqli_execute_query($conn, "INSERT INTO product_reviews (product_id, user_id, order_item_id, rating, review_text, status, published_at)
                  VALUES (?, ?, ?, ?, ?, 'published', CURRENT_TIMESTAMP)", [$product_id, $user_id, $order_item_id, $rating, $review_text]);

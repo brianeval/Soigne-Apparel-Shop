@@ -14,7 +14,7 @@ $customer = mysqli_fetch_assoc($customer_result);
 
 $customer_name = $customer['customer_name'] ?: $customer['username'];
 
-// Is there already a payment waiting for review?
+
 $pending_result = mysqli_query($conn,
     "SELECT payment_id, submitted_at
      FROM premium_payments
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif ($upload['size'] > 5 * 1024 * 1024) {
         $errors[] = 'The receipt must be no larger than 5 MB.';
     } else {
-        // Only JPEG, PNG and WebP pictures are accepted
+
         $receipt_types = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp'];
         $receipt_extension = strtolower(pathinfo($upload['name'], PATHINFO_EXTENSION));
         if (!isset($receipt_types[$receipt_extension])) {
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     if (!$errors) {
-        // Receipts are saved outside the public website folder so only administrators can view them
+
         $receipt_filename = uniqid('receipt-', true) . '.' . $receipt_extension;
         $receipt_mime = $receipt_types[$receipt_extension];
         $private_upload_dir = dirname(APP_ROOT) . '/soigne_private_uploads/premium-payments';

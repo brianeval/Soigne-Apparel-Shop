@@ -1,4 +1,4 @@
--- Run this once against the existing soigne_apparel database.
+
 CREATE TABLE product_reviews (
   review_id INT AUTO_INCREMENT PRIMARY KEY,
   product_id INT NOT NULL,

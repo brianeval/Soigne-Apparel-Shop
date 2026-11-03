@@ -2,7 +2,7 @@
 include_once("config.php");
 include_once("customer_auth.php");
 
-// Cart badge
+
 $cart_count = 0;
 if ($customer_role == 'customer' || $customer_role == 'vip') {
     $cart_user_id = (int)$_SESSION['user_id'];
@@ -10,13 +10,13 @@ if ($customer_role == 'customer' || $customer_role == 'vip') {
     $cart_count = (int)mysqli_fetch_assoc($cart_result)['item_count'];
 }
 
-// Profile picture of the signed-in user
+
 if (isset($_SESSION['user_id'])) {
     $image_user_id = (int)$_SESSION['user_id'];
     include(__DIR__ . "/profile_image.php");
 }
 
-// Default page title
+
 if (!isset($page_title)) {
     $page_title = 'Soigné';
 }

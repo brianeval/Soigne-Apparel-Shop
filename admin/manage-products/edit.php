@@ -13,7 +13,7 @@ if (!$product) {
     exit('Product not found.');
 }
 
-// Address of this page (used to come back after saving)
+
 $edit_url = BASE_URL . 'admin/manage-products/edit.php?id=' . $product_id;
 
 $errors = [];
@@ -22,7 +22,7 @@ include('products_edit_actions.php');
 $suppliers = mysqli_fetch_all(mysqli_query($conn, "SELECT supplier_id, name FROM suppliers ORDER BY name"), MYSQLI_ASSOC);
 $categories = mysqli_fetch_all(mysqli_query($conn, "SELECT category_id, name FROM categories ORDER BY name"), MYSQLI_ASSOC);
 
-// Colors with their sizes
+
 $color_rows = mysqli_fetch_all(mysqli_query($conn,
     "SELECT pc.product_color_id, pc.color, v.variant_id, v.size
      FROM product_colors pc
@@ -41,7 +41,7 @@ foreach ($color_rows as $row) {
     }
 }
 
-// Pictures of every color: the file paths and (in the same order) their ids
+
 $color_images = [];
 $color_image_ids = [];
 $image_rows = mysqli_fetch_all(mysqli_query($conn,
@@ -56,13 +56,13 @@ foreach ($image_rows as $image_row) {
     $color_image_ids[(int)$image_row['product_color_id']][] = (int)$image_row['image_id'];
 }
 
-// Which color tab is open
+
 $selected_color_panel_id = (int)($_POST['color_panel_id'] ?? $_GET['color_panel_id'] ?? $_POST['product_color_id'] ?? 0);
 if (!isset($colors[$selected_color_panel_id])) {
     $selected_color_panel_id = $colors ? (int)array_key_first($colors) : 0;
 }
 
-// Which panel is open: product details or product options
+
 $option_actions = ['add_images', 'remove_images', 'add_color', 'update_color', 'delete_color', 'add_variant', 'update_variant', 'delete_variant'];
 $posted_action = $_POST['action'] ?? '';
 if (in_array($posted_action, $option_actions) || ($_GET['panel'] ?? '') == 'options') {

@@ -1,5 +1,5 @@
 <?php
-// Product grid
+
 $empty_message = $empty_message ?? 'No products found.';
 ?>
 <?php if (empty($products)) { ?>
